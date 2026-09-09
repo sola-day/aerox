@@ -517,12 +517,12 @@ defmodule Aerox.AppView.Views do
         parent_blocks = state.post_blocks[parent_uri] || %{}
 
         parent =
-          if post_view?(parent) and child_blocks[:parent],
+          if post_view?(parent) and child_blocks[:parent] == true,
             do: blocked_post(parent_uri, parent["author"]["did"], state),
             else: parent
 
         root =
-          if post_view?(root) and (child_blocks[:root] or parent_blocks[:root]),
+          if post_view?(root) and (child_blocks[:root] == true or parent_blocks[:root] == true),
             do: blocked_post(root_uri, root["author"]["did"], state),
             else: root
 

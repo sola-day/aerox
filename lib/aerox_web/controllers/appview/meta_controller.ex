@@ -11,8 +11,20 @@ defmodule AeroxWeb.AppView.MetaController do
 
   def did_json(conn, _) do
     respond(conn, %{
-      "@context" => ["https://www.w3.org/ns/did/v1"],
+      "@context" => ["https://www.w3.org/ns/did/v1", "https://w3id.org/security/multikey/v1"],
       "id" => Config.service_did(),
+      # the key our outbound service JWTs (feed generators) are signed with
+      "verificationMethod" => [
+        %{
+          "id" => Config.service_did() <> "#atproto",
+          "type" => "Multikey",
+          "controller" => Config.service_did(),
+          "publicKeyMultibase" =>
+            Config.signing_keypair()
+            |> Aerox.ATProto.Crypto.did_key()
+            |> String.replace_prefix("did:key:", "")
+        }
+      ],
       "service" => [
         %{
           "id" => "#bsky_appview",
