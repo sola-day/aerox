@@ -8,3 +8,11 @@ export DATABASE_HOST=127.0.0.1
 export DATABASE_PORT=5433
 export DATABASE_USER=aerox
 export DATABASE_PASSWORD=aerox
+
+# Dev server behind the local Traefik (DEV_PLAN §1.2). AEROX_BIND_IP is the
+# address Phoenix listens on: the `multica` bridge gateway, which the Traefik
+# container can reach and the public interface cannot. PHX_HOST is the name
+# Traefik holds a certificate for and the service endpoint atproto clients
+# will read back. Unset both to fall back to 127.0.0.1 / localhost.
+export AEROX_BIND_IP=172.18.0.1
+export PHX_HOST=aerox.sola.town

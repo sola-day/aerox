@@ -52,9 +52,50 @@ spaces.<dev-domain>      pds-spaces-alpha image      ┘
 ```
 
 A wildcard DNS record `*.<dev-domain>` → the server, plus `_atproto.<handle>` TXT
-records for the handle-resolution tests. Caddy issues certificates per hostname on
-first request (or a wildcard via DNS-01 if the DNS provider supports it — DNS-01 does
-not require the PDS to be reachable, only the DNS API).
+records for the handle-resolution tests. Certificates come from Let's Encrypt; the
+handle wildcard must go through DNS-01, because HTTP-01 cannot answer a wildcard
+challenge at all, and DNS-01 does not require the PDS to be reachable — only the
+DNS API.
+
+**Resolved on this box (2026-09-09).** `<dev-domain>` is **`aerox.sola.town`**, not
+the `sola.town` apex: the apex already carries other applications, and a handle
+catch-all there would race their routers. Everything aerox therefore sits one label
+deeper — `pds.aerox.sola.town`, `plc.aerox.sola.town`, … and handles at
+`alice.aerox.sola.town`.
+
+* **DNS.** `sola.town` is on Cloudflare (`corey`/`teresa` nameservers) with just two
+  records, `sola.town` and `*.sola.town`, both A to the host and unproxied. No new
+  record is needed for the aerox subtree: RFC 4592 wildcard synthesis makes
+  `*.sola.town` answer at *any* depth below it, and `alice.aerox.sola.town` already
+  resolves — verified, not assumed. The one-label limit is a property of TLS
+  wildcards, not of DNS wildcards, and conflating the two is the usual mistake here.
+* **DNS API.** The Cloudflare token in `/opt/traefik/dns01.env` was verified against
+  the live API to create, update and delete records in the `sola.town` zone (a probe
+  TXT record was written and removed). That is enough for both DNS-01 and the
+  `_atproto.<handle>` TXT records the handle-resolution tests need.
+* **Proxy.** Not Caddy: the box already runs Traefik v3.7.7 (`ginger-traefik`) on
+  :80/:443 in front of unrelated applications, with two ACME resolvers configured —
+  `letsencrypt` (HTTP-01) and `letsencrypt-dns` (DNS-01 via Cloudflare). aerox reuses
+  it rather than contending for the ports.
+* **Certificate.** A `sola.town` + `*.sola.town` wildcard already existed; it does
+  **not** cover `alice.aerox.sola.town`, one label too deep. A second certificate,
+  `aerox.sola.town` + `*.aerox.sola.town`, was obtained via DNS-01 on 2026-09-09 and
+  covers every aerox service name and every handle.
+* **Routing.** `ops/traefik/aerox.dynamic.yml` holds aerox's routers and is spliced
+  into Traefik's hand-maintained `dynamic.yml` by `ops/traefik/install.sh` — the
+  shared Traefik uses `--providers.file.filename`, a single file, so aerox cannot
+  drop in a file of its own. The splice is delimited, idempotent and backed up on
+  every write; the file provider hot-reloads, so no container is restarted.
+* **Upstream.** Traefik forwards to the Phoenix dev server on the host at
+  `172.18.0.1:4000`, the `multica` bridge gateway. The box has **no host firewall**
+  (`ufw` inactive, `iptables -P INPUT ACCEPT`), so binding the dev server to
+  `0.0.0.0` would publish it on the public interface; the bridge address is reachable
+  from the Traefik container and nowhere else. `AEROX_BIND_IP` and `PHX_HOST` in
+  `.envrc` carry this, and both default to loopback so a plain checkout stays local.
+* **Verified end to end.** `https://pds.aerox.sola.town/` and
+  `https://alice.aerox.sola.town/` both return 200 with a valid chain, a WebSocket
+  upgrade returns `101` (the firehose depends on it), and the pre-existing
+  applications on `sola.town` were re-checked afterwards and are unaffected.
 
 Two environments coexist on the box, distinguished by port ranges and database
 names: **`dev`** (the loop you are typing in) and **`demo`** (a release, restarted on

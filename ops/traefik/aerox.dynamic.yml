@@ -1,0 +1,58 @@
+# Traefik dynamic configuration for aerox, spliced into the shared
+# ginger-traefik dynamic.yml by ops/traefik/install.sh. See DEV_PLAN §1.2.
+#
+# `<dev-domain>` from DEV_PLAN §1.2 is `aerox.sola.town`: aerox gets its own
+# subtree rather than the sola.town apex, because the apex already carries other
+# apps (demo, registry, sonic) and a handle catch-all there would race their
+# routers. Services live at pds./plc./relay./appview./labeler.aerox.sola.town and
+# handles at *.aerox.sola.town, exactly as the plan lays out.
+#
+# Traefik terminates TLS and forwards plain HTTP to the Phoenix dev server on the
+# host. The upstream is the `multica` bridge gateway (172.18.0.1): reachable from
+# the Traefik container, private to that bridge, and — unlike 0.0.0.0 — not
+# published on the public interface, which matters because the box has no host
+# firewall. Start the dev server with AEROX_BIND_IP=172.18.0.1 (see .envrc.example).
+http:
+  routers:
+    # Owns the certificate request for the whole aerox subtree. A handle such as
+    # alice.aerox.sola.town is one label deeper than *.sola.town, and a TLS
+    # wildcard covers exactly one label, so the existing certificate cannot serve
+    # it and a new one is required. DNS-01 is mandatory: HTTP-01 cannot answer a
+    # wildcard challenge. `domains` is what keeps this to a single certificate —
+    # without it Traefik would ask Let's Encrypt for one certificate per handle
+    # it ever sees and burn the 50-per-week limit.
+    #
+    # DNS itself needs no new record: RFC 4592 wildcard synthesis makes the
+    # existing *.sola.town A record answer for names at any depth below it, which
+    # is verified — alice.aerox.sola.town already resolves to the host.
+    aerox-dev-pds:
+      rule: "Host(`pds.aerox.sola.town`)"
+      entryPoints:
+        - websecure
+      service: aerox-dev-pds
+      tls:
+        certResolver: letsencrypt-dns
+        domains:
+          - main: "aerox.sola.town"
+            sans:
+              - "*.aerox.sola.town"
+
+    # Every handle resolves to the PDS, which answers /.well-known/atproto-did
+    # for it. Explicit priority 1 keeps this catch-all below the named service
+    # routers above; Traefik's default priority is rule length, which would not
+    # reliably order a long regexp against a short Host(). No certResolver here:
+    # the certificate obtained above is in Traefik's shared store and matched by
+    # SNI, so adding a resolver would only risk per-handle issuance.
+    aerox-dev-handles:
+      rule: "HostRegexp(`^[a-zA-Z0-9-]+\\.aerox\\.sola\\.town$`)"
+      entryPoints:
+        - websecure
+      priority: 1
+      service: aerox-dev-pds
+      tls: {}
+
+  services:
+    aerox-dev-pds:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.1:4000"

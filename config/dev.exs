@@ -15,6 +15,27 @@ config :aerox, Aerox.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
+# The endpoint binds to loopback by default, so a plain checkout is not exposed
+# to the network. On a box that fronts the dev server with Traefik (DEV_PLAN
+# §1.2) set AEROX_BIND_IP to the address Traefik can reach — on this host that
+# is the `multica` bridge gateway, which is private to that bridge — and PHX_HOST
+# to the name Traefik terminates TLS for. Never bind 0.0.0.0: there is no host
+# firewall, so that would publish the dev server on the public interface.
+bind_ip =
+  System.get_env("AEROX_BIND_IP", "127.0.0.1")
+  |> String.split(".")
+  |> Enum.map(&String.to_integer/1)
+  |> List.to_tuple()
+
+# Public URL. Behind Traefik the scheme is https on 443 even though the endpoint
+# itself speaks plain http on 4000; atproto clients read this back as the
+# service endpoint, so it has to be the externally reachable one.
+url_config =
+  case System.get_env("PHX_HOST") do
+    nil -> [host: "localhost"]
+    host -> [host: host, scheme: "https", port: 443]
+  end
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
@@ -22,9 +43,8 @@ config :aerox, Aerox.Repo,
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
 config :aerox, AeroxWeb.Endpoint,
-  # Binding to loopback ipv4 address prevents access from other machines.
-  # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {127, 0, 0, 1}],
+  http: [ip: bind_ip, port: String.to_integer(System.get_env("PORT", "4000"))],
+  url: url_config,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,

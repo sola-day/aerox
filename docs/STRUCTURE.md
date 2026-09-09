@@ -49,15 +49,19 @@ aerox/
 ├── config/                 config.exs · dev · test · prod · runtime
 ├── lib/                    the application (§3, §4)
 ├── lib_tool/               MIX_ENV=tool only — never in a prod release (§5)
+├── ops/                    host-side operational config, not compiled
+│   └── traefik/            routers + TLS for the dev domain (DEV_PLAN §1.2)
 ├── priv/                   migrations, vendored lexicons, static (§7)
 ├── test/                   §8
 ├── tools/                  upstream-side generators and reference stacks (§9)
 └── bench/RESULTS.md        load baselines per release (VERIFICATION §10.1)
 ```
 
-`docs/`, `tools/` and `bench/` are deliberately outside `lib/` — none of them is
-compiled into the application, and `tools/` in particular holds TypeScript and Go that
-runs *inside upstream containers*, not on our BEAM.
+`docs/`, `ops/`, `tools/` and `bench/` are deliberately outside `lib/` — none of them
+is compiled into the application. `tools/` in particular holds TypeScript and Go that
+runs *inside upstream containers*, not on our BEAM; `ops/` holds configuration that is
+applied to services outside the repository, so each file there is paired with the
+script that installs it rather than being copied by hand.
 
 ---
 
