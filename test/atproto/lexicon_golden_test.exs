@@ -97,13 +97,14 @@ defmodule Aerox.ATProto.LexiconGoldenTest do
   describe "the vendored registry" do
     test "loads every priv/lexicons document and every ref resolves" do
       reg = Lexicon.default_registry()
-      assert map_size(reg.docs) == 131
+      assert map_size(reg.docs) == 336
       assert Registry.dangling_refs(reg) == []
       assert Registry.known?(reg, "com.atproto.repo.strongRef")
       assert Registry.known?(reg, "com.atproto.label.defs#label")
       assert Registry.known?(reg, "com.atproto.space.defs#signedCommit")
       assert Registry.known?(reg, "app.bsky.authFullApp")
-      assert Registry.record_types(reg) == ["com.atproto.lexicon.schema"]
+      assert "com.atproto.lexicon.schema" in Registry.record_types(reg)
+      assert "app.bsky.feed.post" in Registry.record_types(reg)
       assert length(Registry.defs_of_type(reg, "permission-set")) == 10
     end
 
@@ -116,12 +117,18 @@ defmodule Aerox.ATProto.LexiconGoldenTest do
         "createdAt" => "2026-09-09T00:00:00.000Z"
       }
 
-      assert {:ok, :unknown} = Lexicon.record_status(reg, post, nil)
-
-      assert {:error, {:unknown_lexicon, "app.bsky.feed.post"}} =
-               Lexicon.record_status(reg, post, true)
-
+      assert {:ok, :valid} = Lexicon.record_status(reg, post, nil)
       assert {:ok, :skipped} = Lexicon.record_status(reg, post, false)
+
+      assert {:error, {:invalid_record, _, ["record", "text"]}} =
+               Lexicon.record_status(reg, Map.put(post, "text", 1), nil)
+
+      unknown = %{"$type" => "com.example.unknown", "x" => 1}
+      assert {:ok, :unknown} = Lexicon.record_status(reg, unknown, nil)
+
+      assert {:error, {:unknown_lexicon, "com.example.unknown"}} =
+               Lexicon.record_status(reg, unknown, true)
+
       schema = %{"$type" => "com.atproto.lexicon.schema", "lexicon" => 1}
       assert {:ok, :valid} = Lexicon.record_status(reg, schema, nil)
 

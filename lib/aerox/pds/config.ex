@@ -64,6 +64,9 @@ defmodule Aerox.PDS.Config do
 
   def crawlers, do: get(:crawlers, [])
 
+  @doc "The service signing key as a `did:key` (the `#atproto` verification method of the service DID document)."
+  def signer_did_key, do: Aerox.Crypto.Signer.did_key(signer())
+
   @doc "The instance rotation key signer (DESIGN §14.2), built from `config :aerox, Aerox.Crypto.Signer`."
   def signer do
     case :persistent_term.get({__MODULE__, :signer}, nil) do

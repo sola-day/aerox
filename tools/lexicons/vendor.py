@@ -18,8 +18,9 @@ OUT = os.path.join(ROOT, "priv", "lexicons")
 MAIN = "62f944dd6452d90f6e7ac35eaae970a6042ff544"
 SPACES = "a90c369508b0c6e1d49bfef0fcaf5dc0ce7d0d6b"  # origin/permissioned-data
 
-# app.bsky.* files vendored so far, one per endpoint/record as they are implemented.
-APP_BSKY: list[str] = []
+# M3 (PDS record validation) and M7 (AppView) need the whole app.bsky and
+# chat.bsky trees from main; the permission-set files stay on the spaces branch.
+APP_BSKY_ALL = True
 
 
 def ls(repo, commit, prefix):
@@ -40,7 +41,9 @@ def main():
     for prefix in ["lexicons/com/atproto/space", "lexicons/com/atproto/simplespace", "lexicons/chat/bsky/authFullChatClient.json"]:
         plan += [(full_spaces, p) for p in ls(repo, full_spaces, prefix)]
     plan += [(full_spaces, p) for p in ls(repo, full_spaces, "lexicons/app/bsky") if os.path.basename(p).startswith("auth")]
-    plan += [(MAIN, "lexicons/" + p) for p in APP_BSKY]
+    if APP_BSKY_ALL:
+        plan += [(MAIN, p) for p in ls(repo, MAIN, "lexicons/app/bsky") if not os.path.basename(p).startswith("auth")]
+        plan += [(MAIN, p) for p in ls(repo, MAIN, "lexicons/chat/bsky") if os.path.basename(p) != "authFullChatClient.json"]
 
     source = {"files": {}}
     for commit, path in sorted(set(plan)):

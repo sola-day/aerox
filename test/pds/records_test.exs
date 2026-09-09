@@ -32,6 +32,10 @@ defmodule Aerox.PDS.RecordsTest do
     {:ok, did: did, kp: kp, init: commit}
   end
 
+  # A deterministic TID per index: app.bsky.feed.post keys must be TIDs now
+  # that its lexicon is vendored (record key rule "tid").
+  defp tid(i), do: Aerox.ATProto.TID.from_time(1_700_000_000_000_000 + i * 1_000_000, 7)
+
   defp post(text),
     do: %{
       "$type" => "app.bsky.feed.post",
@@ -45,7 +49,7 @@ defmodule Aerox.PDS.RecordsTest do
     init: init
   } do
     {:ok, w1} = Prepare.create(did, "app.bsky.feed.post", post("hello"), rkey: "3jqfcqzm3fo2j")
-    assert w1.validation_status == :unknown
+    assert w1.validation_status == :valid
     assert {:ok, c1} = Records.process_writes(did, [w1])
     assert c1.since == init.rev and c1.prev_data == init.data
     assert [%{action: :create, path: "app.bsky.feed.post/3jqfcqzm3fo2j", prev: nil}] = c1.ops
@@ -89,9 +93,9 @@ defmodule Aerox.PDS.RecordsTest do
   end
 
   test "swap semantics", %{did: did} do
-    {:ok, w} = Prepare.create(did, "app.bsky.feed.post", post("a"), rkey: "a")
+    {:ok, w} = Prepare.create(did, "app.bsky.feed.post", post("a"), rkey: tid(1))
     {:ok, c1} = Records.process_writes(did, [w])
-    {:ok, w2} = Prepare.create(did, "app.bsky.feed.post", post("b"), rkey: "b")
+    {:ok, w2} = Prepare.create(did, "app.bsky.feed.post", post("b"), rkey: tid(2))
 
     assert {:error, %Records.Error{kind: :invalid_swap}} =
              Records.process_writes(did, [w2], swap_commit: CID.for_cbor("wrong"))
@@ -99,19 +103,21 @@ defmodule Aerox.PDS.RecordsTest do
     assert {:ok, _} = Records.process_writes(did, [w2], swap_commit: c1.cid)
 
     {:ok, wu} =
-      Prepare.update(did, "app.bsky.feed.post", "a", post("a2"), swap_cid: CID.for_cbor("wrong"))
+      Prepare.update(did, "app.bsky.feed.post", tid(1), post("a2"),
+        swap_cid: CID.for_cbor("wrong")
+      )
 
     assert {:error, %Records.Error{kind: :invalid_swap}} = Records.process_writes(did, [wu])
-    {:ok, %{cid: current}} = Records.get_record(did, "app.bsky.feed.post", "a")
+    {:ok, %{cid: current}} = Records.get_record(did, "app.bsky.feed.post", tid(1))
 
     {:ok, wu2} =
-      Prepare.update(did, "app.bsky.feed.post", "a", post("a2"), swap_cid: CID.parse!(current))
+      Prepare.update(did, "app.bsky.feed.post", tid(1), post("a2"), swap_cid: CID.parse!(current))
 
     assert {:ok, _} = Records.process_writes(did, [wu2])
 
     {:ok, wc} =
       Prepare.create(did, "app.bsky.feed.post", post("c"),
-        rkey: "c",
+        rkey: tid(3),
         swap_cid: CID.parse!(current)
       )
 
@@ -140,7 +146,7 @@ defmodule Aerox.PDS.RecordsTest do
         fn i ->
           Ecto.Adapters.SQL.Sandbox.allow(Aerox.PDS.Repo, self(), self())
           target = if rem(i, 2) == 0, do: did, else: did2
-          {:ok, w} = Prepare.create(target, "app.bsky.feed.post", post("p#{i}"), rkey: "r#{i}")
+          {:ok, w} = Prepare.create(target, "app.bsky.feed.post", post("p#{i}"), rkey: tid(i))
           {target, Records.process_writes(target, [w])}
         end,
         max_concurrency: 12,
@@ -193,11 +199,16 @@ defmodule Aerox.PDS.RecordsTest do
                rkey: "com.example.thing"
              )
 
-    assert {:ok, %{validation_status: :unknown}} =
+    assert {:ok, %{validation_status: :valid}} =
              Prepare.create(did, "app.bsky.feed.post", post("x"))
 
+    assert {:ok, %{validation_status: :unknown}} =
+             Prepare.create(did, "com.example.unknown", %{"$type" => "com.example.unknown"})
+
     assert {:error, {:invalid_record, "Unknown lexicon type" <> _}} =
-             Prepare.create(did, "app.bsky.feed.post", post("x"), validate: true)
+             Prepare.create(did, "com.example.unknown", %{"$type" => "com.example.unknown"},
+               validate: true
+             )
 
     assert {:ok, %{validation_status: :skipped}} =
              Prepare.create(did, "app.bsky.feed.post", post("x"), validate: false)
@@ -230,7 +241,7 @@ defmodule Aerox.PDS.RecordsTest do
       "createdAt" => "2026-09-09T00:00:00.000Z"
     }
 
-    {:ok, w} = Prepare.create(did, "app.bsky.graph.follow", follow, rkey: "f1")
+    {:ok, w} = Prepare.create(did, "app.bsky.graph.follow", follow, rkey: tid(11))
     {:ok, _} = Records.process_writes(did, [w])
 
     assert [_] =
@@ -273,14 +284,16 @@ defmodule Aerox.PDS.RecordsTest do
     }
 
     {:ok, w} =
-      Prepare.create(did, "app.bsky.feed.post", Map.put(post("pic"), "embed", embed), rkey: "pic")
+      Prepare.create(did, "app.bsky.feed.post", Map.put(post("pic"), "embed", embed),
+        rkey: tid(9)
+      )
 
     assert [%{"ref" => ^cid}] = w.blobs
     {:ok, _} = Records.process_writes(did, [w])
     assert [%{blob_cid: bc}] = Aerox.PDS.Repo.all(Aerox.PDS.Schema.RecordBlob)
     assert bc == CID.to_string(cid)
 
-    {:ok, d} = Prepare.delete(did, "app.bsky.feed.post", "pic")
+    {:ok, d} = Prepare.delete(did, "app.bsky.feed.post", tid(9))
     {:ok, _} = Records.process_writes(did, [d])
     assert [] = Aerox.PDS.Repo.all(Aerox.PDS.Schema.RecordBlob)
     assert [] = Aerox.PDS.Repo.all(Aerox.PDS.Schema.Blob)
@@ -288,31 +301,31 @@ defmodule Aerox.PDS.RecordsTest do
 
   test "list and get", %{did: did} do
     for i <- 1..5 do
-      {:ok, w} = Prepare.create(did, "app.bsky.feed.post", post("p#{i}"), rkey: "k#{i}")
+      {:ok, w} = Prepare.create(did, "app.bsky.feed.post", post("p#{i}"), rkey: tid(i))
       {:ok, _} = Records.process_writes(did, [w])
     end
 
-    assert ["k5", "k4"] =
+    assert [tid(5), tid(4)] ==
              Records.list_records(did, "app.bsky.feed.post", limit: 2) |> Enum.map(& &1.rkey)
 
-    assert ["k3", "k2"] =
-             Records.list_records(did, "app.bsky.feed.post", limit: 2, cursor: "k4")
+    assert [tid(3), tid(2)] ==
+             Records.list_records(did, "app.bsky.feed.post", limit: 2, cursor: tid(4))
              |> Enum.map(& &1.rkey)
 
-    assert ["k1", "k2"] =
+    assert [tid(1), tid(2)] ==
              Records.list_records(did, "app.bsky.feed.post", limit: 2, reverse: true)
              |> Enum.map(& &1.rkey)
 
     assert ["app.bsky.feed.post"] = Records.list_collections(did)
 
     assert {:ok, %{value: %{"text" => "p3"}}} =
-             Records.get_record(did, "app.bsky.feed.post", "k3")
+             Records.get_record(did, "app.bsky.feed.post", tid(3))
 
-    :ok = Records.update_record_takedown(did, "at://#{did}/app.bsky.feed.post/k3", "mod-1")
-    assert {:error, :not_found} = Records.get_record(did, "app.bsky.feed.post", "k3")
+    :ok = Records.update_record_takedown(did, "at://#{did}/app.bsky.feed.post/#{tid(3)}", "mod-1")
+    assert {:error, :not_found} = Records.get_record(did, "app.bsky.feed.post", tid(3))
 
     assert {:ok, _} =
-             Records.get_record(did, "app.bsky.feed.post", "k3", include_taken_down: true)
+             Records.get_record(did, "app.bsky.feed.post", tid(3), include_taken_down: true)
   end
 
   test "sequencer: batches coalesce, seqs are gap-free, last_seq survives a restart", %{did: did} do

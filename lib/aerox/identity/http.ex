@@ -118,7 +118,7 @@ defmodule Aerox.Identity.HTTP do
   end
 
   defp lookup(host, opts) do
-    case Keyword.get(opts, :plug) || config(:plug, nil) do
+    case Keyword.get(opts, :plug, config(:plug, nil)) do
       # under a test plug no real connection is made; skip the lookup
       nil ->
         case :inet.getaddrs(String.to_charlist(host), :inet) do

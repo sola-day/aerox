@@ -16,6 +16,8 @@ defmodule Aerox.ATProto.Lexicon.Vendored do
          |> Enum.sort()
 
   for file <- @files, do: @external_resource(file)
+  # SOURCE.json changes whenever the set of files changes, so adding a file recompiles too.
+  @external_resource Path.join(@dir, "SOURCE.json")
 
   @docs Enum.map(@files, &Jason.decode!(File.read!(&1)))
   @registry Registry.new!(@docs)

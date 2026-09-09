@@ -129,8 +129,7 @@ defmodule Aerox.PLC.DirectoryTest do
 
   test "removeInvalidOps refuses valid ops, removes invalid ones and audits", %{
     did: did,
-    genesis: genesis,
-    rotation: rotation
+    genesis: genesis
   } do
     t0 = ~U[2026-09-09 10:00:00.000000Z]
     {:ok, _} = Directory.submit(did, genesis, t0)

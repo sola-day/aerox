@@ -23,15 +23,29 @@ defmodule Aerox.PDS.Mailer do
     |> Oban.insert(Aerox.PDS.Oban)
   end
 
+  @doc "A plain-text message from the admin (`com.atproto.admin.sendEmail`), delivered synchronously."
+  def send_plain(to, subject, text) do
+    Swoosh.Email.new()
+    |> Swoosh.Email.to(to)
+    |> Swoosh.Email.from(from_address())
+    |> Swoosh.Email.subject(subject)
+    |> Swoosh.Email.text_body(text)
+    |> Aerox.Mailer.deliver()
+  end
+
+  defp from_address do
+    service = Aerox.PDS.Config.hostname()
+    {service, Aerox.PDS.Config.get(:from_email) || "noreply@#{service}"}
+  end
+
   @doc "Builds the Swoosh email for a purpose."
   @spec build(String.t(), String.t(), String.t(), String.t() | nil) :: Swoosh.Email.t()
   def build(purpose, to, token, handle) do
     service = Aerox.PDS.Config.hostname()
-    from = Aerox.PDS.Config.get(:from_email) || "noreply@#{service}"
 
     new()
     |> to(to)
-    |> from({service, from})
+    |> from(from_address())
     |> subject(@subjects[purpose])
     |> text_body(text(purpose, token, handle, service))
     |> html_body(

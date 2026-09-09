@@ -117,9 +117,11 @@ defmodule Aerox.Identity.ResolverTest do
     assert HTTP.public_ip?({0x2606, 0x4700, 0, 0, 0, 0, 0, 1})
 
     assert {:error, {:private_address, "127.0.0.1"}} =
-             HTTP.get("http://127.0.0.1:4000/", timeout: 200)
+             HTTP.get("http://127.0.0.1:4000/", timeout: 200, allow_private: false)
 
-    assert {:error, {:private_address, "localhost"}} = HTTP.check_host("localhost", false)
+    assert {:error, {:private_address, "localhost"}} =
+             HTTP.check_host("localhost", false, plug: nil)
+
     assert :ok = HTTP.check_host("localhost", true)
     assert {:error, {:invalid_url, _}} = HTTP.get("ftp://x/")
   end
