@@ -112,6 +112,18 @@ defmodule Aerox.PDS.Sequencer do
     q |> Repo.all() |> Enum.map(&Map.from_struct/1)
   end
 
+  # The insert is the sequencer's own transaction on its own connection
+  # (assign, insert, commit, then broadcast — DESIGN §5.3). Under the test
+  # sandbox that connection must be a real one, or it would wait on the
+  # test's single shared connection forever; `config :aerox, Aerox.PDS.Sequencer, unboxed: true`.
+  defp insert_rows(rows) do
+    run = fn -> Repo.transaction(fn -> Repo.insert_all(RepoSeq, rows) end) end
+
+    if Application.get_env(:aerox, __MODULE__, [])[:unboxed],
+      do: Ecto.Adapters.SQL.Sandbox.unboxed_run(Repo, run),
+      else: run.()
+  end
+
   # ---------------------------------------------------------------- server
 
   @impl true
@@ -156,7 +168,7 @@ defmodule Aerox.PDS.Sequencer do
         {acc ++ numbered, seq, [{from, Enum.map(numbered, & &1.seq)} | replies]}
       end)
 
-    case Repo.transaction(fn -> Repo.insert_all(RepoSeq, rows) end) do
+    case insert_rows(rows) do
       {:ok, _} ->
         new_last = rows |> List.last() |> Map.fetch!(:seq)
         Enum.each(replies, fn {from, seqs} -> GenServer.reply(from, {:ok, seqs}) end)

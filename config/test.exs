@@ -23,6 +23,7 @@ for {repo, role, database} <- [
     pool_size: System.schedulers_online() * 2
 end
 
+config :aerox, Aerox.PDS.Sequencer, unboxed: true
 config :aerox, Oban.PDS, testing: :manual
 config :aerox, Oban.Core, testing: :manual
 

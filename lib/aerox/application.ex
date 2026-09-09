@@ -30,12 +30,28 @@ defmodule Aerox.Application do
   # repos are independent even though they share a database (DESIGN §4.6).
   # Every service gets its own identity cache backed by its own schema
   # (DESIGN §20.1): never shared across the §4.6 boundary.
-  defp children_for(:pds),
-    do: [
-      Aerox.PDS.Repo,
-      identity_cache(Aerox.PDS.Identity, Aerox.PDS.Repo),
-      {Oban, Application.fetch_env!(:aerox, Oban.PDS)}
+  # DESIGN §21.9: repo first, then the sequencer, then everything that
+  # depends on it; rest_for_one so a sequencer restart restarts fan-out only.
+  defp children_for(:pds) do
+    [
+      %{
+        id: Aerox.PDS.Supervisor,
+        type: :supervisor,
+        start:
+          {Supervisor, :start_link,
+           [
+             [
+               Aerox.PDS.Repo,
+               Aerox.PDS.Clock,
+               Aerox.PDS.Sequencer,
+               identity_cache(Aerox.PDS.Identity, Aerox.PDS.Repo),
+               {Oban, Application.fetch_env!(:aerox, Oban.PDS)}
+             ],
+             [strategy: :rest_for_one, name: Aerox.PDS.Supervisor]
+           ]}
+      }
     ]
+  end
 
   defp children_for(:plc),
     do: [Aerox.PLC.Repo, identity_cache(Aerox.PLC.Identity, Aerox.PLC.Repo)]
