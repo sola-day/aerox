@@ -6,8 +6,8 @@ export PGUSER=aerox
 export PGPASSWORD=aerox
 export DATABASE_HOST=127.0.0.1
 export DATABASE_PORT=5433
-export DATABASE_USER=aerox
-export DATABASE_PASSWORD=aerox
+# The four service roles default to password = role name in dev/test; set
+# DATABASE_ROLE_PASSWORD to override all four (DESIGN §4.6).
 
 # Dev server behind the local Traefik (DEV_PLAN §1.2). AEROX_BIND_IP is the
 # address Phoenix listens on: the `multica` bridge gateway, which the Traefik

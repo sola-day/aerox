@@ -22,3 +22,5 @@ ExUnit.start()
 for repo <- [Aerox.PDS.Repo, Aerox.PLC.Repo, Aerox.Relay.Repo, Aerox.AppView.Repo] do
   Ecto.Adapters.SQL.Sandbox.mode(repo, :manual)
 end
+
+Mox.defmock(Aerox.Identity.DNSMock, for: Aerox.Identity.DNS)

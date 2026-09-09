@@ -1,6 +1,9 @@
 defmodule AeroxWeb.Router do
   use AeroxWeb, :router
 
+  # DESIGN §2: XRPC, the PLC REST surface and the well-known routes are API
+  # pipelines of their own; :browser serves only LiveDashboard and the OAuth
+  # pages.
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -10,8 +13,9 @@ defmodule AeroxWeb.Router do
     plug :put_secure_browser_headers
   end
 
-  pipeline :api do
+  pipeline :plc do
     plug :accepts, ["json"]
+    plug AeroxWeb.Plugs.ServiceEnabled, :plc
   end
 
   scope "/", AeroxWeb do
@@ -20,18 +24,22 @@ defmodule AeroxWeb.Router do
     get "/", PageController, :home
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", AeroxWeb do
-  #   pipe_through :api
-  # end
+  # The did:plc directory, route for route with did-method-plc's server.
+  scope "/", AeroxWeb.PLC do
+    pipe_through :plc
 
-  # Enable LiveDashboard and Swoosh mailbox preview in development
+    get "/_health", PLCController, :health
+    get "/export", PLCController, :export
+    post "/admin/removeInvalidOps", PLCController, :remove_invalid_ops
+    get "/:did", PLCController, :document, did: ~r/^did:plc:[a-z2-7]{24}$/
+    get "/:did/data", PLCController, :data, did: ~r/^did:plc:[a-z2-7]{24}$/
+    get "/:did/log", PLCController, :log, did: ~r/^did:plc:[a-z2-7]{24}$/
+    get "/:did/log/audit", PLCController, :audit, did: ~r/^did:plc:[a-z2-7]{24}$/
+    get "/:did/log/last", PLCController, :last, did: ~r/^did:plc:[a-z2-7]{24}$/
+    post "/:did", PLCController, :submit, did: ~r/^did:plc:[a-z2-7]{24}$/
+  end
+
   if Application.compile_env(:aerox, :dev_routes) do
-    # If you want to use the LiveDashboard in production, you should put
-    # it behind authentication and allow only admins to access it.
-    # If your application does not have an admins-only section yet,
-    # you can use Plug.BasicAuth to set up some basic authentication
-    # as long as you are also using SSL (which you should anyway).
     import Phoenix.LiveDashboard.Router
 
     scope "/dev" do

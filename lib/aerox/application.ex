@@ -26,14 +26,34 @@ defmodule Aerox.Application do
 
   # Each service's repo starts under the service supervisor. The core-side
   # repos are independent even though they share a database (DESIGN §4.6).
-  defp children_for(:pds), do: [Aerox.PDS.Repo, {Oban, Application.fetch_env!(:aerox, Oban.PDS)}]
-  defp children_for(:plc), do: [Aerox.PLC.Repo]
-  defp children_for(:relay), do: [Aerox.Relay.Repo]
+  # Every service gets its own identity cache backed by its own schema
+  # (DESIGN §20.1): never shared across the §4.6 boundary.
+  defp children_for(:pds),
+    do: [
+      Aerox.PDS.Repo,
+      identity_cache(Aerox.PDS.Identity, Aerox.PDS.Repo),
+      {Oban, Application.fetch_env!(:aerox, Oban.PDS)}
+    ]
+
+  defp children_for(:plc),
+    do: [Aerox.PLC.Repo, identity_cache(Aerox.PLC.Identity, Aerox.PLC.Repo)]
+
+  defp children_for(:relay),
+    do: [Aerox.Relay.Repo, identity_cache(Aerox.Relay.Identity, Aerox.Relay.Repo)]
 
   defp children_for(:appview),
-    do: [Aerox.AppView.Repo, {Oban, Application.fetch_env!(:aerox, Oban.Core)}]
+    do: [
+      Aerox.AppView.Repo,
+      identity_cache(Aerox.AppView.Identity, Aerox.AppView.Repo),
+      {Oban, Application.fetch_env!(:aerox, Oban.Core)}
+    ]
 
   defp children_for(:labeler), do: []
+
+  defp identity_cache(name, repo) do
+    {Aerox.Identity.Cache,
+     name: name, repo: repo, resolver: Application.get_env(:aerox, :identity_resolver, [])}
+  end
 
   @impl true
   def config_change(changed, _new, removed) do

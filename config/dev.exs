@@ -14,7 +14,7 @@ for {repo, role, database} <- [
     ] do
   config :aerox, repo,
     username: role,
-    password: System.get_env("DATABASE_PASSWORD", role),
+    password: System.get_env("DATABASE_ROLE_PASSWORD", role),
     hostname: db_host,
     port: db_port,
     database: database,

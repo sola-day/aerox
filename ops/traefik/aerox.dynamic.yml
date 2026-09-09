@@ -26,7 +26,7 @@ http:
     # existing *.sola.town A record answer for names at any depth below it, which
     # is verified — alice.aerox.sola.town already resolves to the host.
     aerox-dev-pds:
-      rule: "Host(`pds.aerox.sola.town`)"
+      rule: "Host(`pds.aerox.sola.town`) || Host(`plc.aerox.sola.town`) || Host(`relay.aerox.sola.town`) || Host(`appview.aerox.sola.town`) || Host(`labeler.aerox.sola.town`) || Host(`aerox.sola.town`)"
       entryPoints:
         - websecure
       service: aerox-dev-pds
