@@ -1,0 +1,50 @@
+{
+  "description": "commit MAC: info = \"atproto-space-v1\" ‖ len16BE-prefixed [spaceDid, spaceType, spaceKey, userDid, rev, scope]; key = HKDF-SHA256(ikm, salt=empty, info, 32); mac = HMAC-SHA256(key, hash)",
+  "vectors": [
+    {
+      "space": {
+        "spaceDid": "did:plc:vx4ssij3m6dcdrs5yvxxbznq",
+        "spaceType": "com.atproto.simplespace",
+        "spaceKey": "team",
+        "userDid": "did:plc:j34mp52kqeqheoencw7lqpyy",
+        "rev": "3mv4fihuqwc2h",
+        "scope": "records"
+      },
+      "ikm": "a7f1d92a82c8d8fe434d98558ce2b347171198542f112d0558f56bd688079992",
+      "hash": "48336241f30d23e55f30d1c8ed610c4b0235398184b814a29cb45a672acae548",
+      "info": "617470726f746f2d73706163652d763100206469643a706c633a7678347373696a336d3664636472733579767878627a6e710017636f6d2e617470726f746f2e73696d706c65737061636500047465616d00206469643a706c633a6a33346d7035326b71657168656f656e6377376c71707979000d336d763466696875717763326800077265636f726473",
+      "derivedKey": "c1ec0627f53bfa710ecc46d07ec9b1779b0f4b7cfbba5de12a8348a7f939c92c",
+      "mac": "011519d07dfd0bf4df3314b9c19b3ab1a3d53027d5f6270fe4dbae4707a1a11d"
+    },
+    {
+      "space": {
+        "spaceDid": "did:web:example.com",
+        "spaceType": "my.bulletin.space",
+        "spaceKey": "x",
+        "userDid": "did:plc:vx4ssij3m6dcdrs5yvxxbznq",
+        "rev": "3mv4fihuqwc2i",
+        "scope": "members"
+      },
+      "ikm": "e9c5f1b0c4158ae59b4d39f6f7e8a105d3feeda5d5f3d9e45bfa6cc351e220ae",
+      "hash": "0ce106986d61ff34a11e19fd3650e9b7818fc33a1e0fc02c44557ac8ab50c9b2",
+      "info": "617470726f746f2d73706163652d763100136469643a7765623a6578616d706c652e636f6d00116d792e62756c6c6574696e2e737061636500017800206469643a706c633a7678347373696a336d3664636472733579767878627a6e71000d336d763466696875717763326900076d656d62657273",
+      "derivedKey": "842606b75a2347b38fa0942453052a89ae586ce7de7c188aaecde0566a377ea6",
+      "mac": "76f59f63c12ffde559cfc47e1f8917efa63a5f7397898e6427f5b6b3ddd5de9a"
+    },
+    {
+      "space": {
+        "spaceDid": "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa",
+        "spaceType": "com.atproto.simplespace",
+        "spaceKey": "日本語",
+        "userDid": "did:plc:bbbbbbbbbbbbbbbbbbbbbbbb",
+        "rev": "3mv4fihuqwc2j",
+        "scope": "records"
+      },
+      "ikm": "deb2f6b5e24c4fdd9f8867bdce1ff261008e7897970e346207d75e47a158298e",
+      "hash": "5ba2f56246869cc42e362a02731264e60687ef5309d108534f51f8658fb4f080",
+      "info": "617470726f746f2d73706163652d763100206469643a706c633a6161616161616161616161616161616161616161616161610017636f6d2e617470726f746f2e73696d706c6573706163650009e697a5e69cace8aa9e00206469643a706c633a626262626262626262626262626262626262626262626262000d336d763466696875717763326a00077265636f726473",
+      "derivedKey": "179b9e1edf1f462e557f62c6f10dd98d4882b044d0309f5d47848a6a93d5c541",
+      "mac": "06a6381ffea5d99e2a65633fa5df5c5b7347737adc5a68f1a7c9b4c12a421930"
+    }
+  ]
+}

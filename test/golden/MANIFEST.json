@@ -1165,6 +1165,26 @@
         "repo": "did-method-plc"
       }
     },
+    "space/commit.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "node test/harness/gen-space-goldens.mjs (@noble/hashes 1.8.0, the same library upstream uses)",
+        "node": "v24.20.0"
+      },
+      "kind": "generated",
+      "note": "commit MAC of packages/space/src/commit.ts: info = \"atproto-space-v1\" + len16BE-prefixed [spaceDid, spaceType, spaceKey, userDid, rev, scope]; HKDF-SHA256(ikm, empty salt, info, 32) then HMAC-SHA256 over the hash; ikm/hash are a deterministic LCG, not secrets",
+      "sha256": "2a846296144582f97936e93600d71d892d216ac2ba4884aca53e44372e0fc718"
+    },
+    "space/lthash.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "node test/harness/gen-space-goldens.mjs (@noble/hashes 1.8.0, the same library upstream uses)",
+        "node": "v24.20.0"
+      },
+      "kind": "generated",
+      "note": "LtHash of the alpha Spaces primitives (packages/space/src/lthash.ts at atproto permissioned-data @a90c3695): blake3 XOF (2048 bytes, LE uint16 lanes), add/remove mod 2^16, sha256 digest; order independence and a triple add",
+      "sha256": "06dd3b08a3d4b68f9b6dff646d6f9254f64ce2c4201d9731ab7e896e896528fb"
+    },
     "syntax/atidentifier_syntax_invalid.txt": {
       "date": "2026-09-09",
       "kind": "copied",
