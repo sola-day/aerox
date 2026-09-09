@@ -84,6 +84,8 @@ defmodule Aerox.RateLimit do
     Map.merge(@limits, Map.new(overrides))
   end
 
+  defp disabled?, do: Application.get_env(:aerox, __MODULE__, [])[:disabled] == true
+
   @spec fetch_limit!(name) :: [bucket]
   def fetch_limit!(name) do
     case Map.fetch(limits(), name) do
@@ -105,6 +107,16 @@ defmodule Aerox.RateLimit do
   def check(key, scale_ms, limit, cost \\ 1)
       when is_integer(scale_ms) and scale_ms > 0 and is_integer(limit) and limit > 0 and
              is_integer(cost) and cost >= 0 do
+    # `config :aerox, Aerox.RateLimit, disabled: true` is the load-baseline
+    # switch (bench/baseline.sh); it is never set by prod config.
+    if disabled?() do
+      {:allow, limit}
+    else
+      do_check(key, scale_ms, limit, cost)
+    end
+  end
+
+  defp do_check(key, scale_ms, limit, cost) do
     case hit(key, scale_ms, limit, cost) do
       {:allow, count} -> {:allow, max(limit - count, 0)}
       {:deny, retry_after_ms} -> {:deny, retry_after_ms}

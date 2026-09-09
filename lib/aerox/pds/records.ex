@@ -14,7 +14,7 @@ defmodule Aerox.PDS.Records do
   alias Aerox.ATProto.{CID, Data, DagCBOR, Syntax}
   alias Aerox.ATProto.Blockstore, as: KBlockstore
   alias Aerox.ATProto.Repo, as: KRepo
-  alias Aerox.PDS.{Blockstore, Clock, Repo, Sequencer}
+  alias Aerox.PDS.{Blockstore, Clock, Repo, RepoLock, Sequencer}
   alias Aerox.PDS.Schema.{Backlink, Blob, Record, RecordBlob, RepoBlock, RepoRoot}
   alias Aerox.PDS.Records.Prepare
 
@@ -38,11 +38,21 @@ defmodule Aerox.PDS.Records do
     if length(writes) > 200 do
       {:error, %Error{kind: :invalid_request, message: "Too many writes. Max: 200"}}
     else
-      Repo.transaction(fn -> do_process_writes(did, writes, opts) end, timeout: 60_000)
+      # Writes to one repo are serialised *before* a connection is taken
+      # (Aerox.PDS.RepoLock): the row lock inside the transaction would
+      # otherwise make every waiting writer hold a pool connection.
+      RepoLock.with_lock(did, fn ->
+        Repo.transaction(fn -> do_process_writes(did, writes, opts) end, timeout: 60_000)
+      end)
       |> case do
-        {:ok, result} -> {:ok, result}
-        {:error, %Error{} = e} -> {:error, e}
-        {:error, other} -> {:error, other}
+        {:ok, result} ->
+          {:ok, result}
+
+        {:error, %Error{} = e} ->
+          {:error, e}
+
+        {:error, other} ->
+          {:error, other}
       end
     end
   end

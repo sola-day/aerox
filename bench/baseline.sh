@@ -15,10 +15,11 @@ run() { # name, extra oha args...
   local name="$1"; shift
   echo "== $name"
   oha --no-tui -z "$dur" -c "$conc" --latency-correction "$@" \
-    | grep -E "Requests/sec|50.00%|99.00%|\[2..\]|\[5..\]" | sed 's/^/   /'
+    | grep -E "Requests/sec|50.00%|99.00%|^\s+\[[0-9]+\]" | sed 's/^/   /'
 }
 
-run "getRecord (hot account)" "$PDS/xrpc/com.atproto.repo.getRecord?repo=$did&collection=app.bsky.actor.profile&rkey=self"
+rkey="$(curl -sS "$PDS/xrpc/com.atproto.repo.listRecords?repo=$did&collection=app.bsky.feed.post&limit=1" | jq -r '.records[0].uri' | awk -F/ '{print $NF}')"
+run "getRecord (hot account)" "$PDS/xrpc/com.atproto.repo.getRecord?repo=$did&collection=app.bsky.feed.post&rkey=$rkey"
 run "describeServer" "$PDS/xrpc/com.atproto.server.describeServer"
 run "getTimeline (proxied, service-JWT signing per request)" -H "authorization: Bearer $jwt" \
   "$PDS/xrpc/app.bsky.feed.getTimeline?limit=30"

@@ -22,7 +22,7 @@ for {repo, role, database} <- [
     stacktrace: true,
     show_sensitive_data_on_connection_error: true,
     # four repos share one small box: STRUCTURE §7 asks for explicit sizing
-    pool_size: 5
+    pool_size: 10
 end
 
 # The endpoint binds to loopback by default, so a plain checkout is not exposed
@@ -56,7 +56,9 @@ config :aerox, AeroxWeb.Endpoint,
   http: [ip: bind_ip, port: String.to_integer(System.get_env("PORT", "4000"))],
   url: url_config,
   check_origin: false,
-  code_reloader: true,
+  # AEROX_BENCH=1 runs the dev server without the per-request code-reloader
+  # lock and debug logging, for bench/baseline.sh (VERIFICATION §10.1).
+  code_reloader: System.get_env("AEROX_BENCH") != "1",
   debug_errors: true,
   secret_key_base: "REDACTED-dev-secret-key-base-rotated-2026-09-16",
   watchers: []
@@ -93,6 +95,11 @@ config :aerox, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
+
+if System.get_env("AEROX_BENCH") == "1" do
+  config :logger, level: :info
+  config :aerox, Aerox.RateLimit, disabled: true
+end
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
