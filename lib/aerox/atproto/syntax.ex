@@ -366,6 +366,85 @@ defmodule Aerox.ATProto.Syntax do
     Enum.join(["at://#{authority}"] ++ Enum.reject([collection, rkey], &is_nil/1), "/")
   end
 
+  # ------------------------------------------------------------- space-uri
+
+  @space_uri_regex ~r/^ats:\/\/(?<authority>[^\/?#\s]+)(?:\/(?<space_type>[^\/?#\s]+)(?:\/(?<skey>[^\/?#\s]+)(?:\/(?<user_did>[^\/?#\s]+)(?:\/(?<collection>[^\/?#\s]+)(?:\/(?<rkey>[^\/?#\s]+))?)?)?)?)?$/i
+
+  @doc """
+  Space URI (DESIGN §12, `permissioned-data` branch `space-uri.ts`):
+  `ats://spaceDid/spaceType/skey[/userDid/collection/rkey]`. Strict by
+  default: the type and collection are NSIDs, the DIDs are DIDs, the rkey a
+  record key.
+  """
+  @spec parse_space_uri(term, keyword) :: {:ok, map} | {:error, reason}
+  def parse_space_uri(input, opts \\ [])
+
+  def parse_space_uri(input, opts) when is_binary(input) do
+    strict = Keyword.get(opts, :strict, true)
+
+    with true <- byte_size(input) <= 8192 || {:error, "space-uri exceeds maximum length"},
+         false <-
+           Regex.match?(@at_uri_invalid_char, input) &&
+             {:error, "Disallowed characters in space-uri"},
+         %{} = g <-
+           Regex.named_captures(@space_uri_regex, input) ||
+             {:error, "space-uri does not match expected format"},
+         true <- valid_did?(g["authority"]) || {:error, "space-uri has invalid authority"},
+         :ok <- space_uri_parts(g, strict) do
+      {:ok, Map.new(g, fn {k, v} -> {String.to_atom(k), blank_to_nil(v)} end)}
+    else
+      {:error, _} = e -> e
+    end
+  end
+
+  def parse_space_uri(_, _), do: {:error, "space-uri must be a string"}
+
+  defp space_uri_parts(_g, false), do: :ok
+
+  defp space_uri_parts(g, true) do
+    cond do
+      g["space_type"] != "" and not valid_nsid?(g["space_type"]) ->
+        {:error, "space-uri has invalid space type"}
+
+      g["user_did"] != "" and not valid_did?(g["user_did"]) ->
+        {:error, "space-uri has invalid user did"}
+
+      g["collection"] != "" and not valid_nsid?(g["collection"]) ->
+        {:error, "space-uri has invalid collection"}
+
+      g["rkey"] != "" and not valid_record_key?(g["rkey"]) ->
+        {:error, "space-uri has invalid record key"}
+
+      true ->
+        :ok
+    end
+  end
+
+  @spec valid_space_uri?(term) :: boolean
+  def valid_space_uri?(input), do: match?({:ok, _}, parse_space_uri(input))
+
+  # ------------------------------------------------------------- language
+
+  @language_regex ~r/^(i|[a-z]{2,3})(-[a-zA-Z0-9]+)*$/
+
+  @doc "BCP 47 tag shape, as indigo's `ParseLanguage` (≤ 128 chars)."
+  @spec valid_language?(term) :: boolean
+  def valid_language?(input) when is_binary(input),
+    do: input != "" and byte_size(input) <= 128 and Regex.match?(@language_regex, input)
+
+  def valid_language?(_), do: false
+
+  # ------------------------------------------------------------------ uri
+
+  @uri_regex ~r/^[a-z][a-z.-]{0,80}:[[:graph:]]+$/
+
+  @doc "Generic URI shape, as indigo's `ParseURI` (scheme, then non-space characters, ≤ 8192)."
+  @spec valid_uri?(term) :: boolean
+  def valid_uri?(input) when is_binary(input),
+    do: input != "" and byte_size(input) <= 8192 and Regex.match?(@uri_regex, input)
+
+  def valid_uri?(_), do: false
+
   # ------------------------------------------------------------ record key
 
   @rkey_regex ~r/^[a-zA-Z0-9_~.:-]{1,512}$/
