@@ -17,7 +17,6 @@ defmodule Aerox.AppView.Feeds do
   alias Aerox.AppView.{Config, Cursor, Hydration, Repo}
   alias Aerox.AppView.Plugins.Post, as: PostPlugin
   alias Aerox.AppView.Schema, as: S
-  alias AeroxWeb.XRPC.Error
 
   @type feed_item :: %{post: String.t(), repost: String.t() | nil, author_pinned: boolean}
   @type feed :: %{items: [feed_item], cursor: String.t() | nil}
@@ -261,11 +260,14 @@ defmodule Aerox.AppView.Feeds do
     descendents =
       uri
       |> PostPlugin.descendents(depth)
-      |> Enum.sort_by(& &1.sort_at, {:desc, DateTime})
+      |> Enum.sort_by(&naive(&1.sort_at), {:desc, NaiveDateTime})
       |> Enum.map(& &1.uri)
 
     Enum.uniq(ancestors ++ descendents)
   end
+
+  defp naive(%DateTime{} = dt), do: DateTime.to_naive(dt)
+  defp naive(%NaiveDateTime{} = dt), do: dt
 
   @doc "Upstream `getThreadContexts`: for each hydrated post, the root author's like of it (`rootAuthorLike`)."
   @spec hydrate_thread_contexts(Hydration.state(), [String.t()]) :: Hydration.state()
@@ -295,18 +297,28 @@ defmodule Aerox.AppView.Feeds do
   end
 
   @doc """
-  Viewer state and labels for the authors of every hydrated post (what
-  upstream's `hydratePosts` includes and `Hydration.hydrate_posts/2` leaves
-  to `hydrate_feed_items/2`), so blocks and mutes can be applied.
+  Finishes a post hydration for presentation: viewer state and labels for
+  the authors of every hydrated post (what upstream's `hydratePosts`
+  includes and `Hydration.hydrate_posts/2` leaves to `hydrate_feed_items/2`),
+  and a complete `post_blocks` entry (`parent`/`root`/`embed`, default
+  false) for every post, which `Views.reply_ref/2` reads as booleans.
   """
-  @spec hydrate_post_authors(Hydration.state()) :: Hydration.state()
-  def hydrate_post_authors(state) do
-    dids =
-      state.posts
-      |> Map.values()
-      |> Enum.reject(&is_nil/1)
-      |> Enum.map(& &1.creator)
-      |> Enum.uniq()
+  @spec finish_posts(Hydration.state()) :: Hydration.state()
+  def finish_posts(state) do
+    posts = state.posts |> Map.values() |> Enum.reject(&is_nil/1)
+    dids = posts |> Enum.map(& &1.creator) |> Enum.uniq()
+
+    blocks =
+      for p <- posts,
+          into: %{},
+          do:
+            {p.uri,
+             Map.merge(
+               %{parent: false, root: false, embed: false},
+               state.post_blocks[p.uri] || %{}
+             )}
+
+    state = %{state | post_blocks: Map.merge(state.post_blocks, blocks)}
 
     state
     |> Hydration.hydrate_profile_viewers(dids)
@@ -435,9 +447,14 @@ defmodule Aerox.AppView.Feeds do
   `searchPosts` cursor. Returns `%{uris, cursor, hits_total}`.
   """
   @spec search_posts(String.t(), String.t() | nil, pos_integer, String.t() | nil) ::
-          %{uris: [String.t()], cursor: String.t() | nil, hits_total: non_neg_integer}
+          {:ok, %{uris: [String.t()], cursor: String.t() | nil, hits_total: non_neg_integer}}
+          | {:error, :malformed_cursor}
   def search_posts(q, author_did, limit, cursor) do
-    offset = parse_offset(cursor)
+    with {:ok, offset} <- parse_offset(cursor),
+         do: {:ok, do_search_posts(q, author_did, limit, offset)}
+  end
+
+  defp do_search_posts(q, author_did, limit, offset) do
     pattern = "%" <> escape_like(String.trim(q)) <> "%"
 
     base =
@@ -463,12 +480,12 @@ defmodule Aerox.AppView.Feeds do
     }
   end
 
-  defp parse_offset(nil), do: 0
+  defp parse_offset(nil), do: {:ok, 0}
 
   defp parse_offset(cursor) do
     case Integer.parse(cursor) do
-      {n, ""} when n >= 0 -> n
-      _ -> raise Error.invalid_request("Malformed cursor")
+      {n, ""} when n >= 0 -> {:ok, n}
+      _ -> {:error, :malformed_cursor}
     end
   end
 
@@ -485,80 +502,95 @@ defmodule Aerox.AppView.Feeds do
   with `feed_context`, the cursor (dropped when the generator echoes ours
   back), `req_id`, and the `content-language` header to pass through.
   """
-  @spec feed_skeleton(String.t(), keyword) :: %{
-          items: [map],
-          cursor: String.t() | nil,
-          req_id: String.t() | nil,
-          headers: [{String.t(), String.t()}]
-        }
+  @spec feed_skeleton(String.t(), keyword) ::
+          {:ok,
+           %{
+             items: [map],
+             cursor: String.t() | nil,
+             req_id: String.t() | nil,
+             headers: [{String.t(), String.t()}]
+           }}
+          | {:error, {non_neg_integer, String.t(), String.t()}}
   def feed_skeleton(feed_uri, opts) do
     limit = Keyword.fetch!(opts, :limit)
     cursor = Keyword.get(opts, :cursor)
 
-    feed_did =
-      Repo.one(from(f in S.FeedGenerator, where: f.uri == ^feed_uri, select: f.feed_did)) ||
-        raise Error.invalid_request("could not find feed", "UnknownFeed")
+    with {:ok, feed_did} <- feed_did(feed_uri),
+         {:ok, endpoint} <- feed_gen_endpoint(feed_did) do
+      jwt =
+        Aerox.Auth.ServiceJWT.create(
+          keypair: Config.signing_keypair(),
+          iss: Config.service_did(),
+          aud: feed_did,
+          lxm: "app.bsky.feed.getFeedSkeleton"
+        )
 
-    endpoint = feed_gen_endpoint(feed_did)
+      query =
+        %{"feed" => feed_uri, "limit" => limit}
+        |> then(&if(cursor, do: Map.put(&1, "cursor", cursor), else: &1))
+        |> URI.encode_query()
 
-    jwt =
-      Aerox.Auth.ServiceJWT.create(
-        keypair: Config.signing_keypair(),
-        iss: Config.service_did(),
-        aud: feed_did,
-        lxm: "app.bsky.feed.getFeedSkeleton"
-      )
+      url =
+        String.trim_trailing(endpoint, "/") <> "/xrpc/app.bsky.feed.getFeedSkeleton?" <> query
 
-    query =
-      %{"feed" => feed_uri, "limit" => limit}
-      |> then(&if(cursor, do: Map.put(&1, "cursor", cursor), else: &1))
-      |> URI.encode_query()
+      headers =
+        [{"authorization", "Bearer " <> jwt}, {"user-agent", "AeroxAppView"}] ++
+          Keyword.get(opts, :headers, [])
 
-    url = String.trim_trailing(endpoint, "/") <> "/xrpc/app.bsky.feed.getFeedSkeleton?" <> query
+      http_opts =
+        [headers: headers, timeout: 10_000] ++
+          Keyword.take(Application.get_env(:aerox, Aerox.AppView.FeedGen, []), [
+            :plug,
+            :allow_private
+          ])
 
-    headers =
-      [{"authorization", "Bearer " <> jwt}, {"user-agent", "AeroxAppView"}] ++
-        Keyword.get(opts, :headers, [])
+      case Aerox.Identity.HTTP.get(url, http_opts) do
+        {:ok, 200, resp_headers, body} ->
+          parse_skeleton(body, resp_headers, limit, cursor)
 
-    http_opts =
-      [headers: headers, timeout: 10_000] ++
-        Keyword.take(Application.get_env(:aerox, Aerox.AppView.FeedGen, []), [
-          :plug,
-          :allow_private
-        ])
+        {:ok, status, _headers, body} when status >= 400 ->
+          # a structurally valid XRPC error (auth errors etc.) passes through
+          case Jason.decode(body) do
+            {:ok, %{"error" => name, "message" => message}}
+            when is_binary(name) and is_binary(message) ->
+              {:error, {status, name, message}}
 
-    case Aerox.Identity.HTTP.get(url, http_opts) do
-      {:ok, 200, resp_headers, body} ->
-        parse_skeleton(body, resp_headers, limit, cursor)
+            _ ->
+              {:error, {502, "UpstreamFailure", "feed unavailable"}}
+          end
 
-      {:ok, status, _headers, body} when status >= 400 ->
-        case Jason.decode(body) do
-          {:ok, %{"error" => name, "message" => message}}
-          when is_binary(name) and is_binary(message) ->
-            raise %Error{status: status, name: name, message: message}
+        _ ->
+          {:error, {502, "UpstreamFailure", "feed unavailable"}}
+      end
+    end
+  end
 
-          _ ->
-            raise Error.upstream_failure("feed unavailable")
-        end
-
-      _ ->
-        raise Error.upstream_failure("feed unavailable")
+  defp feed_did(feed_uri) do
+    case Repo.one(from(f in S.FeedGenerator, where: f.uri == ^feed_uri, select: f.feed_did)) do
+      nil -> {:error, {400, "UnknownFeed", "could not find feed"}}
+      did -> {:ok, did}
     end
   end
 
   @doc "The `#bsky_fg` (BskyFeedGenerator) service endpoint of a feed generator's DID."
-  @spec feed_gen_endpoint(String.t()) :: String.t()
+  @spec feed_gen_endpoint(String.t()) ::
+          {:ok, String.t()} | {:error, {non_neg_integer, String.t(), String.t()}}
   def feed_gen_endpoint(feed_did) do
-    doc =
-      case Aerox.Identity.resolve_did(Aerox.AppView.Identity, feed_did) do
-        {:ok, doc} -> doc
-        _ -> raise Error.invalid_request("could not resolve identity: #{feed_did}")
-      end
+    case Aerox.Identity.resolve_did(Aerox.AppView.Identity, feed_did) do
+      {:ok, doc} ->
+        case Aerox.ATProto.Identity.service_endpoint(doc, "#bsky_fg", "BskyFeedGenerator") do
+          nil ->
+            {:error,
+             {400, "InvalidRequest",
+              "invalid feed generator service details in did document: #{feed_did}"}}
 
-    Aerox.ATProto.Identity.service_endpoint(doc, "#bsky_fg", "BskyFeedGenerator") ||
-      raise Error.invalid_request(
-              "invalid feed generator service details in did document: #{feed_did}"
-            )
+          url ->
+            {:ok, url}
+        end
+
+      _ ->
+        {:error, {400, "InvalidRequest", "could not resolve identity: #{feed_did}"}}
+    end
   end
 
   defp parse_skeleton(body, resp_headers, limit, cursor) do
@@ -591,19 +623,16 @@ defmodule Aerox.AppView.Feeds do
           if String.downcase(k) == "content-language", do: v
         end)
 
-      %{
-        items: items,
-        cursor: if(out["cursor"] != cursor, do: out["cursor"]),
-        req_id: out["reqId"],
-        headers: if(lang, do: [{"content-language", lang}], else: [])
-      }
+      {:ok,
+       %{
+         items: items,
+         # prevents loops when the generator echoes our cursor back
+         cursor: if(out["cursor"] != cursor, do: out["cursor"]),
+         req_id: out["reqId"],
+         headers: if(lang, do: [{"content-language", lang}], else: [])
+       }}
     else
-      _ ->
-        raise %Error{
-          status: 502,
-          name: "InvalidFeedResponse",
-          message: "feed provided an invalid response"
-        }
+      _ -> {:error, {502, "InvalidFeedResponse", "feed provided an invalid response"}}
     end
   end
 

@@ -25,6 +25,7 @@ defmodule AeroxWeb.AppView.FeedController do
     state =
       Hydration.new(viewer: viewer, labelers: labelers.dids)
       |> Hydration.hydrate_feed_items(items)
+      |> Feeds.finish_posts()
 
     items = Enum.filter(items, &no_blocks_or_mutes?(&1, state))
 
@@ -55,6 +56,7 @@ defmodule AeroxWeb.AppView.FeedController do
       |> Hydration.hydrate_actors([did])
       |> Hydration.hydrate_profile_viewers([did])
       |> Hydration.hydrate_feed_items(items)
+      |> Feeds.finish_posts()
 
     unless get_in(state.actors, [did, :exists]),
       do: raise(Error.invalid_request("Profile not found"))
@@ -102,7 +104,7 @@ defmodule AeroxWeb.AppView.FeedController do
     state =
       Hydration.new(viewer: viewer, labelers: labelers.dids)
       |> Hydration.hydrate_posts([anchor | uris])
-      |> Feeds.hydrate_post_authors()
+      |> Feeds.finish_posts()
       |> Feeds.hydrate_thread_contexts([anchor | uris])
 
     thread = Views.thread(anchor, uris, state, height, depth)
@@ -130,7 +132,7 @@ defmodule AeroxWeb.AppView.FeedController do
     state =
       Hydration.new(viewer: viewer, labelers: labelers.dids)
       |> Hydration.hydrate_posts(uris)
-      |> Feeds.hydrate_post_authors()
+      |> Feeds.finish_posts()
 
     posts =
       uris
@@ -231,7 +233,7 @@ defmodule AeroxWeb.AppView.FeedController do
     state =
       Hydration.new(viewer: viewer, labelers: labelers.dids)
       |> Hydration.hydrate_posts(uris)
-      |> Feeds.hydrate_post_authors()
+      |> Feeds.finish_posts()
 
     posts =
       for quote_uri <- uris,
@@ -261,6 +263,7 @@ defmodule AeroxWeb.AppView.FeedController do
     state =
       Hydration.new(viewer: viewer, labelers: labelers.dids)
       |> Hydration.hydrate_feed_items(items)
+      |> Feeds.finish_posts()
 
     items = Enum.reject(items, &Views.viewer_block_exists?(Hydration.did_of(&1.post), state))
     respond_feed(conn, labelers, items, cursor, state)
@@ -279,15 +282,18 @@ defmodule AeroxWeb.AppView.FeedController do
           do: {h, v}
 
     %{items: items, cursor: cursor, req_id: req_id, headers: headers} =
-      Feeds.feed_skeleton(params["feed"],
+      params["feed"]
+      |> Feeds.feed_skeleton(
         limit: params["limit"],
         cursor: params["cursor"],
         headers: passthrough
       )
+      |> ok!()
 
     state =
       Hydration.new(viewer: viewer, labelers: labelers.dids)
       |> Hydration.hydrate_feed_items(items)
+      |> Feeds.finish_posts()
 
     feed =
       for item <- items,
@@ -313,7 +319,7 @@ defmodule AeroxWeb.AppView.FeedController do
 
     info = state.feed_gens[feed] || raise(Error.invalid_request("could not find feed"))
     # upstream resolves the generator's identity and requires its #bsky_fg service
-    _endpoint = Feeds.feed_gen_endpoint(info.record["did"])
+    _endpoint = ok!(Feeds.feed_gen_endpoint(info.record["did"]))
 
     view =
       Views.feed_generator(feed, state) || raise(Error.invalid_request("could not find feed"))
@@ -361,6 +367,7 @@ defmodule AeroxWeb.AppView.FeedController do
     state =
       Hydration.new(viewer: viewer, labelers: labelers.dids)
       |> Hydration.hydrate_feed_items(items)
+      |> Feeds.finish_posts()
       |> Hydration.hydrate_bidirectional_blocks(
         Enum.map(items, &{list_creator, Hydration.did_of(&1.post)})
       )
@@ -390,12 +397,15 @@ defmodule AeroxWeb.AppView.FeedController do
       end
 
     %{uris: uris, cursor: cursor, hits_total: total} =
-      Feeds.search_posts(q, author_did, params["limit"], params["cursor"])
+      case Feeds.search_posts(q, author_did, params["limit"], params["cursor"]) do
+        {:ok, result} -> result
+        {:error, :malformed_cursor} -> raise Error.invalid_request("Malformed cursor")
+      end
 
     state =
       Hydration.new(viewer: viewer, labelers: labelers.dids)
       |> Hydration.hydrate_posts(uris)
-      |> Feeds.hydrate_post_authors()
+      |> Feeds.finish_posts()
 
     posts =
       for uri <- uris,
@@ -420,12 +430,17 @@ defmodule AeroxWeb.AppView.FeedController do
   # DESIGN §15.4: no discovery in v1
   def get_popular_feed_generators(conn, _) do
     _ = params!(conn, "app.bsky.unspecced.getPopularFeedGenerators")
-    respond(conn, %{"feeds" => []})
+    respond_labeled(conn, labelers(conn), %{"feeds" => []})
   end
 
   # --------------------------------------------------------------- helpers
 
   defp viewer!(conn), do: conn.assigns.viewer || raise(Error.auth_required())
+
+  defp ok!({:ok, value}), do: value
+
+  defp ok!({:error, {status, name, message}}),
+    do: raise(%Error{status: status, name: name, message: message})
 
   defp actor!(identifier),
     do: Feeds.resolve_actor(identifier) || raise(Error.invalid_request("Profile not found"))

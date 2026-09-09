@@ -135,21 +135,33 @@ lib/aerox/
 │   ├── repo.ex                 Aerox.PLC.Repo → aerox_core, schema `plc`
 │   ├── operations.ex           validation, priority, 72-hour nullification
 │   └── directory.ex            storage, admission, export, audited removeInvalidOps
+├── sequencer.ex               Aerox.Sequencer: the coalescing single writer of a
+│                               repo_seq table, shared by PDS and Relay      (§5.2, §21.2)
 ├── relay/
 │   ├── repo.ex                 Aerox.Relay.Repo → aerox_core, schema `relay`
-│   ├── host_consumer.ex        one GenServer per upstream host             (§21.4)
+│   ├── consumer.ex             one GenServer per upstream host (Mint.WebSocket,
+│   │                           cursor persistence, back-off, keepalive)     (§21.4)
+│   ├── consumers.ex            Registry + DynamicSupervisor, resubscribe on boot
+│   ├── ingest.ex               verification and re-emission per event type (§19)
+│   ├── hosts.ex / accounts.ex  host rules and limits; account↔host binding
+│   ├── host_checker.ex         describeServer / getRepoStatus probes
 │   ├── sequencer.ex            its own, with the retention window          (§19)
-│   └── crawl.ex                requestCrawl, host validation and limits
+│   └── config.ex
 ├── appview/
 │   ├── repo.ex                 Aerox.AppView.Repo → aerox_core, schema `appview`
-│   ├── ingest/                 Broadway, partitioned by hash(did)          (§21.5)
-│   ├── plugins/                the nineteen record plugins                 (§15.2)
-│   ├── hydration/              batch loaders                               (§15.3)
-│   ├── views/                  presentation: #postView, #profileView*
-│   ├── feeds/                  timeline · author · thread · custom
-│   ├── notifications/
-│   ├── labels/
-│   └── search.ex               behaviour; Postgres/pg_trgm default         (§15.8)
+│   ├── schema.ex               one Ecto schema per upstream bsky table
+│   ├── ingest.ex, ingest/      Broadway; producer (acked cursor), indexer  (§21.5)
+│   ├── backfill.ex             Oban job: getRepo → verify → index          (§15.1)
+│   ├── indexing.ex             RecordProcessor: record row, plugin, duplicates,
+│   │                           notifications in the same transaction       (§15.5)
+│   ├── plugin.ex, plugins/     the nineteen record plugins                 (§15.2)
+│   ├── thread_gates.ex         thread/post gate rules
+│   ├── hydration.ex            batch loaders                               (§15.3)
+│   ├── views.ex                presentation: #postView, #profileView*, embeds,
+│   │                           threads, notifications
+│   ├── cursor.ex               TimeCid keyset cursors
+│   ├── feeds.ex                timeline · author · thread · custom skeletons
+│   └── config.ex
 ├── labeler/
 │   ├── actions.ex              the Actions behaviour                       (§17.2)
 │   ├── labels.ex               signing + subscribeLabels sequencer

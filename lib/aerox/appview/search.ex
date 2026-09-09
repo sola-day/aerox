@@ -45,6 +45,7 @@ defmodule Aerox.AppView.Search.Postgres do
   """
   @behaviour Aerox.AppView.Search
   import Ecto.Query
+  require Aerox.AppView.Cursor
   alias Aerox.AppView.{Cursor, Repo, Search}
   alias Aerox.AppView.Schema, as: S
 
@@ -73,12 +74,20 @@ defmodule Aerox.AppView.Search.Postgres do
             query
 
           {dt, did} ->
-            where(query, [a], a.indexed_at < ^dt or (a.indexed_at == ^dt and a.did < ^did))
+            where(
+              query,
+              [a],
+              fragment("date_trunc('milliseconds', ?)", a.indexed_at) < ^dt or
+                (fragment("date_trunc('milliseconds', ?)", a.indexed_at) == ^dt and a.did < ^did)
+            )
         end
 
       rows =
         query
-        |> order_by([a], desc: a.indexed_at, desc: a.did)
+        |> order_by([a],
+          desc: fragment("date_trunc('milliseconds', ?)", a.indexed_at),
+          desc: a.did
+        )
         |> limit(^limit)
         |> Repo.all()
 

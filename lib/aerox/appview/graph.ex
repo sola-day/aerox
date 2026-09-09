@@ -8,6 +8,7 @@ defmodule Aerox.AppView.Graph do
   """
   import Ecto.Query
   alias Aerox.ATProto.Syntax
+  require Aerox.AppView.Cursor
   alias Aerox.AppView.{Actors, Cursor, Hydration, Repo, Views}
   alias Aerox.AppView.Schema, as: S
 
@@ -127,7 +128,9 @@ defmodule Aerox.AppView.Graph do
           where(
             query,
             [m],
-            m.created_at < ^dt or (m.created_at == ^dt and m.subject_did < ^did)
+            fragment("date_trunc('milliseconds', ?)", m.created_at) < ^dt or
+              (fragment("date_trunc('milliseconds', ?)", m.created_at) == ^dt and
+                 m.subject_did < ^did)
           )
       end
 
@@ -136,7 +139,10 @@ defmodule Aerox.AppView.Graph do
         do: [],
         else:
           query
-          |> order_by([m], desc: m.created_at, desc: m.subject_did)
+          |> order_by([m],
+            desc: fragment("date_trunc('milliseconds', ?)", m.created_at),
+            desc: m.subject_did
+          )
           |> limit(^limit)
           |> Repo.all()
 
@@ -218,7 +224,13 @@ defmodule Aerox.AppView.Graph do
           query
 
         {dt, u} ->
-          where(query, [m], m.created_at < ^dt or (m.created_at == ^dt and m.list_uri < ^u))
+          where(
+            query,
+            [m],
+            fragment("date_trunc('milliseconds', ?)", m.created_at) < ^dt or
+              (fragment("date_trunc('milliseconds', ?)", m.created_at) == ^dt and
+                 m.list_uri < ^u)
+          )
       end
 
     rows =
@@ -226,7 +238,10 @@ defmodule Aerox.AppView.Graph do
         do: [],
         else:
           query
-          |> order_by([m], desc: m.created_at, desc: m.list_uri)
+          |> order_by([m],
+            desc: fragment("date_trunc('milliseconds', ?)", m.created_at),
+            desc: m.list_uri
+          )
           |> limit(^limit)
           |> Repo.all()
 

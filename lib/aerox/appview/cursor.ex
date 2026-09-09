@@ -29,6 +29,11 @@ defmodule Aerox.AppView.Cursor do
   @doc """
   Applies the keyset to an Ecto query on `sort_at`/`cid` fields of the first
   binding, and limits it. Rows with `sort_at` at the cursor are broken by cid.
+
+  `sort_at` is stored with microseconds but the cursor carries milliseconds
+  (upstream's format), so both the ordering and the comparison truncate to
+  the millisecond: otherwise rows in the cursor's millisecond fall between
+  pages.
   """
   defmacro paginate(query, cursor, limit) do
     quote do
@@ -42,10 +47,17 @@ defmodule Aerox.AppView.Cursor do
             q
 
           {dt, cid} ->
-            where(q, [r], r.sort_at < ^dt or (r.sort_at == ^dt and r.cid < ^cid))
+            where(
+              q,
+              [r],
+              fragment("date_trunc('milliseconds', ?)", r.sort_at) < ^dt or
+                (fragment("date_trunc('milliseconds', ?)", r.sort_at) == ^dt and r.cid < ^cid)
+            )
         end
 
-      q |> order_by([r], desc: r.sort_at, desc: r.cid) |> limit(^unquote(limit))
+      q
+      |> order_by([r], desc: fragment("date_trunc('milliseconds', ?)", r.sort_at), desc: r.cid)
+      |> limit(^unquote(limit))
     end
   end
 

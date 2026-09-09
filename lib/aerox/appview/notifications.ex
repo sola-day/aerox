@@ -145,14 +145,25 @@ defmodule Aerox.AppView.Notifications do
 
   defp maybe_reasons(query, _), do: query
 
+  # `sort_at` has microseconds, the cursor milliseconds: page at the millisecond (see Cursor.paginate)
   defp paginate(query, cursor, limit) do
     query =
       case parse(cursor) do
-        nil -> query
-        {dt, id} -> where(query, [n], n.sort_at < ^dt or (n.sort_at == ^dt and n.id < ^id))
+        nil ->
+          query
+
+        {dt, id} ->
+          where(
+            query,
+            [n],
+            fragment("date_trunc('milliseconds', ?)", n.sort_at) < ^dt or
+              (fragment("date_trunc('milliseconds', ?)", n.sort_at) == ^dt and n.id < ^id)
+          )
       end
 
-    query |> order_by([n], desc: n.sort_at, desc: n.id) |> limit(^limit)
+    query
+    |> order_by([n], desc: fragment("date_trunc('milliseconds', ?)", n.sort_at), desc: n.id)
+    |> limit(^limit)
   end
 
   defp parse(nil), do: nil
