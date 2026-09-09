@@ -460,3 +460,41 @@ written during the milestone.
 - **VERIFICATION items added.** The consumer test's fake host (Bandit
   in-process) honours the cursor, so "reconnect with cursor yields no gap and
   no duplicate" is asserted on seq continuity, not assumed.
+
+### M7 — AppView and image CDN (closed 2026-09-09; parity rows open)
+
+- **What done took.** The `appview` schema mirroring upstream's bsky tables,
+  `Aerox.AppView.Indexing` (RecordProcessor semantics: generic `record`
+  row, plugin dispatch, duplicates, notifications in the index transaction,
+  promotion on delete) and all nineteen plugins with upstream's aggregates,
+  reply/thread-gate/embedding validation and notification reasons; the
+  Broadway ingest off our Relay (Mint.WebSocket producer with an acked-cursor
+  persisted to `subscription`, disconnect-on-high-water back-pressure,
+  `partition_by hash(did)`); Oban backfill via `getRepo` on first sight; the
+  hydration/views layers; and the read path — feeds, threads, profiles,
+  graph, search (pg_trgm substring, CJK included), notifications, labeler
+  services, mutes — every response validated against the vendored lexicon in
+  tests. `Aerox.ImageServer` (vix/libvips) serves upstream's URL shape under
+  `/img` on the AppView host. The PDS proxies `app.bsky.*` to it with
+  service JWTs; browser clients need CORS, which upstream has and we lacked.
+  `test/harness/ouranos.mjs` drives the real ouranos build in headless
+  Chromium: login, home timeline, a post with an image from the CDN — the
+  milestone's exit criterion, green.
+- **What the design got wrong.** (1) The AppView must subscribe *with a
+  cursor* from the start: a live-only tail never sees repos that already
+  exist, and `cursor=0` is exactly "everything you retain" (OutdatedCursor
+  + replay). (2) Upstream's `getTimeline` has no server-side reply filter;
+  §15.4's filter is implemented anyway as one query. (3) `TimeCidKeyset`
+  cursors are millisecond-precision while our `sort_at` is microsecond:
+  the keyset compares on `date_trunc('milliseconds', …)`. (4) Clients send
+  `cursor=` (empty) for the first page; an empty cursor is no cursor, not
+  a "clearly bad" one. (5) Two `mix test` runs against one test database
+  race the PDS sequencer (`repo_seq_pkey` duplicates): the unboxed insert
+  path is single-writer per VM, not per database — never run the suite
+  twice concurrently.
+- **Carried.** VERIFICATION §7.1 parity diffs against the reference
+  AppView (`bsky-standalone`) are not yet run: the reference AppView
+  container is not up. The `ENDPOINTS.md` rows for the AppView stay
+  `pending` until they are. Feed generators receive a JWT signed by the
+  AppView's own key (`iss` = our service DID) rather than upstream's
+  pass-through of the PDS-minted viewer JWT.
