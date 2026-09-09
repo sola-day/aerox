@@ -1,6 +1,6 @@
 # aerox — Verification plan
 
-Companion to `DESIGN.md`. Drafted 2026-09-09.
+Companion to `DESIGN.md`, `DEV_PLAN.md` and `STRUCTURE.md`. Drafted 2026-09-09.
 
 `DESIGN.md` says what aerox is and why. This document says **how we will know it is
 correct**, at every layer, before and after it ships. It is organised by the question

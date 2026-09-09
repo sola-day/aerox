@@ -1,6 +1,7 @@
 # aerox — Development plan
 
-Companion to `DESIGN.md` (what and why) and `VERIFICATION.md` (how we know it is right).
+Companion to `DESIGN.md` (what and why), `VERIFICATION.md` (how we know it is right)
+and `STRUCTURE.md` (where code goes, and which boundaries the layout enforces).
 This document says **in what order we build it, how we work, and on what**. Drafted
 2026-09-09.
 

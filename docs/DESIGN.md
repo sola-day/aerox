@@ -359,7 +359,9 @@ Aerox.ATProto.Repo        commit production and verification, ops/diff
 Aerox.ATProto.Identity    DID document parse (pure); resolve lives outside the kernel
 ```
 
-The test tree mirrors this; `test/atproto/golden/` holds the assembled corpus (§7).
+The test tree mirrors this. The golden corpus lives at **`test/golden/`**, not under
+`test/atproto/` — it also holds PLC, OAuth, Spaces and bundle vectors, which are not
+kernel material (VERIFICATION §2.1, `STRUCTURE.md` §8).
 
 ---
 
