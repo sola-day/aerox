@@ -32,7 +32,15 @@ config :aerox, Oban.PDS,
   name: Aerox.PDS.Oban,
   repo: Aerox.PDS.Repo,
   queues: [mail: 5, maintenance: 2],
-  plugins: [Oban.Plugins.Pruner]
+  plugins: [
+    Oban.Plugins.Pruner,
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"0 * * * *", Aerox.PDS.Jobs.ReapBlobs},
+       {"*/10 * * * *", Aerox.PDS.Jobs.ReapSignups},
+       {"30 3 * * *", Aerox.PDS.Jobs.RevokeExpiredTokens}
+     ]}
+  ]
 
 config :aerox, Oban.Core,
   name: Aerox.Core.Oban,

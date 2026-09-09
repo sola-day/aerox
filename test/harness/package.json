@@ -8,6 +8,7 @@
     "scenarios": "node --test scenarios/"
   },
   "dependencies": {
-    "@atproto/api": "0.18.13"
+    "@atproto/api": "0.18.13",
+    "ws": "^8.21.3"
   }
 }
