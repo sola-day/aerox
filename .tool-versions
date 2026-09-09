@@ -1,4 +1,11 @@
-# Pins recorded per DEV_PLAN §1.1. Development runs in Docker (docker/dev/Dockerfile
-# builds exactly these); this file documents the versions for host-side tooling.
+# Pins recorded per DEV_PLAN §1.1. The toolchain is installed on the host with
+# mise; only Postgres and the upstream oracle containers run in Docker.
 erlang 29.0.6
 elixir 1.20.4-otp-29
+
+# Tooling only, never the BEAM runtime: Node runs the @atproto/api harness
+# (VERIFICATION §6) and the ouranos/bulletin clients; Go builds the indigo-based
+# golden generators and `goat`. Pinned rather than "LTS"/"latest" so a regenerated
+# golden corpus is reproducible.
+node 24.21.0
+go 1.27.1

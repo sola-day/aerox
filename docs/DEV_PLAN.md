@@ -23,10 +23,11 @@ would.
 | Elixir / OTP | Elixir 1.20.x on OTP 29, via `mise` (`.tool-versions` in the repo) | matches the versions the design was verified on; never the distro packages |
 | Phoenix | 1.8.13 (`phx_new` archive pinned) | DESIGN §2 |
 | Postgres | **18**, as a Docker container (`compose.yaml`) | published on `127.0.0.1:5433` only, to stay clear of the box's existing Postgres containers; two databases per environment (DESIGN §4.6) plus `_test` pairs, created by `docker/postgres/init/`. `pg_trgm` (DESIGN §15.8) enabled per database at init. **Note:** PG18+ images require the volume mounted at `/var/lib/postgresql`, not `.../data` |
+| Postgres client | `postgresql-client-18` from the PGDG apt repository | on the host, for `psql`/`pg_dump` against the container and for the migration drills of §1.3; the distro ships 16, and a 16 client cannot dump an 18 server |
 | Docker + compose | Postgres 18 and the upstream oracle containers | aerox itself runs on the host BEAM, not in Docker, during development; the Erlang/Elixir toolchain is installed on the host via `mise` |
-| Reverse proxy | Caddy | automatic Let's Encrypt; one `Caddyfile` maps hostnames → local ports |
-| Node.js | LTS via `mise` | for `ouranos`, `bulletin`, the `@atproto/api` test harness and golden generators |
-| Go | current stable via `mise` | for indigo-based golden generators and `goat` |
+| Reverse proxy | **Traefik v3** (`ginger-traefik`, already on the box) | not Caddy: :80/:443 are already held by a Traefik that fronts unrelated applications, with `letsencrypt` (HTTP-01) and `letsencrypt-dns` (DNS-01 via Cloudflare) resolvers configured. aerox reuses it; its routers live in `ops/traefik/` and are spliced in by `ops/traefik/install.sh` (§1.2) |
+| Node.js | 24.21.0 via `mise` (pinned in `.tool-versions`) | for `ouranos`, `bulletin`, the `@atproto/api` test harness and golden generators |
+| Go | 1.27.1 via `mise` (pinned in `.tool-versions`) | for indigo-based golden generators and `goat` |
 | Process supervision (demo) | systemd units running `mix release` output | the dev loop uses `mix phx.server` in tmux; the standing demo is a release |
 | Observability | LiveDashboard (dev), `recon` in releases, journald | production telemetry export is an open item (DESIGN §10) |
 
