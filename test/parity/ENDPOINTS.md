@@ -6,6 +6,9 @@ parity status and any documented deviation. The router test
 (`test/aerox_web/router_parity_test.exs`) fails if the router serves a method this
 table does not list, or lists one the router does not serve.
 
+Every other `/xrpc/<nsid>` is the proxy catch-all (DESIGN §11.1): forwarded to
+the `atproto-proxy` target or the default service for the NSID, else 501.
+
 Status: `flow` = exercised by the HTTP flow tests against our own stack;
 `parity` = diffed against the reference stack (§7.1 items 1–2, from M7);
 `pending` = routed and covered by unit tests only.

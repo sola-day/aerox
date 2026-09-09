@@ -142,9 +142,11 @@ defmodule AeroxWeb.Router do
     get "/com.atproto.sync.subscribeRepos", Sockets.Firehose.Plug, :upgrade
   end
 
-  # xrpc-server answers any unknown /xrpc/<method> with 501 MethodNotImplemented.
-  scope "/xrpc", AeroxWeb do
-    match :*, "/*method", XRPC.NotImplementedController, :call
+  # Everything else under /xrpc is proxied (DESIGN §11.1) or, with no target,
+  # answered 501 MethodNotImplemented as xrpc-server does.
+  scope "/xrpc", AeroxWeb.PDS do
+    pipe_through [:xrpc, :pds]
+    match :*, "/*method", ProxyController, :proxy
   end
 
   # The did:plc directory, route for route with did-method-plc's server.

@@ -43,9 +43,11 @@ defmodule AeroxWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
+  # The raw body is kept for the /xrpc proxy (DESIGN §11.1: forwarded verbatim).
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
+    body_reader: {AeroxWeb.Plugs.RawBody, :read_body, []},
     json_decoder: Phoenix.json_library()
 
   plug Plug.MethodOverride
