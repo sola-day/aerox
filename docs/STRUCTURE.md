@@ -286,6 +286,19 @@ those three needs its own `search_path` (`after_connect`) and its own
 migrations physically separate is what makes "split `aerox_core` into three databases
 later" a config change and nothing else.
 
+Each repo also connects as **its own Postgres role**, with `REVOKE` on every schema it
+does not own (DESIGN §4.6). Without that, the three `aerox_core` schemas are separated
+by convention only and an AppView query can join straight into `relay.*` — the very
+shortcut the database split exists to forbid. The role grants belong in the first
+migration of each repo, not in a hand-run script, so a fresh database is correct by
+construction.
+
+Two consequences for the tree above: there are **two Oban instances**, one per database
+(DESIGN §21.6's "same transaction as the business write" is a per-database property), so
+`pds/jobs/` and a core-side equivalent each configure their own queues; and the
+combined pool budget is four repos wide, which needs explicit `pool_size` on a small
+box rather than the default 10 apiece.
+
 ---
 
 ## 8. `test/`

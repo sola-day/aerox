@@ -581,21 +581,57 @@ small deployments):
 | `aerox_pds` | `Aerox.PDS.Repo` | everything in 4.2–4.5 and the `repo_seq` log (4.7) — user-owned, per-instance data |
 | `aerox_core` | `Aerox.PLC.Repo`, `Aerox.Relay.Repo`, `Aerox.AppView.Repo` | network-wide indexes and the identity directory; one Postgres schema per service (`plc`, `relay`, `appview`) so they can be split into separate databases later without code changes |
 
-Reasons for the split, in order of weight:
+Reasons for the split, in order of weight (**reordered 2026-09-09** after the
+rationale was re-examined; the decision is unchanged, its justification is not):
 
-1. **It enforces §2's service boundaries at the storage layer.** With one shared
+1. **The cost of getting it wrong is asymmetric, and that is what settles it.**
+   Splitting now and merging later is restoring two dumps into one database;
+   merging now and splitting later is moving schemas with live data — downtime or
+   logical replication. Cheap now, expensive later, exactly the shape of the
+   argument in §1 for bit-exact encoding. The remaining reasons are why the option
+   is worth holding at all; this is why it is taken *now*.
+2. **The two halves have different recovery units.** PDS data is user-owned and
+   **not reproducible**; it must be restorable per account. Index data — everything
+   in `aerox_core` except the private slice of §8 — is **derivable by replaying the
+   firehose**. Separate databases make "restore the PDS, rebuild the index" an
+   ordinary operation rather than surgery, and they match the backup story already
+   chosen elsewhere: the per-account bundle (§13.0) for the PDS, a physical dump for
+   the private slice (§8). Backup cadence, retention and restore drills differ
+   accordingly.
+3. **The PDS can move to its own server** (or several PDS instances can run, each
+   with its own database) without touching the rest. This is the only reason that
+   also buys **resource isolation** — see the caveat below.
+4. **It enforces §2's service boundaries at the storage layer.** With one shared
    database the tempting shortcut is a SQL join from the AppView into the PDS's
    `record` table. Separate databases make that impossible; the only path between
    services is XRPC (or the firehose), exactly as in a real federated deployment.
-   An AppView that only works against *our* PDS's tables is not an AppView.
-2. **Different data, different operations.** PDS data is user-owned and must be
-   restorable per account; index data is derivable by replaying the firehose. Backup
-   cadence, retention and restore drills differ, and a runaway AppView query cannot
-   starve PDS writes.
-3. **The PDS can move to its own server** (or several PDS instances can run, each
-   with its own database) without touching the rest.
+   An AppView that only works against *our* PDS's tables is not an AppView. This
+   catches what `boundary` (§2) cannot: the compile-time check stops
+   `Aerox.AppView` naming `Aerox.PDS.Repo`, but not raw SQL issued through the
+   AppView's own repo. It is listed last because it is the reason a cheaper
+   mechanism could also have served — see roles, below.
+
+**Two caveats, stated so they are not rediscovered during an incident:**
+
+- **Separate databases on one server buy almost no resource isolation.** They share
+  `shared_buffers`, WAL, the checkpointer, autovacuum workers, connection slots, CPU
+  and disk. A runaway AppView query on a co-located cluster *can* starve PDS writes.
+  Only reason 3 — separate servers — removes that, and until then the mitigation is
+  pool sizing and statement timeouts, not the database boundary.
+- **Inside `aerox_core` the three schemas are separated by convention only.** The
+  same shortcut reason 4 forbids across the PDS boundary (an AppView query joining
+  into `relay.*`) is available there, because the three repos connect as one role.
+  **Therefore: each service connects as its own Postgres role, with `REVOKE` on every
+  schema it does not own.** Applied to all four services, this makes the boundary a
+  runtime permission error everywhere, not just at the database edge, and it is the
+  cheap complement to the split rather than an alternative to it.
 
 Nothing in the kernel or in service code may assume the two databases are co-located.
+
+**Consequence for Oban (§21.6):** "a job is enqueued in the same transaction as the
+business write" is a per-database property, so there are **two Oban instances**, one
+per repo, each with its own queues and cron. Enqueuing to the wrong instance silently
+gives up the only property Oban was chosen for.
 
 ### 4.7 Sequencer storage
 
@@ -1805,7 +1841,7 @@ tombstoned for `did:plc`). Transitions:
 
 | Flow | Steps |
 |---|---|
-| Sign-up | invite code (optional per config, `invite_code` tables), handle availability (§8 item 2 domains, reserved words such as `visitor`), password → scrypt (§13.4), account + signing key + PLC genesis op (§14.2) in one transaction, `confirm_email` mail, `#account` + `#identity` events. **No `signupQueued` waitlist** — upstream's queue is dropped; the scope value stays recognised for imported tokens only |
+| Sign-up | invite code (optional per config, `invite_code` tables), handle availability (§8 item 2 domains, reserved words such as `visitor`), password → scrypt (§13.4), then a **saga, not one transaction** — the account and its signing key are committed to `aerox_pds` first, *deactivated*; the PLC genesis op (§14.2) is submitted second; the account is activated third. There is no cross-database transaction to be had (§4.6), and in a real deployment the PLC directory is another operator entirely, so signup is inherently a network call. Each step is idempotent and resumable: a crash after step 1 leaves a deactivated account a retry completes, and an orphaned account with no PLC op is reaped. Then `confirm_email` mail, `#account` + `#identity` events. **No `signupQueued` waitlist** — upstream's queue is dropped; the scope value stays recognised for imported tokens only |
 | Deactivate / reactivate | `deactivateAccount` (optional `deleteAfter`) → `#account inactive`; repo hidden from `listRepos`, writes refused, reads 404; `activateAccount` reverses |
 | Delete | `requestAccountDelete` mail token → `deleteAccount` → `did:plc` tombstone via the Signer (§14.2, audited) → `#account deleted` → rows purged after the grace period; blobs via `delete_all(did)` (§4.4) |
 | Take down / restore | admin only (`updateSubjectStatus`), §17.2 |
@@ -2094,3 +2130,8 @@ corpus cannot.
 | 2026-09-09 | Broadway pipeline for AppView ingest, partitioned by `hash(did)`; back-pressure reaches the firehose socket | Per-repo ordering with cross-repo parallelism without hand-written locks; no unbounded mailbox (§21.5) |
 | 2026-09-09 | Per-account write serialisation via `repo_root … FOR UPDATE`, not a process per account; sequencer uses call coalescing; no Erlang cluster before R3 | Row lock is multi-node-correct today; per-account processes deferred to a measured optimisation (§21.2, §21.3, §21.10) |
 | 2026-09-09 | Postgres 18 is the database version for development and production | Owner decision; one major version everywhere; recorded in DEV_PLAN §1.1 |
+| 2026-09-09 | §4.6 rationale reordered: the decisive reason for splitting the PDS database is the **asymmetric cost of reversal**, then differing recovery units, then topology; storage-level boundary enforcement drops to last | Re-examination found the boundary argument partly served by `boundary` and by a cheaper mechanism (roles), while the reversal-cost argument — cheap now, expensive later — was the one actually settling it, and was unstated (§4.6) |
+| 2026-09-09 | Each service connects as its own Postgres role with `REVOKE` on schemas it does not own | The three schemas inside `aerox_core` were separated by convention only, so the very shortcut §4.6 forbids across the PDS boundary was available among PLC/Relay/AppView (§4.6) |
+| 2026-09-09 | Corrected: separate databases **on one server** provide no resource isolation | The claim that a runaway AppView query cannot starve PDS writes is false on a co-located cluster, which §4.6 itself allows for dev and small deployments (§4.6) |
+| 2026-09-09 | Two Oban instances, one per database | "Enqueued in the same transaction as the business write" is a per-database property; one instance cannot serve both repos (§4.6, §21.6) |
+| 2026-09-09 | Sign-up is a **saga** — account + signing key (deactivated) → PLC genesis op → activate — not one transaction | PLC lives in `aerox_core` and the PDS in `aerox_pds`, so no such transaction exists; in a real deployment PLC is a different operator and signup is a network call regardless. Owner decision on the ordering (§18.3, §4.6) |
