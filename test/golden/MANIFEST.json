@@ -390,6 +390,78 @@
       "kind": "generated",
       "sha256": "6f43c68de90b573781c079e32d267b4048eb3103ff5bbbfc8cb258de2226c0e3"
     },
+    "dagcbor/invalid/duplicate-keys.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "a1ba48ece6f0b8d1f923c6877447b05e05b8fbba65be9f1ee2e9817af34a0526"
+    },
+    "dagcbor/invalid/float.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "f3bffba2b0bbc80a1c4ba39c789bb8e1eef08dc2792e4beb0fbaff1369b7a035"
+    },
+    "dagcbor/invalid/indefinite-array.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "902540f397802792a8b1860591f9d04221b6ea15be395ae86a96007337291aa5"
+    },
+    "dagcbor/invalid/indefinite-string.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "cff60d2b554de2a9359194e7d231c85a6819783352363304f746784e12dca9fb"
+    },
+    "dagcbor/invalid/int-key.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "c05585b695c0cf13d97459cc96a147584d9e25348328d86469cd31f861275843"
+    },
+    "dagcbor/invalid/length-longer-than-needed.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "cb20bdfbfb0f205c42b2ad8dabceebe2c7de58980682d0d0d185a792d4f09316"
+    },
+    "dagcbor/invalid/non-shortest-int.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "39bf521a8d4b506198f78cfe94c16dd53d39d745ca35e38562bcdb85e43a71e7"
+    },
+    "dagcbor/invalid/tag42-no-identity-prefix.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "9c14afadcdb9c18d234684ddf6b544650be56da9f4b7158ac62723c961bb7286"
+    },
+    "dagcbor/invalid/tag42-no-prefix-truncated.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "2a6b7cdb363869f8f9f5f4983b5a2d71650b29bde926a48291d099e2c29cba7f"
+    },
+    "dagcbor/invalid/trailing-bytes.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "a12871fee210fb8619291eaea194581cbd2531e4b23759d225f6806923f63222"
+    },
+    "dagcbor/invalid/undefined.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "50868f20258bbc9cce0da2719e8654c108733dd2f663b8737c574ec0ead93eb3"
+    },
+    "dagcbor/invalid/unsorted-keys.cbor": {
+      "date": "2026-09-09",
+      "kind": "handwritten",
+      "note": "VERIFICATION \u00a73.3 non-canonical mutation; must be rejected by the strict decoder",
+      "sha256": "3684f197ac4514ab69c11b98761f2c8c1bebb568f897b4beb562e74fa6fa1727"
+    },
     "dagcbor/key-ordering.cbor": {
       "date": "2026-09-09",
       "generator": {

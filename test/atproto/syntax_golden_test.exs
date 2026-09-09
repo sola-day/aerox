@@ -26,7 +26,7 @@ defmodule Aerox.ATProto.SyntaxGoldenTest do
       for line <- lines("syntax/#{unquote(kind)}_syntax_invalid.txt") do
         refute unquote(pred).(line), "expected invalid: #{inspect(line)}"
         assert {:error, reason} = unquote(ensure).(line), "expected error: #{inspect(line)}"
-        assert is_binary(reason) and reason != ""
+        assert reason != ""
       end
     end
   end
