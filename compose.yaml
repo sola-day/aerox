@@ -1,0 +1,29 @@
+# aerox development services.
+# Only Postgres runs in Docker; Erlang/Elixir/Phoenix are installed on the host
+# (DEV_PLAN §1.1). Published on loopback only, so nothing collides with this
+# box's traefik/nomad workload on 80/443 or with the existing multica-postgres.
+name: aerox
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: aerox
+      POSTGRES_PASSWORD: aerox
+      POSTGRES_DB: postgres
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      # PG18+ stores data in a major-version subdirectory: mount the parent
+      - pgdata:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aerox -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    shm_size: 256mb
+
+volumes:
+  pgdata:

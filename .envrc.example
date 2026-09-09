@@ -1,0 +1,10 @@
+# Host-side connection settings for the dockerised Postgres (compose.yaml).
+# Port 5433 to stay clear of any host/other-container Postgres on 5432.
+export PGHOST=127.0.0.1
+export PGPORT=5433
+export PGUSER=aerox
+export PGPASSWORD=aerox
+export DATABASE_HOST=127.0.0.1
+export DATABASE_PORT=5433
+export DATABASE_USER=aerox
+export DATABASE_PASSWORD=aerox
