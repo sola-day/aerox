@@ -1,0 +1,55 @@
+{
+  "$type": "app.bsky.feed.post",
+  "text": "你好世界 hello from aerox 😀",
+  "createdAt": "2026-09-09T12:00:00.000Z",
+  "langs": [
+    "zh",
+    "en"
+  ],
+  "embed": {
+    "$type": "app.bsky.embed.images",
+    "images": [
+      {
+        "alt": "an image",
+        "image": {
+          "$type": "blob",
+          "ref": {
+            "$link": "bafkreicvocr46arap4otkljm72rylpslyczlsqkpmbv2u32v3nqlemxsee"
+          },
+          "mimeType": "image/jpeg",
+          "size": 1234
+        },
+        "aspectRatio": {
+          "width": 4,
+          "height": 3
+        }
+      }
+    ]
+  },
+  "facets": [
+    {
+      "index": {
+        "byteStart": 13,
+        "byteEnd": 18
+      },
+      "features": [
+        {
+          "$type": "app.bsky.richtext.facet#link",
+          "uri": "https://example.com"
+        }
+      ]
+    },
+    {
+      "index": {
+        "byteStart": 24,
+        "byteEnd": 29
+      },
+      "features": [
+        {
+          "$type": "app.bsky.richtext.facet#tag",
+          "tag": "aerox"
+        }
+      ]
+    }
+  ]
+}

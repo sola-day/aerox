@@ -10,6 +10,20 @@
         "repo": "atproto"
       }
     },
+    "cid/vectors.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "c8d84988fbb75aca8f930ba6e3950806bb9659184a1d75197abbf16a71986943"
+    },
     "crypto/signature-fixtures.json": {
       "date": "2026-09-09",
       "kind": "copied",
@@ -39,6 +53,594 @@
         "path": "interop-test-files/crypto/w3c_didkey_P256.json",
         "repo": "atproto"
       }
+    },
+    "dagcbor/bools.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "651b65379cabf774cd439142fd54c67e5e1878ed51c594934b701dabe9ca5bfc"
+    },
+    "dagcbor/bools.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "a84da354c5a69229bb2062eab0cdc8bec39e820af1b6b925fef50909072e67c0"
+    },
+    "dagcbor/bools.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "e37944d2a7a5315706487a1ed030b8382b6ece6d83aca2cd02018ead0267c786"
+    },
+    "dagcbor/bytes.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "89a16aa9fcbf0dced52f80cf72c52b00705ddca0467e7615d869556d15f0799d"
+    },
+    "dagcbor/bytes.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "c6b071a0a70df4b46ef00f40055c3baebea9c9b65393af4a528d5b6135252653"
+    },
+    "dagcbor/bytes.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "8e889abe320bfadeb8ceac75e106c8a609262e4ff78ceab388f2772a0954cbc9"
+    },
+    "dagcbor/cid-link.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "36fb10ecdee74a76a2d5c0344fbe57f15e5d3cba5f02a8b06ce13b3648d996f0"
+    },
+    "dagcbor/cid-link.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "120354984705f336522e8890b4a62301acd63ae1e07ba887183cb42c8f5f7804"
+    },
+    "dagcbor/cid-link.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "e2111e3f31949234400ac7ecb25b9509ff813e4591732e72d422b92aa6f67d0e"
+    },
+    "dagcbor/commit-signed.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "a79ec1ded760c1aebe8b2702a4999d5598e573fc136d8693696bc34d34c93c33"
+    },
+    "dagcbor/commit-signed.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "4294fe774ca35c38b0c299974cf38684ac8ac288e0b3502386f99d816d3319b4"
+    },
+    "dagcbor/commit-signed.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "982eb62b59b87d2f3bef655a6b03b764bbfc37bb041397bd6b3b8179750b003c"
+    },
+    "dagcbor/commit-unsigned.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "36d9c01ae542d273b2373c8c9f79d32cb921dfdcbb5677b27017f493fc3a7be3"
+    },
+    "dagcbor/commit-unsigned.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "32454aa55b5e98bf5f5f252d2115ff1380f211e21624c412699bb759b489ceb4"
+    },
+    "dagcbor/commit-unsigned.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "d2d95e888235bf4c39c8b50c2e2c4e615d3124e4bde4f61d7fdb4ed4631cb626"
+    },
+    "dagcbor/empty-array.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "76be8b528d0075f7aae98d6fa57a6d3c83ae480a8469e668d7b0af968995ac71"
+    },
+    "dagcbor/empty-array.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "43edb2da7a14f14b53cbd0a7935275ac0b6771325ad0f716ca02420adb9d940c"
+    },
+    "dagcbor/empty-array.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "dagcbor/empty-map.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "c19a797fa1fd590cd2e5b42d1cf5f246e29b91684e2f87404b81dc345c7a56a0"
+    },
+    "dagcbor/empty-map.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "6369b50b479f1917bb021cf597974061dcac18a6ea4aa087cd5d27e530e94fa3"
+    },
+    "dagcbor/empty-map.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+    },
+    "dagcbor/ints-boundaries.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "3bec34b7d09ca0c72670936020bd70c51170a4f7b0353d790a1993b643787033"
+    },
+    "dagcbor/ints-boundaries.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "258d9d543b80f099afd0c8084370ff6a9e0c1414747fce5c8009aba6bebfed69"
+    },
+    "dagcbor/ints-boundaries.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "6f43c68de90b573781c079e32d267b4048eb3103ff5bbbfc8cb258de2226c0e3"
+    },
+    "dagcbor/key-ordering.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "a04cf35cb3a326be89bb06a0a9b79d005d911b10716b36e80a565e09fe6cc27d"
+    },
+    "dagcbor/key-ordering.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "fd6940df726e0834f88fa090f768f7f03d287f16998f03a77308ed191e55dcf3"
+    },
+    "dagcbor/key-ordering.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "93a52c084190f1f98cbb3662c27656b3457ef1bb193df53b3fd67583fcaba6fc"
+    },
+    "dagcbor/mixed.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "7f5c2d7ad7e9019d72dc5e61e983b78cf8362a4cdee978ee600ed6f31be792d9"
+    },
+    "dagcbor/mixed.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "bd51743d25a186732eb4986525b0e5cbd203491db76e04c8641ec2723f1e40ed"
+    },
+    "dagcbor/mixed.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "8e02b5b86df704fb07d609e98846f1eb5e46b9420db9fb23e0048135c910ca76"
+    },
+    "dagcbor/mst-node.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "dbe8ea35604f06b8c1ba98c9eacdb03359f3a8ee614832da16bfc11a7555f94d"
+    },
+    "dagcbor/mst-node.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "e3bcf4c498eb0d3c865f34985ed342ae72f8cd002a9e3760c07b09d7af269278"
+    },
+    "dagcbor/mst-node.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "30de86bf78b745fafeb4e95623d39508455951c0a2923c78bcb480d93f9f8ae8"
+    },
+    "dagcbor/nested.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "840c5b97c865a933baee127229a700bc53bef42bd1a5eabc2553347e4f7b6154"
+    },
+    "dagcbor/nested.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "6f0ffb701a66368da4791731264e5eb7052522cf1cccafe8bdabd9271900de72"
+    },
+    "dagcbor/nested.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "33686180c8bde887867ae9fe7634f9b37c0f0d7d20e4894ce5dad05676aa3e2d"
+    },
+    "dagcbor/null.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "365d431935762dd0a83d14bd343e8c4c8824c955e9f31a21786bde9f11974cc4"
+    },
+    "dagcbor/null.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "10795c5f36d486a761f4d94f507b5e3c1d5eb9e1b87378d895d8dad4c45c8d10"
+    },
+    "dagcbor/null.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "b35b7e0da16c40306cdf6de93ee494284546ca0405b03af659edcc4408986eee"
+    },
+    "dagcbor/strings.cbor": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "b18512060134c5afe70b97a68f81a63a85179a2fe66ac31dd6449c3dc84dfce6"
+    },
+    "dagcbor/strings.cid": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "e2c9a088c491f8328a99879d3179c38fc7c1df07840c8d18250fec0d7592cee7"
+    },
+    "dagcbor/strings.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "tools/golden/ts/run.sh",
+        "image": "node:24-alpine",
+        "imageDigest": "sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf",
+        "packages": {
+          "@ipld/dag-cbor": "9.2.7",
+          "multiformats": "13.4.2"
+        }
+      },
+      "kind": "generated",
+      "sha256": "e74badfd3d2d01cb03d2cb31de61a0965165968e41222e62ce1a7e89846ed9bc"
     },
     "data-model/data-model-fixtures.json": {
       "date": "2026-09-09",

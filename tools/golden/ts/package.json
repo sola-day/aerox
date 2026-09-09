@@ -1,0 +1,11 @@
+{
+  "name": "aerox-golden-ts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Upstream-side golden vector generators for the DAG-CBOR and CID layer (VERIFICATION.md §2.3)",
+  "dependencies": {
+    "@ipld/dag-cbor": "9.2.7",
+    "multiformats": "13.4.2"
+  }
+}
