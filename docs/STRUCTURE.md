@@ -45,16 +45,19 @@ aerox/
 ├── compose.yaml            Postgres 18 on loopback (DEV_PLAN §1.1)
 ├── docker/                 container support files
 │   └── postgres/init/      creates the four databases, enables pg_trgm
-├── docs/                   DESIGN · DEV_PLAN · VERIFICATION · STRUCTURE
+├── docs/                   DESIGN · DEV_PLAN · VERIFICATION · STRUCTURE · OPS
 ├── config/                 config.exs · dev · test · prod · runtime
 ├── lib/                    the application (§3, §4)
 ├── lib_tool/               MIX_ENV=tool only — never in a prod release (§5)
 ├── ops/                    host-side operational config, not compiled
-│   └── traefik/            routers + TLS for the dev domain (DEV_PLAN §1.2)
+│   ├── traefik/            routers + TLS for the dev domain (DEV_PLAN §1.2)
+│   ├── systemd/            aerox.service — the release under systemd (docs/OPS.md)
+│   ├── aerox.env.example   template for /etc/aerox/<env>.env (DEV_PLAN §1.3)
+│   └── backup.sh · restore.sh   age-encrypted physical backup and the restore drill
 ├── priv/                   migrations, vendored lexicons, static (§7)
 ├── test/                   §8
 ├── tools/                  upstream-side generators and reference stacks (§9)
-└── bench/RESULTS.md        load baselines per release (VERIFICATION §10.1)
+└── bench/                  baseline.sh + RESULTS.md, load baselines per release (VERIFICATION §10.1)
 ```
 
 `docs/`, `ops/`, `tools/` and `bench/` are deliberately outside `lib/` — none of them
@@ -105,7 +108,9 @@ lib/aerox/
 │   ├── cache.ex                ETS + per-service table, single-flight     (§21.7)
 │   └── http.ex                 hardened outbound client (SSRF rules)      (§16)
 ├── crypto/
-│   └── signer.ex               behaviour + Local · Kms · Remote           (§14.2)
+│   ├── signer.ex               behaviour + Local                          (§14.2)
+│   └── signer/{remote,kms}.ex  HTTP signing service · AWS KMS (SigV4)
+├── release.ex                  bin/aerox eval "Aerox.Release.migrate()"
 ├── blob/
 │   ├── store.ex                behaviour                                  (§4.4)
 │   ├── disk.ex · s3.ex · migrating.ex
