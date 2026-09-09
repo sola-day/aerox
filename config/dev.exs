@@ -83,6 +83,10 @@ config :aerox, AeroxWeb.Endpoint,
 # configured to run both http and https servers on
 # different ports.
 
+# DESIGN §18.2: x-forwarded-for is honoured only from these peers — the
+# Traefik bridge gateway and loopback. Plain IPs or CIDRs.
+config :aerox, :trusted_proxies, ["172.18.0.1", "127.0.0.1"]
+
 # Enable dev routes for dashboard and mailbox
 config :aerox, dev_routes: true
 

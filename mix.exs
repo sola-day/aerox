@@ -67,6 +67,8 @@ defmodule Aerox.MixProject do
       {:websock_adapter, "~> 0.5"},
       # kernel (DESIGN §3.8: secp256k1 via a Rust NIF, never hand-rolled)
       {:ex_secp256k1, "~> 0.8.0"},
+      # auth (DESIGN §13.4: upstream-compatible scrypt via a C NIF)
+      {:scrypt, "~> 2.1"},
       # shared infrastructure
       {:jose, "~> 1.11"},
       {:oban, "~> 2.24"},

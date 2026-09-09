@@ -1,0 +1,39 @@
+[
+  {
+    "name": "ascii",
+    "password": "password123",
+    "salt": "0123456789abcdef0123456789abcdef",
+    "expected": "0123456789abcdef0123456789abcdef:7bfc2ad8e90d7252b24c322d25a3ef314bb6f3b0ad29738a3140d921aa2606024e5f3f7eef2b45dfb16dd5428705bb539af7384b2504308175cc714be9c428bf"
+  },
+  {
+    "name": "empty-password",
+    "password": "",
+    "salt": "ffffffffffffffffffffffffffffffff",
+    "expected": "ffffffffffffffffffffffffffffffff:093dda8befb7cdb893330b530c6c47c6232eadb32dc43c849e9a0ea1c48e8749ec867324d1921cdf48fab848324955f1314b247efabc8fe89307e0de29fd91b6"
+  },
+  {
+    "name": "utf8-cjk-emoji",
+    "password": "pässwörd 密码 🔐",
+    "salt": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+    "expected": "a1b2c3d4e5f60718293a4b5c6d7e8f90:805b395a4b7c77f559e065436538a74c0d9724c4708147930dcd2906b55aa78bc4d3e3c71a6d9143e0b5fbf2a4ea0d59e1402a1c17674cca162d0a40782d7f36"
+  },
+  {
+    "name": "max-length-256",
+    "password": "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijkl",
+    "salt": "00112233445566778899aabbccddeeff",
+    "expected": "00112233445566778899aabbccddeeff:a77d295fc1dcb96c200a723fd4dabf155b5703cf35d64ae23e35ba41203906b0e2d217cf4fc4e959b5af103f6d8ff723fc405c6acf79f31a8bfcb6324cf32c4d"
+  },
+  {
+    "name": "app-password",
+    "password": "abcd-efgh-ijkl-mnop",
+    "salt": "099e4ea96cd62c05a232331859d20c97",
+    "expected": "099e4ea96cd62c05a232331859d20c97:fd2bbf28c4711cd8d02ea6a9af381222ef64fa9654f065196498e87aeb668370e1accd55a4a2cf56b303904d22367493a14af2bda8d630abaa594676edbca564",
+    "appPasswordDid": "did:plc:ewvi7nxzyoun6zhxrhs64oiz"
+  },
+  {
+    "name": "known-salt",
+    "password": "correct horse battery staple",
+    "salt": "c0ffeec0ffeec0ffeec0ffeec0ffeec0",
+    "expected": "c0ffeec0ffeec0ffeec0ffeec0ffeec0:b954ff5ce92c377a534602f30f76cbcec314cab9c94a796f31f6783e15f6e83cc58fefa572cb31d71b7a12d97fbce0cc219cae706f8bc1d85d02e17bb1b7ee10"
+  }
+]

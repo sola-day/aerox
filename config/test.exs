@@ -33,6 +33,14 @@ config :aerox, AeroxWeb.Endpoint,
   secret_key_base: "GIyVyLJJlFt7keFg+vAnPlze8LBYqqmeOVqJaFV9S9ER+e7U9arYy1RoYAFkt7s2",
   server: false
 
+# DESIGN §18.2: no trusted proxies in test, so x-forwarded-for is ignored
+# unless a test opts in with Application.put_env. Rate limits run at upstream's
+# numbers; a test that needs to trip one sets
+# `config :aerox, Aerox.RateLimit, overrides: %{name => buckets}` via put_env
+# (read per call) and calls Aerox.RateLimit.reset/0 afterwards.
+config :aerox, :trusted_proxies, []
+config :aerox, Aerox.RateLimit, overrides: %{}
+
 # In test we don't send emails
 config :aerox, Aerox.Mailer, adapter: Swoosh.Adapters.Test
 

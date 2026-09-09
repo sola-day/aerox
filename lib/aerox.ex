@@ -19,5 +19,5 @@ defmodule Aerox do
       Aerox.ImageServer,
       Aerox.Interop
     ],
-    exports: [Services, Mailer]
+    exports: [Services, Mailer, RateLimit]
 end

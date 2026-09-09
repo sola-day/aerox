@@ -20,7 +20,9 @@ defmodule Aerox.Application do
     [
       AeroxWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:aerox, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: Aerox.PubSub}
+      {Phoenix.PubSub, name: Aerox.PubSub},
+      # DESIGN §18.2: per-node ETS rate-limit buckets.
+      Aerox.RateLimit
     ]
   end
 
