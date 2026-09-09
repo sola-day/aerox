@@ -38,7 +38,7 @@ config :aerox, :services, [:pds, :plc, :relay, :appview, :labeler]
 config :aerox, Oban.PDS,
   name: Aerox.PDS.Oban,
   repo: Aerox.PDS.Repo,
-  queues: [mail: 5, maintenance: 2],
+  queues: [mail: 5, maintenance: 2, spaces: 5],
   plugins: [
     Oban.Plugins.Pruner,
     {Oban.Plugins.Cron,

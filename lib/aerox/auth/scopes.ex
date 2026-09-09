@@ -436,6 +436,19 @@ defmodule Aerox.Auth.Scopes do
 
   def needed_for(:identity, %{attr: at}), do: format({:identity, %{attr: at}})
 
+  def needed_for(:space, %{type: t, did: d, skey: s, action: a} = target),
+    do:
+      format(
+        {:space,
+         %{
+           type: t,
+           did: d,
+           skey: s,
+           collection: if(c = target[:collection], do: [c], else: []),
+           action: [a]
+         }}
+      )
+
   # ------------------------------------------------------------- include
 
   @doc """

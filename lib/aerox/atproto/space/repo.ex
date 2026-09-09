@@ -132,21 +132,34 @@ defmodule Aerox.ATProto.Space.Repo do
   def index(state), do: Map.new(state.records, fn {k, {cid, _}} -> {k, cid} end)
 
   @doc """
-  The two-root CAR of a repo (DESIGN §12.2): roots = [commit, index], then
-  the commit block, the index block and every record block.
+  The two-root CAR of a repo (DESIGN §12.2; the alpha's `serializeRepo`):
+  roots = [commit, index], then the commit block, the index block and one
+  record block per index entry **in the index's canonical DAG-CBOR key order**
+  (shortest key first, then bytewise) — the alpha verifier walks them in
+  that order. `commit` is a `SignedCommit` (alpha, with `ver`) or a branch `Commit`.
   """
   def export_car(state, commit) do
-    commit_bytes = DagCBOR.encode(Aerox.ATProto.Space.Commit.to_lex(commit))
+    commit_bytes = DagCBOR.encode(commit_lex(commit))
     commit_cid = CID.for_cbor(commit_bytes)
     index_bytes = DagCBOR.encode(index(state))
     index_cid = CID.for_cbor(index_bytes)
-    records = for {_k, {cid, record}} <- state.records, do: {cid, DagCBOR.encode(record)}
+
+    records =
+      state.records
+      |> Enum.sort_by(fn {k, _} -> {byte_size(k), k} end)
+      |> Enum.map(fn {_k, {cid, record}} -> {cid, DagCBOR.encode(record)} end)
 
     CAR.encode([commit_cid, index_cid], [
       {commit_cid, commit_bytes},
       {index_cid, index_bytes} | records
     ])
   end
+
+  defp commit_lex(%{ver: _} = commit), do: Aerox.ATProto.Space.SignedCommit.to_lex(commit)
+  defp commit_lex(commit), do: Aerox.ATProto.Space.Commit.to_lex(commit)
+
+  defp commit_from_lex(%{"ver" => _} = lex), do: Aerox.ATProto.Space.SignedCommit.from_lex(lex)
+  defp commit_from_lex(lex), do: Aerox.ATProto.Space.Commit.from_lex(lex)
 
   @doc "Reads a two-root CAR back into `{commit, state}`; the set hash is recomputed and checked against the commit's hash."
   def import_car(car) do
@@ -163,7 +176,7 @@ defmodule Aerox.ATProto.Space.Repo do
         end)
 
       state = recompute(records)
-      commit = Aerox.ATProto.Space.Commit.from_lex(commit_lex)
+      commit = commit_from_lex(commit_lex)
 
       if LtHash.digest(state.set_hash) == commit.hash,
         do: {:ok, commit, state},

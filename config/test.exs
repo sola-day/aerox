@@ -120,9 +120,18 @@ config :aerox, Aerox.ImageServer,
   sweeper: false,
   concurrency: 2
 
-# Labeler (DESIGN §17): hostname; `did` is the labeler account created by
-# `mix aerox.labeler.setup` (dev) or the test setup.
+# Labeler (DESIGN §17): hostname; `did` and `signing_key_hex` are set by the
+# tests after creating the labeler account (Aerox.Labeler.Setup), and the PDS's
+# `mod_service`/`mod_service_did` with them. The sequencer writes outside the
+# sandbox like the PDS's.
 config :aerox, Aerox.Labeler,
   hostname: "labeler.aerox.sola.town",
   public_url: "https://labeler.aerox.sola.town",
-  did: System.get_env("AEROX_LABELER_DID")
+  did: System.get_env("AEROX_LABELER_DID"),
+  admin_password: "REDACTED-labeler-admin-password"
+
+config :aerox, Aerox.Labeler.Sequencer, unboxed: true
+
+# Spaces (DESIGN §12): permissioned data behind a feature flag; routes answer
+# 501 MethodNotImplemented when disabled.
+config :aerox, Aerox.PDS.Space, enabled: true, trust_preassigned_auth: true

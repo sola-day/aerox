@@ -824,6 +824,54 @@
         "repo": "indigo"
       }
     },
+    "interop/ref-pds-0.4/account.sqlite": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "docker cp aerox-interop-ref-pds-1:/pds <tmp> && for each *.sqlite: VACUUM INTO test/golden/interop/ref-pds-0.4/<same path>; cp actors/ec/<did>/key",
+        "image": "ghcr.io/bluesky-social/pds:0.4",
+        "imageDigest": "sha256:d95725b24dbe53af9d91dc69750556931ebed6c396f2cfa42b221434db642f12",
+        "package": "@atproto/pds 0.5.27"
+      },
+      "kind": "generated",
+      "note": "A verbatim copy of a stock reference PDS container's data directory (ghcr.io/bluesky-social/pds:0.4, which bundles @atproto/pds 0.5.27), the dev stack's ref-pds with one account refalice.ref-pds.aerox.sola.town = did:plc:j34mp52kqeqheoencw7lqpyy, password refREDACTED-peer-account-password-rotated-2026-09-16, four posts, no blobs. Each SQLite file was snapshotted with `VACUUM INTO` so the WAL is folded in. CONTAINS A DEV-ONLY THROWAWAY SECP256K1 SIGNING KEY AND A DEV-ONLY SCRYPT PASSWORD HASH: test fixtures for DESIGN 13.2, never used anywhere real. Kind is 'generated' rather than 'copied' only because `mix aerox.golden.verify` resolves 'copied' entries against a git checkout; the provenance is the image digest.",
+      "sha256": "3b8faea60848fb087c05f91dc88170e6436d56dc212212f699f2b80e321b261e"
+    },
+    "interop/ref-pds-0.4/actors/ec/did:plc:j34mp52kqeqheoencw7lqpyy/key": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "docker cp aerox-interop-ref-pds-1:/pds <tmp> && for each *.sqlite: VACUUM INTO test/golden/interop/ref-pds-0.4/<same path>; cp actors/ec/<did>/key",
+        "image": "ghcr.io/bluesky-social/pds:0.4",
+        "imageDigest": "sha256:d95725b24dbe53af9d91dc69750556931ebed6c396f2cfa42b221434db642f12",
+        "package": "@atproto/pds 0.5.27"
+      },
+      "kind": "generated",
+      "note": "A verbatim copy of a stock reference PDS container's data directory (ghcr.io/bluesky-social/pds:0.4, which bundles @atproto/pds 0.5.27), the dev stack's ref-pds with one account refalice.ref-pds.aerox.sola.town = did:plc:j34mp52kqeqheoencw7lqpyy, password refREDACTED-peer-account-password-rotated-2026-09-16, four posts, no blobs. Each SQLite file was snapshotted with `VACUUM INTO` so the WAL is folded in. CONTAINS A DEV-ONLY THROWAWAY SECP256K1 SIGNING KEY AND A DEV-ONLY SCRYPT PASSWORD HASH: test fixtures for DESIGN 13.2, never used anywhere real. Kind is 'generated' rather than 'copied' only because `mix aerox.golden.verify` resolves 'copied' entries against a git checkout; the provenance is the image digest.",
+      "sha256": "fb3e8dd9e18df45fd4e16b719bca792011252a456fee32c5fb719c481d7ca75e"
+    },
+    "interop/ref-pds-0.4/actors/ec/did:plc:j34mp52kqeqheoencw7lqpyy/store.sqlite": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "docker cp aerox-interop-ref-pds-1:/pds <tmp> && for each *.sqlite: VACUUM INTO test/golden/interop/ref-pds-0.4/<same path>; cp actors/ec/<did>/key",
+        "image": "ghcr.io/bluesky-social/pds:0.4",
+        "imageDigest": "sha256:d95725b24dbe53af9d91dc69750556931ebed6c396f2cfa42b221434db642f12",
+        "package": "@atproto/pds 0.5.27"
+      },
+      "kind": "generated",
+      "note": "A verbatim copy of a stock reference PDS container's data directory (ghcr.io/bluesky-social/pds:0.4, which bundles @atproto/pds 0.5.27), the dev stack's ref-pds with one account refalice.ref-pds.aerox.sola.town = did:plc:j34mp52kqeqheoencw7lqpyy, password refREDACTED-peer-account-password-rotated-2026-09-16, four posts, no blobs. Each SQLite file was snapshotted with `VACUUM INTO` so the WAL is folded in. CONTAINS A DEV-ONLY THROWAWAY SECP256K1 SIGNING KEY AND A DEV-ONLY SCRYPT PASSWORD HASH: test fixtures for DESIGN 13.2, never used anywhere real. Kind is 'generated' rather than 'copied' only because `mix aerox.golden.verify` resolves 'copied' entries against a git checkout; the provenance is the image digest.",
+      "sha256": "c51b2daab5b9257a4d69ee85f360d7f00eb18b8936d09fa761b96c9c4da008a7"
+    },
+    "interop/ref-pds-0.4/sequencer.sqlite": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "docker cp aerox-interop-ref-pds-1:/pds <tmp> && for each *.sqlite: VACUUM INTO test/golden/interop/ref-pds-0.4/<same path>; cp actors/ec/<did>/key",
+        "image": "ghcr.io/bluesky-social/pds:0.4",
+        "imageDigest": "sha256:d95725b24dbe53af9d91dc69750556931ebed6c396f2cfa42b221434db642f12",
+        "package": "@atproto/pds 0.5.27"
+      },
+      "kind": "generated",
+      "note": "A verbatim copy of a stock reference PDS container's data directory (ghcr.io/bluesky-social/pds:0.4, which bundles @atproto/pds 0.5.27), the dev stack's ref-pds with one account refalice.ref-pds.aerox.sola.town = did:plc:j34mp52kqeqheoencw7lqpyy, password refREDACTED-peer-account-password-rotated-2026-09-16, four posts, no blobs. Each SQLite file was snapshotted with `VACUUM INTO` so the WAL is folded in. CONTAINS A DEV-ONLY THROWAWAY SECP256K1 SIGNING KEY AND A DEV-ONLY SCRYPT PASSWORD HASH: test fixtures for DESIGN 13.2, never used anywhere real. Kind is 'generated' rather than 'copied' only because `mix aerox.golden.verify` resolves 'copied' entries against a git checkout; the provenance is the image digest.",
+      "sha256": "b5ddea805f831a9544b4ffd2295b00d767983adb0df4b67a861d434c9039e930"
+    },
     "lexicon/catalog/com_atproto_label_defs.json": {
       "date": "2026-09-09",
       "kind": "copied",
@@ -1164,6 +1212,16 @@
         "path": "interop_tests/audit_log/valid/log_tombstone.json",
         "repo": "did-method-plc"
       }
+    },
+    "space/alpha.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "NODE_PATH=/home/ubuntu/aero/bulletin/node_modules node test/harness/gen-space-alpha-goldens.mjs (@atproto/space@0.0.0-spaces-alpha-20260818163953, the bulletin pin)",
+        "node": "v24.20.0"
+      },
+      "kind": "generated",
+      "note": "the published Spaces alpha: set-hash element collection/rkey/cid, RepoCommit states, commit ctx (atproto-space-v1 || len16BE space/author/rev/ikm) with HKDF-Expand MAC and a secp256k1 signature over the ctx (fixed key and ikm, deterministic), serializeRepo CAR bytes, and delegation/credential tokens (typ atproto-space-*+jwt)",
+      "sha256": "3302a1cb67dea75de3498a4b941184ba845a07d3909355da0a7387b9e544aede"
     },
     "space/commit.json": {
       "date": "2026-09-09",

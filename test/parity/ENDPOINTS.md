@@ -3,12 +3,13 @@
 
 VERIFICATION §7.1 item 3: every XRPC endpoint aerox routes is listed here with its
 service, parity status and any documented deviation. The router test
-(`test/aerox_web/router_parity_test.exs`) fails if any of the three routers (PDS,
-Relay, AppView — dispatched by hostname, `AeroxWeb.Dispatch`) serves a method this
+(`test/aerox_web/router_parity_test.exs`) fails if any of the four routers (PDS,
+Relay, AppView, Labeler — dispatched by hostname, `AeroxWeb.Dispatch`) serves a method this
 table does not list for that service, or lists one it does not serve.
 
 Every other `/xrpc/<nsid>` on the PDS host is the proxy catch-all (DESIGN §11.1):
-forwarded to the `atproto-proxy` target or the default service for the NSID, else 501.
+forwarded to the `atproto-proxy` target or the default service for the NSID, else 501
+(`com.atproto.moderation.createReport` goes to the configured mod service, DESIGN §17.2).
 
 Status: `flow` = exercised by the HTTP flow tests against our own stack;
 `parity` = diffed against the reference stack (§7.1 items 1–2, from M7);
@@ -78,7 +79,31 @@ Status: `flow` = exercised by the HTTP flow tests against our own stack;
 | `com.atproto.admin.disableInviteCodes` | POST | pds | pending |  |
 | `com.atproto.admin.disableAccountInvites` | POST | pds | pending |  |
 | `com.atproto.admin.enableAccountInvites` | POST | pds | pending |  |
-| `com.atproto.moderation.createReport` | POST | pds | pending | 501 until the labeler (M8) accepts reports |
+| `com.atproto.space.getDelegationToken` | GET | pds | flow | the published alpha's `atproto-space-delegation+jwt` (`sub` = space, `aud` = `<did>#atproto_space_host`, 60 s, single use) |
+| `com.atproto.space.createRecord` | POST | pds | flow |  |
+| `com.atproto.space.putRecord` | POST | pds | flow |  |
+| `com.atproto.space.deleteRecord` | POST | pds | flow |  |
+| `com.atproto.space.applyWrites` | POST | pds | flow |  |
+| `com.atproto.space.listSpaces` | GET | pds | flow |  |
+| `com.atproto.space.getRecord` | GET | pds | flow | session or space credential |
+| `com.atproto.space.listRecords` | GET | pds | flow | session or space credential |
+| `com.atproto.space.getRepoState` | GET | pds | flow | commit carries the alpha's `ver: 1` |
+| `com.atproto.space.listRepoOps` | GET | pds | flow | alpha additions: `cursor`, `excludeValues`, inlined `value` |
+| `com.atproto.space.getRepo` | GET | pds | flow | not in the vendored lexicons (DESIGN §12.5, bulletin): two-root CAR |
+| `com.atproto.space.getBlob` | GET | pds | flow | session or space credential |
+| `com.atproto.space.getSpaceCredential` | POST | pds | flow | delegation token + DPoP proof (credential `cnf.jkt`-bound, `atproto-space-credential+jwt`); `clientAttestation` verified against the client's OAuth JWKS |
+| `com.atproto.space.getSpace` | GET | pds | flow |  |
+| `com.atproto.space.listRepos` | GET | pds | flow | writer set from notifyWrite; `rev`/`hash` per the alpha lexicon |
+| `com.atproto.space.registerNotify` | POST | pds | flow | accepts the alpha's `service` identifier or the vendored `endpoint` |
+| `com.atproto.space.notifyWrite` | POST | pds | flow | service auth addressed to the owner DID; fan-out via Oban |
+| `com.atproto.space.notifySpaceDeleted` | POST | pds | flow | service auth addressed to the member DID |
+| `com.atproto.simplespace.createSpace` | POST | pds | flow | accepts the vendored (`did`, `config`) and alpha (`policy`, `appAccess`) shapes |
+| `com.atproto.simplespace.updateSpace` | POST | pds | flow |  |
+| `com.atproto.simplespace.deleteSpace` | POST | pds | flow |  |
+| `com.atproto.simplespace.getSpace` | GET | pds | flow | alpha lexicon (bulletin), not vendored: `policy`/`appAccess` unions |
+| `com.atproto.simplespace.addMember` | POST | pds | flow |  |
+| `com.atproto.simplespace.removeMember` | POST | pds | flow |  |
+| `com.atproto.simplespace.listMembers` | GET | pds | flow |  |
 | `com.atproto.sync.subscribeRepos` | GET | pds | pending | frame-by-frame parity is VERIFICATION §7.1 item 4 |
 | `com.atproto.sync.subscribeRepos` | GET | relay | pending | frame-by-frame parity is VERIFICATION §7.1 item 4 |
 | `com.atproto.sync.requestCrawl` | POST | relay | flow |  |
@@ -145,3 +170,9 @@ Status: `flow` = exercised by the HTTP flow tests against our own stack;
 | `app.bsky.labeler.getServices` | GET | appview | pending |  |
 | `app.bsky.unspecced.getPopularFeedGenerators` | GET | appview | pending | empty by design (DESIGN §15.4) |
 | `app.bsky.unspecced.getConfig` | GET | appview | pending |  |
+| `com.atproto.label.queryLabels` | GET | labeler | flow |  |
+| `com.atproto.label.subscribeLabels` | GET | labeler | flow | WebSocket, `#labels`/`#info` frames (DESIGN §17.1) |
+| `com.atproto.moderation.createReport` | POST | labeler | flow | reached through the PDS proxy with a service JWT (DESIGN §17.2) |
+| `aerox.moderation.emitEvent` | POST | labeler | flow | aerox's own admin API (DESIGN §17.3); `tools.ozone.*` is the later target |
+| `aerox.moderation.queryEvents` | GET | labeler | flow | aerox's own admin API (DESIGN §17.3) |
+| `aerox.moderation.queryReports` | GET | labeler | flow | aerox's own admin API (DESIGN §17.3) |

@@ -170,13 +170,28 @@ config :aerox, Aerox.AppView,
   relay_url: System.get_env("AEROX_RELAY_WS_URL", "wss://relay.aerox.sola.town"),
   image_cache_dir: System.get_env("AEROX_IMAGE_CACHE", "tmp/image-cache")
 
-# The PDS proxies app.bsky.* to our AppView (DESIGN §11.1).
-config :aerox, Aerox.PDS,
-  appview: [url: "https://appview.aerox.sola.town", did: "did:web:appview.aerox.sola.town"]
+# The PDS proxies app.bsky.* to our AppView and report intake to our labeler
+# (DESIGN §11.1, §17.2); the labeler's service JWTs are trusted on the admin API.
+labeler_did = System.get_env("AEROX_LABELER_DID")
 
-# Labeler (DESIGN §17): hostname; `did` is the labeler account created by
-# `mix aerox.labeler.setup` (dev) or the test setup.
+config :aerox, Aerox.PDS,
+  appview: [url: "https://appview.aerox.sola.town", did: "did:web:appview.aerox.sola.town"],
+  mod_service: [url: "https://labeler.aerox.sola.town", did: labeler_did],
+  mod_service_did: labeler_did
+
+# Labeler (DESIGN §17): hostname; `did` and the signing key are persisted by
+# `mix aerox.labeler.setup` (labeler.setting) and only need the env on another node.
 config :aerox, Aerox.Labeler,
   hostname: "labeler.aerox.sola.town",
   public_url: "https://labeler.aerox.sola.town",
-  did: System.get_env("AEROX_LABELER_DID")
+  did: labeler_did,
+  signing_key_hex: System.get_env("AEROX_LABELER_SIGNING_KEY_HEX"),
+  admin_password: System.get_env("AEROX_LABELER_ADMIN_PASSWORD", "REDACTED-labeler-admin-password")
+
+# The AppView subscribes to our labeler's labels and applies them by default (DESIGN §15.6).
+config :aerox, Aerox.AppView,
+  labelers: [%{did: labeler_did, url: "wss://labeler.aerox.sola.town"}]
+
+# Spaces (DESIGN §12): permissioned data behind a feature flag; routes answer
+# 501 MethodNotImplemented when disabled.
+config :aerox, Aerox.PDS.Space, enabled: true

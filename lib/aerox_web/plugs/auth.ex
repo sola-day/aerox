@@ -18,12 +18,21 @@ defmodule AeroxWeb.Plugs.Auth do
   alias Aerox.PDS.{Config, Sessions}
   alias AeroxWeb.XRPC.Error
 
+  @space_notify_methods ~w(com.atproto.space.notifyWrite com.atproto.space.notifySpaceDeleted)
+
   @impl true
   def init(opts), do: opts
 
   @impl true
   def call(conn, _opts) do
     case get_req_header(conn, "authorization") do
+      # tests inject a session directly (DESIGN §12 scenario tests); only
+      # honoured when `config :aerox, Aerox.PDS.Space, trust_preassigned_auth: true`
+      [] when is_map_key(conn.assigns, :auth) ->
+        if Application.get_env(:aerox, Aerox.PDS.Space, [])[:trust_preassigned_auth] == true,
+          do: conn,
+          else: assign(conn, :auth, nil)
+
       [] ->
         assign(conn, :auth, nil)
 
@@ -36,8 +45,14 @@ defmodule AeroxWeb.Plugs.Auth do
       ["Basic " <> creds] ->
         basic(conn, creds)
 
+      # a space credential travels as `DPoP <credential>` with a proof
+      # (bulletin's SpaceCredential.fetch) or as a plain Bearer
       ["DPoP " <> token] ->
-        oauth(conn, "DPoP", String.trim(token))
+        token = String.trim(token)
+
+        if header_typ(token) == Aerox.PDS.Space.Credentials.credential_typ(),
+          do: space_credential(conn, token, true),
+          else: oauth(conn, "DPoP", token)
 
       _ ->
         AeroxWeb.Plugs.XRPCError.render(
@@ -81,8 +96,88 @@ defmodule AeroxWeb.Plugs.Auth do
           Error.invalid_request("Token could not be verified", "InvalidToken")
         )
 
+      # Spaces (DESIGN §12.4, the published alpha): a space credential (always
+      # DPoP-bound — a Bearer presentation still needs its proof) or a
+      # delegation token, verified under the issuer's #atproto key
+      "atproto-space-credential+jwt" ->
+        space_credential(conn, token, true)
+
+      "atproto-space-delegation+jwt" ->
+        delegation(conn, token)
+
       _ ->
         service(conn, token)
+    end
+  end
+
+  # The alpha's space credential verifier: the token itself, then the DPoP
+  # proof over the request bound to it (`ath`) and signed by the key in its
+  # `cnf.jkt` (upstream `verifyDpopProof` with `credential` and `jkt`).
+  # Nonces are not required of these proofs (the alpha client sends none).
+  defp space_credential(conn, token, dpop?) do
+    with {:ok, cred} <- Aerox.PDS.Space.Credentials.verify_credential(token),
+         {:ok, jkt} <- space_dpop(conn, token, dpop?),
+         :ok <- check_cnf(cred, jkt) do
+      assign(conn, :auth, %{
+        type: :space_credential,
+        iss: cred.iss,
+        space: cred.sub,
+        jkt: jkt,
+        token: token
+      })
+    else
+      {:error, msg} when is_binary(msg) ->
+        AeroxWeb.Plugs.XRPCError.render(
+          conn,
+          Error.auth_required("Invalid space credential: #{msg}", "InvalidCredential")
+        )
+
+      {:error, {_, msg}} ->
+        AeroxWeb.Plugs.XRPCError.render(
+          conn,
+          Error.auth_required("Invalid space credential: #{msg}", "InvalidCredential")
+        )
+
+      {:error, other} ->
+        AeroxWeb.Plugs.XRPCError.render(
+          conn,
+          Error.auth_required("Invalid space credential: #{inspect(other)}", "InvalidCredential")
+        )
+    end
+  end
+
+  defp space_dpop(conn, token, _) do
+    url = Aerox.PDS.Config.public_url() <> conn.request_path
+    proof_header = conn |> get_req_header("dpop") |> List.first()
+
+    case Aerox.Auth.DPoP.verify(proof_header, conn.method, url,
+           access_token: token,
+           nonces: false
+         ) do
+      {:ok, nil} -> {:error, "DPoP proof required"}
+      {:ok, %{jkt: jkt}} -> {:ok, jkt}
+      {:error, {:invalid_dpop_proof, msg}} -> {:error, msg}
+      {:error, other} -> {:error, other}
+    end
+  end
+
+  defp check_cnf(%{jkt: jkt}, jkt), do: :ok
+
+  defp check_cnf(_, _),
+    do: {:error, "DPoP proof is not signed by the key the credential is bound to"}
+
+  # A delegation token (`getSpaceCredential`): the space host checks `sub`
+  # and `aud` against the requested space in the handler.
+  defp delegation(conn, token) do
+    case Aerox.PDS.Space.Credentials.verify_delegation(token) do
+      {:ok, d} ->
+        assign(conn, :auth, %{type: :delegation, did: d.iss, sub: d.sub, aud: d.aud, jti: d.jti})
+
+      {:error, {name, msg}} ->
+        AeroxWeb.Plugs.XRPCError.render(
+          conn,
+          Error.auth_required("Invalid delegation token: #{msg}", name)
+        )
     end
   end
 
@@ -192,11 +287,17 @@ defmodule AeroxWeb.Plugs.Auth do
       )
     end
 
-    case Aerox.Auth.ServiceJWT.verify(token, Config.service_did(), lxm, resolver) do
+    # Spaces notifications (DESIGN §12.5) are addressed to an account hosted
+    # here (`aud` = the space owner / member DID), not to the service DID:
+    # the audience is checked by the handler against its accounts.
+    own_did = if nsid in @space_notify_methods, do: nil, else: Config.service_did()
+
+    case Aerox.Auth.ServiceJWT.verify(token, own_did, lxm, resolver) do
       {:ok, claims} ->
         assign(conn, :auth, %{
           type: :service,
           did: claims.iss |> String.split("#") |> hd(),
+          aud: claims.aud,
           lxm: claims.lxm
         })
 

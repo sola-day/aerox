@@ -44,10 +44,19 @@ defmodule Aerox.ATProto.Space.LtHash do
   @spec from_hex(String.t()) :: t
   def from_hex(hex), do: new(Base.decode16!(hex, case: :mixed))
 
-  @doc "The element string of a record: `collection/rkey:cid` (upstream formatRecordElement)."
+  @doc """
+  The element string of a record: `collection/rkey/cid` (the published alpha's
+  `formatSetHashElement`; the `permissioned-data` branch wrote `collection/rkey:cid`).
+  Golden: `test/golden/space/alpha.json`.
+  """
   @spec record_element(String.t(), String.t(), map) :: String.t()
   def record_element(collection, rkey, record) do
     cid = record |> Aerox.ATProto.DagCBOR.encode() |> Aerox.ATProto.CID.for_cbor()
-    "#{collection}/#{rkey}:#{Aerox.ATProto.CID.to_string(cid)}"
+    element(collection, rkey, cid)
   end
+
+  @doc "The element for a record path and CID."
+  @spec element(String.t(), String.t(), Aerox.ATProto.CID.t()) :: String.t()
+  def element(collection, rkey, %Aerox.ATProto.CID{} = cid),
+    do: "#{collection}/#{rkey}/#{Aerox.ATProto.CID.to_string(cid)}"
 end

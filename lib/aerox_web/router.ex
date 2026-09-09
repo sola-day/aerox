@@ -158,7 +158,7 @@ defmodule AeroxWeb.Router do
     get "/app.bsky.actor.getPreferences", PreferencesController, :get_preferences
     post "/app.bsky.actor.putPreferences", PreferencesController, :put_preferences
 
-    # com.atproto.admin (subset) and moderation intake
+    # com.atproto.admin (subset); com.atproto.moderation.createReport is proxied to the mod service (DESIGN §17.2)
     get "/com.atproto.admin.getAccountInfo", AdminController, :get_account_info
     get "/com.atproto.admin.getAccountInfos", AdminController, :get_account_infos
     get "/com.atproto.admin.getSubjectStatus", AdminController, :get_subject_status
@@ -172,7 +172,45 @@ defmodule AeroxWeb.Router do
     post "/com.atproto.admin.disableInviteCodes", AdminController, :disable_invite_codes
     post "/com.atproto.admin.disableAccountInvites", AdminController, :disable_account_invites
     post "/com.atproto.admin.enableAccountInvites", AdminController, :enable_account_invites
-    post "/com.atproto.moderation.createReport", AdminController, :create_report
+  end
+
+  # Spaces (DESIGN §12.5): the PDS plays all three roles — the writer's PDS,
+  # the repo host and the space host — plus the simplespace management API.
+  scope "/xrpc", AeroxWeb.PDS do
+    pipe_through [:xrpc, :pds]
+
+    # PDS role
+    get "/com.atproto.space.getDelegationToken", SpaceController, :get_delegation_token
+    post "/com.atproto.space.createRecord", SpaceController, :create_record
+    post "/com.atproto.space.putRecord", SpaceController, :put_record
+    post "/com.atproto.space.deleteRecord", SpaceController, :delete_record
+    post "/com.atproto.space.applyWrites", SpaceController, :apply_writes
+    get "/com.atproto.space.listSpaces", SpaceController, :list_spaces
+
+    # repo-host role
+    get "/com.atproto.space.getRecord", SpaceController, :get_record
+    get "/com.atproto.space.listRecords", SpaceController, :list_records
+    get "/com.atproto.space.getRepoState", SpaceController, :get_repo_state
+    get "/com.atproto.space.listRepoOps", SpaceController, :list_repo_ops
+    get "/com.atproto.space.getRepo", SpaceController, :get_repo
+    get "/com.atproto.space.getBlob", SpaceController, :get_blob
+
+    # space-host role
+    post "/com.atproto.space.getSpaceCredential", SpaceController, :get_space_credential
+    get "/com.atproto.space.getSpace", SpaceController, :get_space
+    get "/com.atproto.space.listRepos", SpaceController, :list_repos
+    post "/com.atproto.space.registerNotify", SpaceController, :register_notify
+    post "/com.atproto.space.notifyWrite", SpaceController, :notify_write
+    post "/com.atproto.space.notifySpaceDeleted", SpaceController, :notify_space_deleted
+
+    # com.atproto.simplespace (the mandatory management handler)
+    post "/com.atproto.simplespace.createSpace", SimplespaceController, :create_space
+    post "/com.atproto.simplespace.updateSpace", SimplespaceController, :update_space
+    post "/com.atproto.simplespace.deleteSpace", SimplespaceController, :delete_space
+    get "/com.atproto.simplespace.getSpace", SimplespaceController, :get_space
+    post "/com.atproto.simplespace.addMember", SimplespaceController, :add_member
+    post "/com.atproto.simplespace.removeMember", SimplespaceController, :remove_member
+    get "/com.atproto.simplespace.listMembers", SimplespaceController, :list_members
   end
 
   scope "/xrpc", AeroxWeb do

@@ -387,7 +387,7 @@ defmodule Aerox.ATProto.Syntax do
            Regex.match?(@at_uri_invalid_char, input) &&
              {:error, "Disallowed characters in space-uri"},
          %{} = g <-
-           Regex.named_captures(@space_uri_regex, input) ||
+           Regex.named_captures(@space_uri_regex, space_uri_alpha_form(input)) ||
              {:error, "space-uri does not match expected format"},
          true <- valid_did?(g["authority"]) || {:error, "space-uri has invalid authority"},
          :ok <- space_uri_parts(g, strict) do
@@ -419,6 +419,19 @@ defmodule Aerox.ATProto.Syntax do
         :ok
     end
   end
+
+  # The Spaces alpha release (the `bulletin` client, `@atproto/lex` format
+  # `space-ref`) writes `at://<did>/space/<type>/<skey>[...]`; the branch's
+  # `space-uri.ts` writes `ats://<did>/<type>/<skey>[...]`. Both parse to the
+  # same parts; the form is preserved by callers (Aerox.PDS.Space.Uri).
+  defp space_uri_alpha_form("at://" <> rest) do
+    case String.split(rest, "/space/", parts: 2) do
+      [did, tail] -> "ats://" <> did <> "/" <> tail
+      _ -> "at://" <> rest
+    end
+  end
+
+  defp space_uri_alpha_form(input), do: input
 
   @spec valid_space_uri?(term) :: boolean
   def valid_space_uri?(input), do: match?({:ok, _}, parse_space_uri(input))
