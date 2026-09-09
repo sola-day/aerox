@@ -10,6 +10,26 @@
         "repo": "atproto"
       }
     },
+    "car/did-plc-mdzwr2hlx4w3tc5mbxm3mqbq.car": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "curl <pds>/xrpc/com.atproto.sync.getRepo?did=did:plc:mdzwr2hlx4w3tc5mbxm3mqbq",
+        "source": "reference PDS (ghcr.io/bluesky-social/pds) on the public network, fetched 2026-09-09"
+      },
+      "kind": "generated",
+      "note": "com.atproto.sync.getRepo from the reference PDS at https://fibercap.us-west.host.bsky.network for a freshly created account (VERIFICATION \u00a712 Kernel: a real CAR from the reference PDS)",
+      "sha256": "da06f68d45b9d9ef628deea9f7aeb0af096376d6637d1241ee0807a769787b65"
+    },
+    "car/did-plc-mdzwr2hlx4w3tc5mbxm3mqbq.did.json": {
+      "date": "2026-09-09",
+      "generator": {
+        "command": "curl <pds>/xrpc/com.atproto.sync.getRepo?did=did:plc:mdzwr2hlx4w3tc5mbxm3mqbq",
+        "source": "reference PDS (ghcr.io/bluesky-social/pds) on the public network, fetched 2026-09-09"
+      },
+      "kind": "generated",
+      "note": "the account's DID document from https://plc.directory, for the signing key",
+      "sha256": "2d16cb9d94c353a5554b9447ac65c79f552039222018dc8ac31332c967c6c74b"
+    },
     "cid/vectors.json": {
       "date": "2026-09-09",
       "generator": {

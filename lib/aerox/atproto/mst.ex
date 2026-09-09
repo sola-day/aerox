@@ -586,6 +586,31 @@ defmodule Aerox.ATProto.MST do
     end
   end
 
+  @doc """
+  Loads the whole tree and recomputes every node CID from scratch, ignoring
+  the CIDs the blocks were stored under — the DESIGN §3.5 step-1 proof that
+  DAG-CBOR, CID and the MST agree with whoever wrote the blocks.
+  """
+  @spec recompute_root(Blockstore.t(), t) :: {:ok, CID.t()} | {:error, term}
+  def recompute_root(bs, node) do
+    run(fn ->
+      {cid, _, _} = serialize!(bs, strip!(bs, node))
+      cid
+    end)
+  end
+
+  defp strip!(bs, node) do
+    {entries, node} = entries!(bs, node)
+
+    entries =
+      Enum.map(entries, fn
+        {:tree, sub} -> {:tree, strip!(bs, sub)}
+        leaf -> leaf
+      end)
+
+    %{node | entries: entries, cid: nil}
+  end
+
   # ------------------------------------------------------------- blocks
 
   @doc """
@@ -707,45 +732,72 @@ defmodule Aerox.ATProto.MST do
     end)
   end
 
-  # The walker: a stack of {node, entries, layer, index}; `curr` is the
-  # entry under the cursor, nil when past the end of the root.
-  defp walker_new(bs, node) do
-    {layer, node} = layer!(bs, node)
-    {entries, node} = entries!(bs, node)
-    %{stack: [{node, entries, layer, 0}], root: node}
+  # The walker (upstream MstWalker): `curr` is the entry under the cursor,
+  # `walking` the node whose entries are being traversed (nil while the
+  # cursor is on the root itself), `stack` the suspended parent positions.
+  defp walker_new(_bs, node),
+    do: %{done: false, curr: {:tree, node}, walking: nil, index: 0, stack: []}
+
+  defp w_curr(%{curr: curr}), do: curr
+  defp w_done?(%{done: done}), do: done
+
+  defp w_layer(bs, %{walking: %__MODULE__{} = walking}) do
+    {l, _} = layer!(bs, walking)
+    l
   end
 
-  defp w_curr(%{stack: [{_, entries, _, i} | _]}), do: Enum.at(entries, i)
-  defp w_done?(w), do: w.stack == []
-  defp w_layer(%{stack: [{_, _, layer, _} | _]}), do: layer
+  defp w_layer(bs, %{curr: {:tree, node}}) do
+    {l, _} = layer!(bs, node)
+    l + 1
+  end
 
-  # advance: move to the next entry at the current level, popping finished levels.
-  defp w_advance(%{stack: [{node, entries, layer, i} | rest]} = w) do
-    if i + 1 < length(entries) do
-      %{w | stack: [{node, entries, layer, i + 1} | rest]}
-    else
-      case rest do
-        [] -> %{w | stack: []}
-        _ -> w_advance(%{w | stack: rest})
-      end
+  # step_over: move to the next sibling, popping finished levels; the subtree
+  # under the cursor (if any) is skipped entirely.
+  defp w_step_over(_bs, %{done: true} = w), do: w
+  defp w_step_over(_bs, %{walking: nil} = w), do: %{w | done: true}
+
+  defp w_step_over(bs, %{walking: walking, index: index} = w) do
+    {entries, _} = entries!(bs, walking)
+
+    case Enum.at(entries, index + 1) do
+      nil ->
+        case w.stack do
+          [] -> %{w | done: true}
+          [popped | rest] -> w_step_over(bs, %{popped | stack: rest})
+        end
+
+      next ->
+        %{w | curr: next, index: index + 1}
     end
   end
 
   # step_into: descend into the subtree under the cursor.
-  defp w_step_into(bs, %{stack: [{_, entries, layer, i} | _] = stack} = w) do
-    {:tree, sub} = Enum.at(entries, i)
-    {sub_entries, sub} = entries!(bs, sub)
-    sub_layer = if is_integer(sub.layer), do: sub.layer, else: layer - 1
+  defp w_step_into(_bs, %{done: true} = w), do: w
 
-    if sub_entries == [] do
-      w_advance(w)
-    else
-      %{w | stack: [{sub, sub_entries, sub_layer, 0} | stack]}
+  defp w_step_into(bs, %{walking: nil, curr: {:tree, root}} = w) do
+    {entries, root} = entries!(bs, root)
+
+    case entries do
+      [] -> %{w | done: true}
+      [first | _] -> %{w | walking: root, curr: first, index: 0}
     end
   end
 
-  # step_over: skip the subtree under the cursor entirely.
-  defp w_step_over(w), do: w_advance(w)
+  defp w_step_into(bs, %{curr: {:tree, sub}} = w) do
+    {entries, sub} = entries!(bs, sub)
+
+    case entries do
+      [] ->
+        raise ArgumentError, "Tried to step into a node with 0 entries which is invalid"
+
+      [first | _] ->
+        %{w | walking: sub, curr: first, index: 0, stack: [%{w | stack: []} | w.stack]}
+    end
+  end
+
+  # advance: a leaf is stepped over, a subtree is stepped into.
+  defp w_advance(bs, %{curr: {:tree, _}} = w), do: w_step_into(bs, w)
+  defp w_advance(bs, w), do: w_step_over(bs, w)
 
   defp walk_diff(bs, left, right, diff) do
     cond do
@@ -753,10 +805,10 @@ defmodule Aerox.ATProto.MST do
         diff
 
       w_done?(left) ->
-        walk_diff(bs, left, w_advance(right), node_add(diff, bs, w_curr(right)))
+        walk_diff(bs, left, w_advance(bs, right), node_add(diff, bs, w_curr(right)))
 
       w_done?(right) ->
-        walk_diff(bs, w_advance(left), right, node_delete(diff, bs, w_curr(left)))
+        walk_diff(bs, w_advance(bs, left), right, node_delete(diff, bs, w_curr(left)))
 
       true ->
         l = w_curr(left)
@@ -767,30 +819,33 @@ defmodule Aerox.ATProto.MST do
             cond do
               lk == rk ->
                 diff = if lv == rv, do: diff, else: leaf_update(diff, lk, lv, rv)
-                walk_diff(bs, w_advance(left), w_advance(right), diff)
+                walk_diff(bs, w_advance(bs, left), w_advance(bs, right), diff)
 
               lk < rk ->
-                walk_diff(bs, w_advance(left), right, leaf_delete(diff, lk, lv))
+                walk_diff(bs, w_advance(bs, left), right, leaf_delete(diff, lk, lv))
 
               true ->
-                walk_diff(bs, left, w_advance(right), leaf_add(diff, rk, rv))
+                walk_diff(bs, left, w_advance(bs, right), leaf_add(diff, rk, rv))
             end
 
           _ ->
             cond do
-              w_layer(left) > w_layer(right) ->
+              w_layer(bs, left) > w_layer(bs, right) ->
                 case l do
                   {:leaf, _, _} ->
-                    walk_diff(bs, left, w_advance(right), node_add(diff, bs, r))
+                    walk_diff(bs, left, w_advance(bs, right), node_add(diff, bs, r))
 
                   {:tree, _} ->
                     walk_diff(bs, w_step_into(bs, left), right, node_delete(diff, bs, l))
                 end
 
-              w_layer(left) < w_layer(right) ->
+              w_layer(bs, left) < w_layer(bs, right) ->
                 case r do
-                  {:leaf, _, _} -> walk_diff(bs, w_advance(left), right, node_delete(diff, bs, l))
-                  {:tree, _} -> walk_diff(bs, left, w_step_into(bs, right), node_add(diff, bs, r))
+                  {:leaf, _, _} ->
+                    walk_diff(bs, w_advance(bs, left), right, node_delete(diff, bs, l))
+
+                  {:tree, _} ->
+                    walk_diff(bs, left, w_step_into(bs, right), node_add(diff, bs, r))
                 end
 
               true ->
@@ -800,7 +855,7 @@ defmodule Aerox.ATProto.MST do
                     {rc, _} = pointer!(bs, rs)
 
                     if lc == rc do
-                      walk_diff(bs, w_step_over(left), w_step_over(right), diff)
+                      walk_diff(bs, w_step_over(bs, left), w_step_over(bs, right), diff)
                     else
                       diff = diff |> node_add(bs, r) |> node_delete(bs, l)
                       walk_diff(bs, w_step_into(bs, left), w_step_into(bs, right), diff)
