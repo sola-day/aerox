@@ -1,4 +1,20 @@
 defmodule AeroxWeb do
+  use Boundary,
+    deps: [
+      Aerox,
+      Aerox.ATProto,
+      Aerox.Identity,
+      Aerox.Auth,
+      Aerox.Blob,
+      Aerox.PDS,
+      Aerox.PLC,
+      Aerox.Relay,
+      Aerox.AppView,
+      Aerox.Labeler,
+      Aerox.ImageServer
+    ],
+    exports: [Endpoint]
+
   @moduledoc """
   The entrypoint for defining your web interface, such
   as controllers, components, channels, and so on.

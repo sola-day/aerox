@@ -1,19 +1,30 @@
 import Config
 
-# Configure your database
-#
-# The MIX_TEST_PARTITION environment variable can be used
-# to provide built-in test partitioning in CI environment.
-# Run `mix help test` for more information.
-# The `_test` databases are created once by docker/postgres/init (VERIFICATION §11).
-config :aerox, Aerox.Repo,
-  username: System.get_env("DATABASE_USER", "aerox"),
-  password: System.get_env("DATABASE_PASSWORD", "aerox"),
-  hostname: System.get_env("DATABASE_HOST", "127.0.0.1"),
-  port: String.to_integer(System.get_env("DATABASE_PORT", "5433")),
-  database: "aerox_pds_test#{System.get_env("MIX_TEST_PARTITION")}",
-  pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2
+# The `_test` databases are created once by docker/postgres/init (VERIFICATION
+# §11); test/test_helper.exs refuses to start if either is missing. Sandbox on
+# every repo.
+db_host = System.get_env("DATABASE_HOST", "127.0.0.1")
+db_port = String.to_integer(System.get_env("DATABASE_PORT", "5433"))
+partition = System.get_env("MIX_TEST_PARTITION")
+
+for {repo, role, database} <- [
+      {Aerox.PDS.Repo, "aerox_pds", "aerox_pds_test"},
+      {Aerox.PLC.Repo, "aerox_plc", "aerox_core_test"},
+      {Aerox.Relay.Repo, "aerox_relay", "aerox_core_test"},
+      {Aerox.AppView.Repo, "aerox_appview", "aerox_core_test"}
+    ] do
+  config :aerox, repo,
+    username: role,
+    password: System.get_env("DATABASE_PASSWORD", role),
+    hostname: db_host,
+    port: db_port,
+    database: "#{database}#{partition}",
+    pool: Ecto.Adapters.SQL.Sandbox,
+    pool_size: System.schedulers_online() * 2
+end
+
+config :aerox, Oban.PDS, testing: :manual
+config :aerox, Oban.Core, testing: :manual
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.

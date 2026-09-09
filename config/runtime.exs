@@ -40,22 +40,23 @@ if config_env() == :dev do
 end
 
 if config_env() == :prod do
-  database_url =
-    System.get_env("DATABASE_URL") ||
-      raise """
-      environment variable DATABASE_URL is missing.
-      For example: ecto://USER:PASS@HOST/DATABASE
-      """
-
+  # One URL per repo (DESIGN §4.6): the PDS database and the core database may
+  # live on different servers, and nothing may assume otherwise.
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
-  config :aerox, Aerox.Repo,
-    # ssl: true,
-    url: database_url,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    # For machines with several cores, consider starting multiple pools of `pool_size`
-    # pool_count: 4,
-    socket_options: maybe_ipv6
+  for {repo, var} <- [
+        {Aerox.PDS.Repo, "PDS_DATABASE_URL"},
+        {Aerox.PLC.Repo, "PLC_DATABASE_URL"},
+        {Aerox.Relay.Repo, "RELAY_DATABASE_URL"},
+        {Aerox.AppView.Repo, "APPVIEW_DATABASE_URL"}
+      ] do
+    if url = System.get_env(var) do
+      config :aerox, repo,
+        url: url,
+        pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+        socket_options: maybe_ipv6
+    end
+  end
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

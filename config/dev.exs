@@ -1,19 +1,28 @@
 import Config
 
-# Configure your database
-# Postgres 18 runs in Docker on loopback (compose.yaml, DEV_PLAN §1.1).
-# NOTE: DESIGN §4.6 splits storage into two databases — `aerox_pds` for the PDS
-# and `aerox_core` for PLC/Relay/AppView. The generated single `Aerox.Repo` is a
-# placeholder until that split lands.
-config :aerox, Aerox.Repo,
-  username: System.get_env("DATABASE_USER", "aerox"),
-  password: System.get_env("DATABASE_PASSWORD", "aerox"),
-  hostname: System.get_env("DATABASE_HOST", "127.0.0.1"),
-  port: String.to_integer(System.get_env("DATABASE_PORT", "5433")),
-  database: "aerox_pds",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+# Databases. Postgres 18 runs in Docker on loopback (compose.yaml, DEV_PLAN
+# §1.1). Each repo connects as its own role (DESIGN §4.6); the roles are created
+# by docker/postgres/init and each has exactly the privileges its service needs.
+db_host = System.get_env("DATABASE_HOST", "127.0.0.1")
+db_port = String.to_integer(System.get_env("DATABASE_PORT", "5433"))
+
+for {repo, role, database} <- [
+      {Aerox.PDS.Repo, "aerox_pds", "aerox_pds"},
+      {Aerox.PLC.Repo, "aerox_plc", "aerox_core"},
+      {Aerox.Relay.Repo, "aerox_relay", "aerox_core"},
+      {Aerox.AppView.Repo, "aerox_appview", "aerox_core"}
+    ] do
+  config :aerox, repo,
+    username: role,
+    password: System.get_env("DATABASE_PASSWORD", role),
+    hostname: db_host,
+    port: db_port,
+    database: database,
+    stacktrace: true,
+    show_sensitive_data_on_connection_error: true,
+    # four repos share one small box: STRUCTURE §7 asks for explicit sizing
+    pool_size: 5
+end
 
 # The endpoint binds to loopback by default, so a plain checkout is not exposed
 # to the network. On a box that fronts the dev server with Traefik (DEV_PLAN

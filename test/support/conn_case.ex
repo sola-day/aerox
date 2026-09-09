@@ -15,6 +15,7 @@ defmodule AeroxWeb.ConnCase do
   this option is not recommended for other databases.
   """
 
+  use Boundary, top_level?: true, deps: [Aerox.DataCase, AeroxWeb]
   use ExUnit.CaseTemplate
 
   using do
@@ -32,7 +33,7 @@ defmodule AeroxWeb.ConnCase do
   end
 
   setup tags do
-    Aerox.DataCase.setup_sandbox(tags)
+    Aerox.DataCase.setup_sandbox(Aerox.DataCase.all_repos(), tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end
