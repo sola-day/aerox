@@ -59,6 +59,7 @@ defmodule Aerox.MixProject do
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
       {:mint_web_socket, "~> 1.0"},
+      {:broadway, "~> 1.3"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
@@ -70,6 +71,8 @@ defmodule Aerox.MixProject do
       {:ex_secp256k1, "~> 0.8.0"},
       # auth (DESIGN §13.4: upstream-compatible scrypt via a C NIF)
       {:scrypt, "~> 2.1"},
+      # image CDN (DESIGN §16: libvips via a NIF, the deliberate §3.9 exception)
+      {:vix, "~> 0.41"},
       # shared infrastructure
       {:jose, "~> 1.11"},
       {:oban, "~> 2.24"},

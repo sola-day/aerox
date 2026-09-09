@@ -15,8 +15,11 @@ defmodule AeroxWeb.Dispatch do
   def call(conn, _opts) do
     router =
       cond do
-        conn.host == Aerox.Relay.Config.hostname() and Code.ensure_loaded?(AeroxWeb.RelayRouter) ->
+        conn.host == Aerox.Relay.Config.hostname() ->
           AeroxWeb.RelayRouter
+
+        conn.host == Aerox.AppView.Config.hostname() ->
+          AeroxWeb.AppViewRouter
 
         true ->
           AeroxWeb.Router

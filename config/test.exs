@@ -37,6 +37,19 @@ config :aerox, Aerox.Relay,
   resubscribe_on_start: false,
   admin_password: "REDACTED-relay-admin-password"
 
+config :aerox, Aerox.AppView,
+  signing_key_hex:
+    System.get_env(
+      "AEROX_APPVIEW_SIGNING_KEY_HEX",
+      "REDACTED-dev-appview-key-rotated-2026-09-16"
+    ),
+  hostname: "appview.aerox.sola.town",
+  public_url: "https://appview.aerox.sola.town",
+  relay_url: "wss://relay.aerox.sola.town",
+  ingest: false
+
+config :aerox, Aerox.AppView.Backfill, plug: AeroxWeb.Endpoint, allow_private: true
+
 config :aerox, Aerox.Relay.Consumer, persist_every: 100
 config :aerox, Aerox.Relay.HostChecker, plug: AeroxWeb.Endpoint, allow_private: true
 
@@ -94,3 +107,9 @@ config :phoenix_live_view,
 # Sort query params output of verified routes for robust url comparisons
 config :phoenix,
   sort_verified_routes_query_params: true
+
+# Image CDN (DESIGN §16): a throwaway cache, no sweeper; tests sweep by hand.
+config :aerox, Aerox.ImageServer,
+  cache_dir: "tmp/test-image-cache",
+  sweeper: false,
+  concurrency: 2

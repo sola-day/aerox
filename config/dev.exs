@@ -144,3 +144,25 @@ config :aerox, Aerox.Relay,
   allow_insecure_hosts: true,
   trusted_domains: ["aerox.sola.town"],
   admin_password: System.get_env("AEROX_RELAY_ADMIN_PASSWORD", "REDACTED-relay-admin-password")
+
+# Image CDN (DESIGN §16): a small local cache, swept every minute.
+config :aerox, Aerox.ImageServer,
+  cache_dir: "tmp/image-cache",
+  max_bytes: 256 * 1024 * 1024,
+  sweep_interval: 60_000
+
+# AppView (DESIGN §15): ingests our own Relay; images served under /img.
+config :aerox, Aerox.AppView,
+  signing_key_hex:
+    System.get_env(
+      "AEROX_APPVIEW_SIGNING_KEY_HEX",
+      "REDACTED-dev-appview-key-rotated-2026-09-16"
+    ),
+  hostname: "appview.aerox.sola.town",
+  public_url: "https://appview.aerox.sola.town",
+  relay_url: System.get_env("AEROX_RELAY_WS_URL", "wss://relay.aerox.sola.town"),
+  image_cache_dir: System.get_env("AEROX_IMAGE_CACHE", "tmp/image-cache")
+
+# The PDS proxies app.bsky.* to our AppView (DESIGN §11.1).
+config :aerox, Aerox.PDS,
+  appview: [url: "https://appview.aerox.sola.town", did: "did:web:appview.aerox.sola.town"]

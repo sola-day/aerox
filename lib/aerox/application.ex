@@ -3,7 +3,19 @@ defmodule Aerox.Application do
   Config-driven supervision tree (DESIGN §2, §21.9). `config :aerox, :services`
   says which services this node runs; each contributes its own subtree.
   """
-  use Boundary, top_level?: true, deps: [Aerox, AeroxWeb]
+  use Boundary,
+    top_level?: true,
+    deps: [
+      Aerox,
+      AeroxWeb,
+      Aerox.PDS,
+      Aerox.PLC,
+      Aerox.Relay,
+      Aerox.AppView,
+      Aerox.ImageServer,
+      Aerox.Identity
+    ]
+
   use Application
 
   @impl true
@@ -77,12 +89,33 @@ defmodule Aerox.Application do
     ]
   end
 
-  defp children_for(:appview),
-    do: [
-      Aerox.AppView.Repo,
-      identity_cache(Aerox.AppView.Identity, Aerox.AppView.Repo),
-      {Oban, Application.fetch_env!(:aerox, Oban.Core)}
+  # DESIGN §15.1/§21.5: repo, identity cache, Oban (backfill), then the
+  # Broadway ingest off the Relay (disabled where no Relay is configured).
+  defp children_for(:appview) do
+    ingest =
+      if Application.get_env(:aerox, Aerox.AppView, [])[:ingest] == false,
+        do: [],
+        else: [Aerox.AppView.Ingest]
+
+    [
+      %{
+        id: Aerox.AppView.Supervisor,
+        type: :supervisor,
+        start:
+          {Supervisor, :start_link,
+           [
+             [
+               Aerox.AppView.Repo,
+               identity_cache(Aerox.AppView.Identity, Aerox.AppView.Repo),
+               # DESIGN §16: the image CDN runs inside the AppView service
+               Aerox.ImageServer,
+               {Oban, Application.fetch_env!(:aerox, Oban.Core)}
+             ] ++ ingest,
+             [strategy: :rest_for_one, name: Aerox.AppView.Supervisor]
+           ]}
+      }
     ]
+  end
 
   defp children_for(:labeler), do: []
 

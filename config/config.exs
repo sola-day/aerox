@@ -46,7 +46,7 @@ config :aerox, Oban.Core,
   name: Aerox.Core.Oban,
   repo: Aerox.AppView.Repo,
   prefix: "appview",
-  queues: [],
+  queues: [backfill: 2, maintenance: 1],
   plugins: [Oban.Plugins.Pruner]
 
 # Configure the endpoint
@@ -74,5 +74,23 @@ config :logger, :default_formatter,
   metadata: [:request_id]
 
 config :phoenix, :json_library, Jason
+
+# Image CDN (DESIGN §16): processed renditions on local disk, bounded by
+# `max_bytes`; libvips work bounded by `concurrency`; sources refused above
+# `max_source_bytes` / `max_pixels`. `quality` is upstream's (100).
+config :aerox, Aerox.ImageServer,
+  max_bytes: 1024 * 1024 * 1024,
+  sweep_interval: 600_000,
+  sweeper: true,
+  concurrency: 4,
+  max_source_bytes: 20 * 1024 * 1024,
+  max_pixels: 50_000_000,
+  quality: 100
+
+# Origin fetches go through Aerox.Identity.HTTP (SSRF rules) to the PDS named
+# in the owner's DID document, resolved through the AppView's identity cache.
+config :aerox, Aerox.ImageServer.Origin,
+  identity_cache: Aerox.AppView.Identity,
+  timeout: 10_000
 
 import_config "#{config_env()}.exs"
