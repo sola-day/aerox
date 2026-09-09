@@ -26,6 +26,9 @@ end
 config :aerox, Aerox.PDS.Sequencer, unboxed: true
 config :aerox, Aerox.Relay.Sequencer, unboxed: true
 
+# DESIGN §20.1: every service resolves did:plc through our own directory.
+config :aerox, :plc_url, System.get_env("AEROX_PLC_URL", "https://plc.aerox.sola.town")
+
 config :aerox, Aerox.Relay,
   hostname: "relay.aerox.sola.town",
   public_url: "https://relay.aerox.sola.town",

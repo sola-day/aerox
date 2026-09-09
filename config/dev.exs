@@ -134,6 +134,9 @@ config :aerox, Aerox.Blob.Store,
   adapter: Aerox.Blob.Disk,
   root: System.get_env("AEROX_BLOB_ROOT", "blobs")
 
+# DESIGN §20.1: every service resolves did:plc through our own directory.
+config :aerox, :plc_url, System.get_env("AEROX_PLC_URL", "https://plc.aerox.sola.town")
+
 # Relay (DESIGN §19): dev accepts plain-http hosts (the docker reference PDS).
 config :aerox, Aerox.Relay,
   hostname: "relay.aerox.sola.town",

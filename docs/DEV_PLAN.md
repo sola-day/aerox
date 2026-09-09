@@ -425,3 +425,38 @@ written during the milestone.
 - **VERIFICATION items added.** The HTTP flow test (`test/aerox_web/pds/pds_flow_test.exs`)
   verifies the exported CAR against the signing key from the DID document, and
   checks the creation event order `#identity, #account, #commit, #sync`.
+
+### M6 — Relay (closed 2026-09-09)
+
+- **What done took.** `Aerox.Sequencer` (the PDS's coalescing single writer,
+  extracted so the Relay re-sequences on its own `relay.repo_seq` with its own
+  topic), the firehose socket generalised over a `Source`, and the Relay
+  itself as indigo's relay in Elixir: `Hosts` (hostname rules, new-host
+  defaults, trusted domains, per-day admission, domain bans, error counting
+  with a pause threshold), `Accounts` (DID-document host binding with one
+  re-resolve, host-throttled status past the account limit, upstream status
+  re-checked against the PDS's `getRepoStatus`), `Ingest` (strict commit
+  verification with lenient mode, `#sync` signature checks, `#identity`
+  handle validation, `#account` status recording), one `Consumer` GenServer
+  per host over Mint.WebSocket with cursor persistence, back-off, keepalive
+  pings and offline/idle/throttled transitions, and the sync API dispatched by
+  hostname (`AeroxWeb.Dispatch`) route for route with `handlers.go`, including
+  the non-archival answers. Interop: the indigo relay (built from the reading
+  room, `ref-relay.aerox.sola.town`) crawls our PDS over TLS and lists our
+  commits; our Relay crawls the reference PDS (`ghcr.io/bluesky-social/pds:0.4`
+  at `ref-pds.aerox.sola.town`) and lists its commits
+  (`test/interop/relay_interop_test.exs`). The M3-carried row "indigo relay
+  accepts our PDS" closes here.
+- **What the design got wrong.** Nothing structural; two operational facts
+  were missing. (1) A firehose connection is idle for hours between events:
+  Bandit's default 60 s WebSocket idle timeout closed every relay with 1002,
+  so the socket's timeout is a day and the consumer pings every 30 s. (2) A
+  relay connects *without* a cursor on first subscription (indigo too), so
+  nothing flows until the host's next event; "no events yet" is not a
+  failure, and `listHosts` hides hosts until their first event. (3) Every
+  service must resolve `did:plc` through *our* directory — `config :aerox,
+  :plc_url` — or the Relay rejects every commit with `identity not_found`
+  while the reference relay, configured correctly, accepts them.
+- **VERIFICATION items added.** The consumer test's fake host (Bandit
+  in-process) honours the cursor, so "reconnect with cursor yields no gap and
+  no duplicate" is asserted on seq continuity, not assumed.

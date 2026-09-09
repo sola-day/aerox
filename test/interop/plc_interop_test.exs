@@ -134,9 +134,9 @@ defmodule Aerox.Interop.PLCTest do
     assert post_op(ctx.ours, did, bogus).status == 400
 
     # our resolver, pointed at the reference over TLS, resolves the DID we created there
-    assert {:ok, doc} = Resolver.resolve_did(did, plc_url: ctx.ref)
+    assert {:ok, doc} = Resolver.resolve_did(did, plc_url: ctx.ref, http: [plug: nil])
     assert doc == ref_doc
-    assert {:ok, ^doc} = Resolver.resolve_did(did, plc_url: ctx.ours)
+    assert {:ok, ^doc} = Resolver.resolve_did(did, plc_url: ctx.ours, http: [plug: nil])
     assert {:ok, key} = Aerox.ATProto.Identity.signing_did_key(doc)
     assert key == Crypto.did_key(signing)
   catch
