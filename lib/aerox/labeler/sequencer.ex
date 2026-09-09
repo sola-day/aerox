@@ -13,7 +13,7 @@ defmodule Aerox.Labeler.Sequencer do
   def topic, do: @topic
 
   def child_spec(opts),
-    do: %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}, type: :worker}
+    do: %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}, type: :supervisor}
 
   def start_link(opts \\ []) do
     Aerox.Sequencer.start_link(

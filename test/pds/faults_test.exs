@@ -61,6 +61,32 @@ defmodule Aerox.PDS.FaultsTest do
     assert Process.whereis(Sequencer) != nil
   end
 
+  test "writers that hold a pool connection while waiting on the sequencer cannot starve it" do
+    # Every repo write calls the sequencer from inside its own transaction
+    # (Records.process_writes). With more such writers than pool connections
+    # the sequencer's flush would queue behind them and every write would
+    # time out; the sequencer's dedicated pool makes this converge.
+    did = "did:plc:" <> String.duplicate("e", 24)
+    pool = Aerox.PDS.Repo.config()[:pool_size]
+    parent = self()
+
+    results =
+      for w <- 1..(pool * 3) do
+        Task.async(fn ->
+          Ecto.Adapters.SQL.Sandbox.allow(Aerox.PDS.Repo, parent, self())
+
+          Aerox.PDS.Repo.transaction(fn ->
+            Aerox.PDS.Repo.query!("select 1")
+            Sequencer.sequence([Events.identity(did, "starve-#{w}.test")])
+          end)
+        end)
+      end
+      |> Enum.map(&Task.await(&1, 60_000))
+
+    assert Enum.all?(results, &match?({:ok, {:ok, [_]}}, &1)),
+           inspect(Enum.reject(results, &match?({:ok, {:ok, [_]}}, &1)))
+  end
+
   test "a slow firehose subscriber is disconnected with ConsumerTooSlow instead of growing its mailbox" do
     {:ok, state} = Firehose.init(%{cursor: nil, source: Aerox.PDS.Sequencer.Source})
     # flood our own mailbox past the threshold, as an unread socket would

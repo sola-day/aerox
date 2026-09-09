@@ -25,9 +25,30 @@ defmodule Aerox.Sequencer do
 
   @type config :: %{repo: module, schema: module, topic: String.t(), unboxed: boolean}
 
+  @doc """
+  Starts the sequencer as a small `rest_for_one` supervisor: a
+  one-connection pool of `repo` (named `<name>.Pool`) and the single-writer
+  GenServer registered as `name`, which routes its own queries through that
+  pool. The flush must never queue behind request connections: callers hold a
+  pool connection inside their own transaction while they wait on this
+  process, so sharing the request pool inverts priorities under load (32
+  writers on a pool of 5 starve the sequencer and every write times out).
+  """
   def start_link(opts) do
     name = Keyword.fetch!(opts, :name)
-    GenServer.start_link(__MODULE__, opts, name: name)
+    repo = Keyword.fetch!(opts, :repo)
+    pool = Module.concat(name, Pool)
+
+    children = [
+      Supervisor.child_spec({repo, [name: pool, pool_size: 1]}, id: :pool),
+      %{
+        id: :server,
+        start:
+          {GenServer, :start_link, [__MODULE__, Keyword.put(opts, :pool, pool), [name: name]]}
+      }
+    ]
+
+    Supervisor.start_link(children, strategy: :rest_for_one)
   end
 
   @doc "Sequences event rows; returns their seq numbers in order."
@@ -68,6 +89,8 @@ defmodule Aerox.Sequencer do
   def init(opts) do
     repo = Keyword.fetch!(opts, :repo)
     schema = Keyword.fetch!(opts, :schema)
+
+    repo.put_dynamic_repo(Keyword.fetch!(opts, :pool))
 
     {:ok,
      %{
