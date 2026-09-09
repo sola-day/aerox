@@ -386,3 +386,42 @@ written during the milestone.
 - **VERIFICATION items added.** `validate_audit_log` (full replay with timestamps)
   beyond upstream's timestamp-free `validateOperationLog`; the `:interop` tag,
   excluded by default.
+
+### M3 — PDS core (closed 2026-09-09, two rows carried)
+
+- **What done took.** Everything in the milestone text: `Aerox.PDS.Records` with
+  the per-account `repo_root FOR UPDATE` write path and three-state validation,
+  the coalescing sequencer with its own connection, `Accounts`/`Sessions`
+  (scrypt vectors from Node, HS256 `at+jwt`/`refresh+jwt` with rotation grace),
+  the signup saga with `PlcOps` as the only `Signer.sign` call site and the
+  `plc_op_audit` count invariant, blobs with the Disk adapter and reaper, five
+  email purposes over Oban, Hammer rate limits, and the whole XRPC surface —
+  64 routes over `server`, `identity`, `repo`, `sync`, the admin subset,
+  `app.bsky.actor.*Preferences`, the `.well-known` pair, and `subscribeRepos`
+  as a raw WebSock handler with cursor replay, `FutureCursor`, `OutdatedCursor`
+  and the slow-consumer close. `test/parity/ENDPOINTS.md` is generated from the
+  router and a router test keeps them equal. The Node harness
+  (`test/harness/smoke.mjs`, `@atproto/api` 0.18) creates an account, logs in,
+  posts, reads, fetches preferences and the repo CAR, and reads its own commit
+  off the firehose over TLS through Traefik: the "`@atproto/api` client" row.
+- **What the design got wrong.** Two things. (1) Lexicon vendoring "per
+  endpoint" (DESIGN §6.6) does not survive contact with record validation: a
+  PDS must know `app.bsky.feed.post` to say `valid`, and knowing it means
+  knowing everything it references, so the whole `app.bsky` and `chat.bsky`
+  trees are vendored at once (336 documents) and the per-endpoint rule now
+  applies to *implementing*, not vendoring. A side effect worth knowing: once
+  a record lexicon is present its key rule applies, so `app.bsky.feed.post`
+  keys must be TIDs. (2) Token errors: upstream answers a bad or expired access
+  token with **400** `InvalidToken`/`ExpiredToken` (an `InvalidRequestError`),
+  not 401; only `AuthMissing` and the service-JWT family are 401. The auth plug
+  follows upstream, and this is now an error-parity row (VERIFICATION §7.1
+  item 5).
+- **Carried into M6/M7.** The interop row "indigo relay accepts our PDS" needs
+  the reference relay container, which M6 brings up anyway; it is scheduled
+  there rather than built twice. `ouranos` can log in against
+  `pds.aerox.sola.town` only through the PDS's `app.bsky.*` proxy, because the
+  client sets no `atproto-proxy` header and calls everything on its service
+  URL; the proxy is M7's first deliverable and the login row closes with it.
+- **VERIFICATION items added.** The HTTP flow test (`test/aerox_web/pds/pds_flow_test.exs`)
+  verifies the exported CAR against the signing key from the DID document, and
+  checks the creation event order `#identity, #account, #commit, #sync`.

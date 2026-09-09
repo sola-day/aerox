@@ -113,6 +113,8 @@ config :swoosh, :api_client, false
 
 # PDS (DESIGN §18, §14.2): dev keys only. Handles live under the dev domain.
 config :aerox, Aerox.PDS,
+  # DEV_PLAN §1.2: the PDS is pds.<dev-domain>; the apex also routes here.
+  public_url: System.get_env("AEROX_PDS_PUBLIC_URL", "https://pds.aerox.sola.town"),
   handle_domains: [".aerox.sola.town"],
   plc_url: System.get_env("AEROX_PLC_URL", "https://plc.aerox.sola.town"),
   contact_email: "lisbon@appendonly.org"
