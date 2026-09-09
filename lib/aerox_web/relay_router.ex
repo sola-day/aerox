@@ -8,6 +8,7 @@ defmodule AeroxWeb.RelayRouter do
   use AeroxWeb, :router
 
   pipeline :relay do
+    plug AeroxWeb.Plugs.CORS
     plug :accepts, ["json", "cbor", "car"]
     plug AeroxWeb.Plugs.ClientIP
     plug AeroxWeb.Plugs.RateLimit, :global_ip
@@ -31,6 +32,7 @@ defmodule AeroxWeb.RelayRouter do
   scope "/xrpc", AeroxWeb.Relay do
     pipe_through :relay
 
+    options "/*path", SyncController, :not_implemented
     post "/com.atproto.sync.requestCrawl", SyncController, :request_crawl
     get "/com.atproto.sync.listHosts", SyncController, :list_hosts
     get "/com.atproto.sync.getHostStatus", SyncController, :get_host_status

@@ -8,6 +8,7 @@ defmodule AeroxWeb.AppViewRouter do
   use AeroxWeb, :router
 
   pipeline :appview do
+    plug AeroxWeb.Plugs.CORS
     plug :accepts, ["json"]
     plug AeroxWeb.Plugs.ClientIP
     plug AeroxWeb.Plugs.RateLimit, :global_ip
@@ -16,6 +17,7 @@ defmodule AeroxWeb.AppViewRouter do
   end
 
   pipeline :img do
+    plug AeroxWeb.Plugs.CORS
     plug AeroxWeb.Plugs.ClientIP
     plug AeroxWeb.Plugs.RateLimit, :global_ip
     plug AeroxWeb.Plugs.ServiceEnabled, :appview
@@ -35,6 +37,8 @@ defmodule AeroxWeb.AppViewRouter do
 
   scope "/xrpc", AeroxWeb.AppView do
     pipe_through :appview
+
+    options "/*path", MetaController, :not_implemented
 
     # actor
     get "/app.bsky.actor.getProfile", ActorController, :get_profile

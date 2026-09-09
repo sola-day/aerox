@@ -15,6 +15,7 @@ defmodule AeroxWeb.RouterParityTest do
       for {router, service} <- @routers,
           %{path: "/xrpc/" <> method, verb: verb} <- Phoenix.Router.routes(router),
           not String.starts_with?(method, "*"),
+          verb != :options,
           do: {method, verb |> to_string() |> String.upcase(), service}
 
     listed =

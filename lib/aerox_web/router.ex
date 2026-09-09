@@ -20,6 +20,7 @@ defmodule AeroxWeb.Router do
   end
 
   pipeline :xrpc do
+    plug AeroxWeb.Plugs.CORS
     plug :accepts, ["json", "cbor", "car"]
     plug AeroxWeb.Plugs.ClientIP
     plug AeroxWeb.Plugs.RateLimit, :global_ip
@@ -31,6 +32,7 @@ defmodule AeroxWeb.Router do
   end
 
   pipeline :well_known do
+    plug AeroxWeb.Plugs.CORS
     plug AeroxWeb.Plugs.ServiceEnabled, :pds
   end
 
@@ -49,6 +51,9 @@ defmodule AeroxWeb.Router do
 
   scope "/xrpc", AeroxWeb.PDS do
     pipe_through [:xrpc, :pds]
+
+    # browser preflights (answered by AeroxWeb.Plugs.CORS in the pipeline)
+    options "/*path", ProxyController, :preflight
 
     # com.atproto.server
     get "/com.atproto.server.describeServer", ServerController, :describe_server

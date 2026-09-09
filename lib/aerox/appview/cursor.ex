@@ -24,6 +24,8 @@ defmodule Aerox.AppView.Cursor do
 
   @doc "Upstream `clearlyBadCursor`: a cursor that cannot be ours."
   def clearly_bad?(nil), do: false
+  # clients (ouranos) send `cursor=` for the first page: an empty cursor is no cursor
+  def clearly_bad?(""), do: false
   def clearly_bad?(cursor), do: is_nil(parse(cursor))
 
   @doc """

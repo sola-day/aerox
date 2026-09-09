@@ -29,6 +29,9 @@ defmodule AeroxWeb.PDS.ProxyController do
   @req_headers ~w(accept-language atproto-accept-labelers x-bsky-topics)
   @res_headers ~w(content-type content-length atproto-repo-rev atproto-content-labelers retry-after)
 
+  # never reached: the CORS plug answers OPTIONS before the router dispatches
+  def preflight(conn, _params), do: send_resp(conn, 204, "")
+
   def proxy(conn, _params) do
     lxm = AeroxWeb.XRPC.nsid(conn)
 
