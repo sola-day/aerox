@@ -1,0 +1,25 @@
+{
+  "lexicon": 1,
+  "id": "com.atproto.simplespace.deleteSpace",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Tombstone a space. The authenticated user must be the space owner. After deletion, all reads and writes against the space will fail with SpaceNotFound. Requires auth, implemented by PDS.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["space"],
+          "properties": {
+            "space": {
+              "type": "string",
+              "format": "space-uri",
+              "description": "Reference to the space to delete."
+            }
+          }
+        }
+      },
+      "errors": [{ "name": "SpaceNotFound" }, { "name": "NotSpaceOwner" }]
+    }
+  }
+}

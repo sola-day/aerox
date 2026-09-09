@@ -1,0 +1,62 @@
+{
+  "lexicon": 1,
+  "id": "com.atproto.space.listRepos",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "List the known repos that hold data in a space (the writer set). Served by the space host. This is the sync boundary, not an access-control list: it enumerates only writers, never readers.",
+      "parameters": {
+        "type": "params",
+        "required": ["space"],
+        "properties": {
+          "space": {
+            "type": "string",
+            "format": "space-uri",
+            "description": "Reference to the space."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 100,
+            "description": "Maximum number of repos to return."
+          },
+          "cursor": {
+            "type": "string"
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["repos"],
+          "properties": {
+            "cursor": {
+              "type": "string"
+            },
+            "repos": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "#repo"
+              }
+            }
+          }
+        }
+      },
+      "errors": [{ "name": "SpaceNotFound" }]
+    },
+    "repo": {
+      "type": "object",
+      "required": ["did"],
+      "properties": {
+        "did": {
+          "type": "string",
+          "format": "did",
+          "description": "The DID of a repo that holds data in the space."
+        }
+      }
+    }
+  }
+}

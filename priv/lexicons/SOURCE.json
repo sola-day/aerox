@@ -1,0 +1,790 @@
+{
+  "files": {
+    "app/bsky/authCreatePosts.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/app/bsky/authCreatePosts.json",
+      "repo": "atproto",
+      "sha256": "1d54838cbea177635515a6c91a3ea7b4dae509bfd31077c35dede8e3cac68cda"
+    },
+    "app/bsky/authDeleteContent.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/app/bsky/authDeleteContent.json",
+      "repo": "atproto",
+      "sha256": "d0cb8b05dcea1c9d1f23b39677692de28b1a742b38dbeb47c58a28599805d77c"
+    },
+    "app/bsky/authFullApp.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/app/bsky/authFullApp.json",
+      "repo": "atproto",
+      "sha256": "dffec77ef29e491d6eecdc44274329e95a3553d3e6d16a329501fbcd67303324"
+    },
+    "app/bsky/authManageFeedDeclarations.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/app/bsky/authManageFeedDeclarations.json",
+      "repo": "atproto",
+      "sha256": "80abf87095c60a84285945a7df7978b5b0e005c828a9946a39a71a3a5e8662f0"
+    },
+    "app/bsky/authManageLabelerService.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/app/bsky/authManageLabelerService.json",
+      "repo": "atproto",
+      "sha256": "78ae4e4733527b591ae0e95406b6cddfc28e75cffd5b39ff379158346636f6fa"
+    },
+    "app/bsky/authManageModeration.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/app/bsky/authManageModeration.json",
+      "repo": "atproto",
+      "sha256": "3e115bd1b2de4bf146470e8b35c4ba4c7e7411fac278eb1fcef2ab6059baab1e"
+    },
+    "app/bsky/authManageNotifications.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/app/bsky/authManageNotifications.json",
+      "repo": "atproto",
+      "sha256": "ba017d3db0b78187d4776337a201cd5a4074c0b399a4026b4dac33c17010a5db"
+    },
+    "app/bsky/authManageProfile.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/app/bsky/authManageProfile.json",
+      "repo": "atproto",
+      "sha256": "fe892860c55fb472637a020553e2dfac5b594e0c5bde5b292746ddd5ccbcd34c"
+    },
+    "app/bsky/authViewAll.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/app/bsky/authViewAll.json",
+      "repo": "atproto",
+      "sha256": "88f8f4266ae14e6f56955b84bb85be63b5f4f3ca4ee8ce8603ecc0be20853267"
+    },
+    "chat/bsky/authFullChatClient.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/chat/bsky/authFullChatClient.json",
+      "repo": "atproto",
+      "sha256": "e4dadc694f5293d2614e4572ff6085401fc248edcf1d965d64b780b50dff69ac"
+    },
+    "com/atproto/admin/defs.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/defs.json",
+      "repo": "atproto",
+      "sha256": "bc7dc3da14e760d1991e6b49339a581b598d241ef3f87b807e8ce4fe0a1f2f75"
+    },
+    "com/atproto/admin/deleteAccount.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/deleteAccount.json",
+      "repo": "atproto",
+      "sha256": "7fd49928f8098d904341c1c752ae8a5214e753cda7ce566dd8a8da778986e032"
+    },
+    "com/atproto/admin/disableAccountInvites.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/disableAccountInvites.json",
+      "repo": "atproto",
+      "sha256": "8bda9639744e4998014e2d10def168a4f7b2981cc8f09bf8accdb0e277dfbf11"
+    },
+    "com/atproto/admin/disableInviteCodes.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/disableInviteCodes.json",
+      "repo": "atproto",
+      "sha256": "93d5f9afd906ba040a5532173ef4683e91b79b49fd4f080c8dc5ae97c48a942f"
+    },
+    "com/atproto/admin/enableAccountInvites.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/enableAccountInvites.json",
+      "repo": "atproto",
+      "sha256": "ab2b4d5238e493fc103668d88e25f3d809ab6575513e37935a486006b70a5f62"
+    },
+    "com/atproto/admin/getAccountInfo.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/getAccountInfo.json",
+      "repo": "atproto",
+      "sha256": "10da48b5665f4b9394329bf30c26cbc0c2f6623c5d6b3aed163b5f36e07a31e1"
+    },
+    "com/atproto/admin/getAccountInfos.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/getAccountInfos.json",
+      "repo": "atproto",
+      "sha256": "78c159279b465edcee5701a501099c48a9647675bf9d737cfcedf875adaf6317"
+    },
+    "com/atproto/admin/getInviteCodes.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/getInviteCodes.json",
+      "repo": "atproto",
+      "sha256": "17eefe9b9292e263b09b264597d8f49fa55ded196d3fc1dde6a990f52f1dd173"
+    },
+    "com/atproto/admin/getSubjectStatus.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/getSubjectStatus.json",
+      "repo": "atproto",
+      "sha256": "ba00db7242b36cc614b3ffa0405b549fc6bdee592e4f023e469128d808712d98"
+    },
+    "com/atproto/admin/searchAccounts.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/searchAccounts.json",
+      "repo": "atproto",
+      "sha256": "0178d364549ef06136e24dbc5c07e8d54ab220989fc2ab2b37a9d15ee7482a5a"
+    },
+    "com/atproto/admin/sendEmail.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/sendEmail.json",
+      "repo": "atproto",
+      "sha256": "3e772aeb2289115644b454bb580d6ac550906cabe2ecb07213188770d9e10689"
+    },
+    "com/atproto/admin/updateAccountEmail.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/updateAccountEmail.json",
+      "repo": "atproto",
+      "sha256": "1750886b415f001dc1a11dc2a71d902524cd1d8752e6bd80f9d3494481b1e537"
+    },
+    "com/atproto/admin/updateAccountHandle.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/updateAccountHandle.json",
+      "repo": "atproto",
+      "sha256": "1e28f03ff489d882cc44ce8fe50d7a5e23a533ee2616051a5dd0348429399e03"
+    },
+    "com/atproto/admin/updateAccountPassword.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/updateAccountPassword.json",
+      "repo": "atproto",
+      "sha256": "c756ee53230f4c385d5c78eedd904d9e76c9e323d2c32d81e525d0d28068a52a"
+    },
+    "com/atproto/admin/updateAccountSigningKey.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/updateAccountSigningKey.json",
+      "repo": "atproto",
+      "sha256": "78d3322005ecb237d0ac70c1ead0468eabcfe21336b8c7dc1a8f7113d717e7ad"
+    },
+    "com/atproto/admin/updateSubjectStatus.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/admin/updateSubjectStatus.json",
+      "repo": "atproto",
+      "sha256": "14f566213bd83ae189e2210acbffeb8413134a67759504602d4df83000946389"
+    },
+    "com/atproto/identity/defs.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/identity/defs.json",
+      "repo": "atproto",
+      "sha256": "744b0a80f8ad9d849503eb42f2a5b359ba9ec0331d4b3ce506890423d9ffa67b"
+    },
+    "com/atproto/identity/getRecommendedDidCredentials.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/identity/getRecommendedDidCredentials.json",
+      "repo": "atproto",
+      "sha256": "f222de8a6a87aa75760b658fc0d061ad8b533cf49eb4e52631043f3d9a9300d3"
+    },
+    "com/atproto/identity/refreshIdentity.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/identity/refreshIdentity.json",
+      "repo": "atproto",
+      "sha256": "abf8d97fa6566a013df651f2f0b578ef9cc33149b4c28105b5f06f467fe4aa1c"
+    },
+    "com/atproto/identity/requestPlcOperationSignature.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/identity/requestPlcOperationSignature.json",
+      "repo": "atproto",
+      "sha256": "90f4faaa6cf88a35b3ad5d1bad50be4a72cf9350ca6cec117c98175ef2faa39a"
+    },
+    "com/atproto/identity/resolveDid.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/identity/resolveDid.json",
+      "repo": "atproto",
+      "sha256": "cca552f4eb2bb3b6a6c57c65b39c8bc1397bc67e6331c36566f6bce9c03a10f9"
+    },
+    "com/atproto/identity/resolveHandle.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/identity/resolveHandle.json",
+      "repo": "atproto",
+      "sha256": "d1cdbbc2a1a89d905228e0dc65546a140bd96262c60c4756e51027597ec5ebea"
+    },
+    "com/atproto/identity/resolveIdentity.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/identity/resolveIdentity.json",
+      "repo": "atproto",
+      "sha256": "e069ab3ae89bbd3b22433f72e883b073a1f5eaced5cfbb090b829b9c4003169a"
+    },
+    "com/atproto/identity/signPlcOperation.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/identity/signPlcOperation.json",
+      "repo": "atproto",
+      "sha256": "33595630e559b08cb1d421ab2d3cfb8787a200ffd30676c338fd0a08ba2da266"
+    },
+    "com/atproto/identity/submitPlcOperation.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/identity/submitPlcOperation.json",
+      "repo": "atproto",
+      "sha256": "85b03138ecb20308d468ca492332e95d9765c100b88694493600139ee4d13753"
+    },
+    "com/atproto/identity/updateHandle.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/identity/updateHandle.json",
+      "repo": "atproto",
+      "sha256": "7da69487b1fe8a48afe4b1d8ec156e56b89686df96626722c7dc011fa32a7ddf"
+    },
+    "com/atproto/label/defs.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/label/defs.json",
+      "repo": "atproto",
+      "sha256": "b20ed39fa5530ff62a6b4bfbbd7a3648dd57896db7c9c7ac379e1bfc64d1f724"
+    },
+    "com/atproto/label/queryLabels.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/label/queryLabels.json",
+      "repo": "atproto",
+      "sha256": "e650fab0c47064bce778449175fa3fa050cbd49992a2e0cf5735f3f01c6ae0e4"
+    },
+    "com/atproto/label/subscribeLabels.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/label/subscribeLabels.json",
+      "repo": "atproto",
+      "sha256": "2f637aa9bf4ebc8e2ca1965a07ffad20f4e06359c79b828aced3be8a0419405d"
+    },
+    "com/atproto/lexicon/resolveLexicon.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/lexicon/resolveLexicon.json",
+      "repo": "atproto",
+      "sha256": "6cf49e1ed773a90582eae8828b38268bd493c1df97f424c98568cb74ced9cb95"
+    },
+    "com/atproto/lexicon/schema.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/lexicon/schema.json",
+      "repo": "atproto",
+      "sha256": "eb0f6c4e61712255523a8b6fe45620cbde91aa0ca1527000db10f43816ba058f"
+    },
+    "com/atproto/moderation/createReport.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/moderation/createReport.json",
+      "repo": "atproto",
+      "sha256": "fe63d083bb1ef29652a674332b7a7bb9a2d039d8a2cb0ef58bbf9e9a0d4761d9"
+    },
+    "com/atproto/moderation/defs.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/moderation/defs.json",
+      "repo": "atproto",
+      "sha256": "bf9c47c751a0d1ed9d28227292e4913f6e7390f26a76e5bf2c41de505aab7fc9"
+    },
+    "com/atproto/repo/applyWrites.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/applyWrites.json",
+      "repo": "atproto",
+      "sha256": "ee3d49d4b289200d2a6d48c931dc19956ed2e5fb937ec341ebbf023c35697aa9"
+    },
+    "com/atproto/repo/createRecord.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/createRecord.json",
+      "repo": "atproto",
+      "sha256": "33280437597bf6dd8232a8ebd1b001a151e9b52817f9812abe1b505b0b192dac"
+    },
+    "com/atproto/repo/defs.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/defs.json",
+      "repo": "atproto",
+      "sha256": "9806986fa3b0bca206b52e2869fb4a586441253139bff4189d2e526d1a2306df"
+    },
+    "com/atproto/repo/deleteRecord.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/deleteRecord.json",
+      "repo": "atproto",
+      "sha256": "4b7fa4d5907da32bc53897200e0197c63eba6a7e9411a9031ac1b6a4828e6276"
+    },
+    "com/atproto/repo/describeRepo.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/describeRepo.json",
+      "repo": "atproto",
+      "sha256": "e9fa5f3461cbf1e9bfae4aab4c64893a0211125855371734ea4ab387e59f621b"
+    },
+    "com/atproto/repo/getRecord.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/getRecord.json",
+      "repo": "atproto",
+      "sha256": "d61aee451f284dd251b3451d16826e75f2bf8a6af32705120e1f67a3db4df8ff"
+    },
+    "com/atproto/repo/importRepo.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/importRepo.json",
+      "repo": "atproto",
+      "sha256": "242a447ae3932f87839a358464cc2980fff4b02f9b61b80550cac6c757337444"
+    },
+    "com/atproto/repo/listMissingBlobs.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/listMissingBlobs.json",
+      "repo": "atproto",
+      "sha256": "6ecb53e7cc67061b1abc35758e9f7f58edcfa4dd453b65032b297cfe4102b7b8"
+    },
+    "com/atproto/repo/listRecords.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/listRecords.json",
+      "repo": "atproto",
+      "sha256": "d862390bf7b25d7f41b113570380320ce96ada19a529b4f50d88f509a7b20b5c"
+    },
+    "com/atproto/repo/putRecord.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/putRecord.json",
+      "repo": "atproto",
+      "sha256": "3132c3b46ba530c367dc066ce263e6e1d405c4f2e91ed995bfc2d2fb654e50d7"
+    },
+    "com/atproto/repo/strongRef.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/strongRef.json",
+      "repo": "atproto",
+      "sha256": "2d27ecc2a09a86b5065c36e36b987ef726a814023c5e198a1eda8e4c283714e0"
+    },
+    "com/atproto/repo/uploadBlob.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/repo/uploadBlob.json",
+      "repo": "atproto",
+      "sha256": "ca55fcb2572db51556488a5c0f3912ab192369904c25d142a46a41052552ced0"
+    },
+    "com/atproto/server/activateAccount.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/activateAccount.json",
+      "repo": "atproto",
+      "sha256": "0d50bac92845f7ef9609ed864391833ce1f7e76e88e46d3357108789617ce6c6"
+    },
+    "com/atproto/server/checkAccountStatus.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/checkAccountStatus.json",
+      "repo": "atproto",
+      "sha256": "d694f1cfba0a5f0669a30d8f8b692dbf1a5401475ba8940647940b7a010d22fd"
+    },
+    "com/atproto/server/confirmEmail.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/confirmEmail.json",
+      "repo": "atproto",
+      "sha256": "385e1007796cc15318dff4f9831bc437184fa7b8d16574b2f9c62ab7814dcbfb"
+    },
+    "com/atproto/server/createAccount.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/createAccount.json",
+      "repo": "atproto",
+      "sha256": "e05e794757311175199ec9a7c8fe37a9d240f3a538c6eec032edc86438f2bb05"
+    },
+    "com/atproto/server/createAppPassword.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/createAppPassword.json",
+      "repo": "atproto",
+      "sha256": "795dc8bc6450695888e7e064e8eaf2e47f31fc99221a0725339253a744f4c662"
+    },
+    "com/atproto/server/createInviteCode.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/createInviteCode.json",
+      "repo": "atproto",
+      "sha256": "fd15f02226eda154c60b2de48c7623e4500ff39f1e82d1172115802d6b8bcca2"
+    },
+    "com/atproto/server/createInviteCodes.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/createInviteCodes.json",
+      "repo": "atproto",
+      "sha256": "10129f05be111c7058ff76b6d334cc8cb74a25f833970b3178bf0099e02f78ec"
+    },
+    "com/atproto/server/createSession.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/createSession.json",
+      "repo": "atproto",
+      "sha256": "1b2f2f0e4957722924c4adcca7d87d64f1684ad2a49c4f2e4546083148b54fd0"
+    },
+    "com/atproto/server/deactivateAccount.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/deactivateAccount.json",
+      "repo": "atproto",
+      "sha256": "6d54c0cf63050de6b6a0253a5a9869fbf577f14db5e19570b547fa4cb3e0c0ab"
+    },
+    "com/atproto/server/defs.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/defs.json",
+      "repo": "atproto",
+      "sha256": "55b1b5c8d6dfb19d0516ba596bcafe7970425e87d18850d9f5a1a1675e594946"
+    },
+    "com/atproto/server/deleteAccount.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/deleteAccount.json",
+      "repo": "atproto",
+      "sha256": "291bcefb62da099a80cabeff03177cdb1f4fda499a278f4ec9d21e6cc1a86bfe"
+    },
+    "com/atproto/server/deleteSession.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/deleteSession.json",
+      "repo": "atproto",
+      "sha256": "053f557f3210f318c2932b027be3e32243bd76501409cd0886603934d24ec8aa"
+    },
+    "com/atproto/server/describeServer.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/describeServer.json",
+      "repo": "atproto",
+      "sha256": "cea72367bd022877cf103b88585c0c6f5973dbd1629e8a19162d114a14be8b35"
+    },
+    "com/atproto/server/getAccountInviteCodes.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/getAccountInviteCodes.json",
+      "repo": "atproto",
+      "sha256": "1acad353129e2d04500811709072cc98a8ff057faa1c85fe789aaffb4b1eb488"
+    },
+    "com/atproto/server/getServiceAuth.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/getServiceAuth.json",
+      "repo": "atproto",
+      "sha256": "3a623f89b9d7dc39f7a13a10e13e797cd12ee97ea2a08f793e30ff6aeb1ee3d0"
+    },
+    "com/atproto/server/getSession.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/getSession.json",
+      "repo": "atproto",
+      "sha256": "506d84a1d66206ed35505402824dfae8fc2e106cd88cbed1652954506e413eb9"
+    },
+    "com/atproto/server/listAppPasswords.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/listAppPasswords.json",
+      "repo": "atproto",
+      "sha256": "f152d42ddc6c3ace325534459830f1218afb87787b90cb43107215326ec69a26"
+    },
+    "com/atproto/server/refreshSession.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/refreshSession.json",
+      "repo": "atproto",
+      "sha256": "d2de6665d92e4ee055ab400a54484ab24530baedfb5b9b35bb19329f27141437"
+    },
+    "com/atproto/server/requestAccountDelete.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/requestAccountDelete.json",
+      "repo": "atproto",
+      "sha256": "d1ad16786c18d19df962c041a0c1da456e0af912eed8caa523243da8ef4b8f10"
+    },
+    "com/atproto/server/requestEmailConfirmation.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/requestEmailConfirmation.json",
+      "repo": "atproto",
+      "sha256": "5868611e214d53f79436d6280804d175fbf7347bf78778cda44d7a78ede0f47b"
+    },
+    "com/atproto/server/requestEmailUpdate.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/requestEmailUpdate.json",
+      "repo": "atproto",
+      "sha256": "f4e1b2c71f4dd455fe47aec03be542d6288635a3728619ae3d768434c53e7859"
+    },
+    "com/atproto/server/requestPasswordReset.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/requestPasswordReset.json",
+      "repo": "atproto",
+      "sha256": "2ab64dcf86bf961f281bceb45b00a4f53216ff0207e9c661155e328883208a95"
+    },
+    "com/atproto/server/reserveSigningKey.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/reserveSigningKey.json",
+      "repo": "atproto",
+      "sha256": "eb471699702c317e9515be5a98124ea7e53a58e831228a7acad174533b67f5f7"
+    },
+    "com/atproto/server/resetPassword.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/resetPassword.json",
+      "repo": "atproto",
+      "sha256": "e0403a36c14f91fb315257ca344528357d62c8d64b37007059b48cd2b04a0a59"
+    },
+    "com/atproto/server/revokeAppPassword.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/revokeAppPassword.json",
+      "repo": "atproto",
+      "sha256": "8fba02cf41c04b18b5eded875db2ce790ac1debf6ac556b8f4d249ccb712b22e"
+    },
+    "com/atproto/server/updateEmail.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/server/updateEmail.json",
+      "repo": "atproto",
+      "sha256": "fa3cefdcb4f08ba6761884737168abd6bd816356342ac201e42e9a7c67aa6f7c"
+    },
+    "com/atproto/simplespace/addMember.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/simplespace/addMember.json",
+      "repo": "atproto",
+      "sha256": "88de95e2804f75e67bafda42ec6013496b231e34121334d1272af93cc650e8fe"
+    },
+    "com/atproto/simplespace/checkUserAccess.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/simplespace/checkUserAccess.json",
+      "repo": "atproto",
+      "sha256": "5e34bb9d6e4d795f8782f9cad31ac314eeb0cfd4b52d3e84cd1766984fa9860e"
+    },
+    "com/atproto/simplespace/createSpace.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/simplespace/createSpace.json",
+      "repo": "atproto",
+      "sha256": "446b1e8bfc7750e990da703df727a32f59a8d368027d99ac4c03a4c64e20b22d"
+    },
+    "com/atproto/simplespace/defs.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/simplespace/defs.json",
+      "repo": "atproto",
+      "sha256": "dfa24eac8119e64eafc3202134210f77710fcb96622d8cbfc56195fb4ba7b096"
+    },
+    "com/atproto/simplespace/deleteSpace.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/simplespace/deleteSpace.json",
+      "repo": "atproto",
+      "sha256": "136dfa6701236e26fd0c7ace731a848e6c9425c8aaf748b0c06f5ca02b2a45cc"
+    },
+    "com/atproto/simplespace/listMembers.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/simplespace/listMembers.json",
+      "repo": "atproto",
+      "sha256": "bcdb8c5425becd8ca6e6ad56570fe911eb65121f1b137ee7b701a5fddff215ec"
+    },
+    "com/atproto/simplespace/removeMember.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/simplespace/removeMember.json",
+      "repo": "atproto",
+      "sha256": "10ccf6913d921e579afbec1f624c5465ddd84b239d5fbb0b8f991d5da8154b27"
+    },
+    "com/atproto/simplespace/updateSpace.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/simplespace/updateSpace.json",
+      "repo": "atproto",
+      "sha256": "690f7c3a8cc22aad024b936be6dad4154838a5e68991d46b93e0272cdda85b4f"
+    },
+    "com/atproto/space/applyWrites.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/applyWrites.json",
+      "repo": "atproto",
+      "sha256": "e00e5c71b7f3eb840573941e64811aaaa52190604cc6ee00b26b9180c757a019"
+    },
+    "com/atproto/space/createRecord.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/createRecord.json",
+      "repo": "atproto",
+      "sha256": "1272bc6c87a0197f084a2138d6218f5e074b2522d4e6e3f42f8b3d1e63926490"
+    },
+    "com/atproto/space/defs.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/defs.json",
+      "repo": "atproto",
+      "sha256": "eb1cf1e5c6ea0b77424b1e0a4bd2b955fd6bd7f73cca3475e65ee33fa5572d76"
+    },
+    "com/atproto/space/deleteRecord.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/deleteRecord.json",
+      "repo": "atproto",
+      "sha256": "dafa9ebff8a5ea2bfb4d58cdfefc1af5fc8c61b92e78f889fa2e0fe03812702a"
+    },
+    "com/atproto/space/getBlob.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/getBlob.json",
+      "repo": "atproto",
+      "sha256": "f156f00db415f127ef25a988efaa88e1e3baa674005ec283b2b541b4457a0321"
+    },
+    "com/atproto/space/getDelegationToken.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/getDelegationToken.json",
+      "repo": "atproto",
+      "sha256": "0da8c9b6b13f9f4a147eeb62d2d58cadc24b28493a2aa52e0ca1146d528b40f7"
+    },
+    "com/atproto/space/getRecord.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/getRecord.json",
+      "repo": "atproto",
+      "sha256": "840716136a0e3df8c8b348334cd258d5417ce1551fbe49b0c0d1518acf136b10"
+    },
+    "com/atproto/space/getRepoState.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/getRepoState.json",
+      "repo": "atproto",
+      "sha256": "5936ea16303fb77baa52e08495e6602bc5f4562a955426fd9dd532b6b07d3513"
+    },
+    "com/atproto/space/getSpace.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/getSpace.json",
+      "repo": "atproto",
+      "sha256": "15dbe1311e92a453984d46b89a9ae43ab4651394ed852d34457a3cfd6993498e"
+    },
+    "com/atproto/space/getSpaceCredential.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/getSpaceCredential.json",
+      "repo": "atproto",
+      "sha256": "9ac2f0062d8a2718747b01d8135e220b3846ffc007d8408addc719efd0360921"
+    },
+    "com/atproto/space/listRecords.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/listRecords.json",
+      "repo": "atproto",
+      "sha256": "d1d8e2161d00486684ad306c05098e317d9fc72d98b9f84718d794b0966d8dfe"
+    },
+    "com/atproto/space/listRepoOps.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/listRepoOps.json",
+      "repo": "atproto",
+      "sha256": "85c3ad3e07fa541ca051a0e45bda3f72e37484d09413dc0f9a9c816de9dfca7c"
+    },
+    "com/atproto/space/listRepos.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/listRepos.json",
+      "repo": "atproto",
+      "sha256": "54516ed59553fc870ba12c6ba12c7ad15b1a395f7d6e894b369cdc206e2798da"
+    },
+    "com/atproto/space/listSpaces.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/listSpaces.json",
+      "repo": "atproto",
+      "sha256": "44c01f4b0bb94135b6c65362ee5bc3f32717f0e0a30bdb36b79f4899c7861fb9"
+    },
+    "com/atproto/space/notifySpaceDeleted.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/notifySpaceDeleted.json",
+      "repo": "atproto",
+      "sha256": "5c3b396541a0987228f151607e33822e1d4c6f60b56d168b9528777da3f0e316"
+    },
+    "com/atproto/space/notifyWrite.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/notifyWrite.json",
+      "repo": "atproto",
+      "sha256": "4cc3383e16fce24461801a5676c7cf6140f8c93093b3d7662e726fecba129060"
+    },
+    "com/atproto/space/putRecord.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/putRecord.json",
+      "repo": "atproto",
+      "sha256": "14e8a84f20d0878956aa0fe041d774a310bb88f88525fab8f9e1737582570bc4"
+    },
+    "com/atproto/space/registerNotify.json": {
+      "commit": "a90c36950b3bd12715aa1da4c33a79bd6433151e",
+      "path": "lexicons/com/atproto/space/registerNotify.json",
+      "repo": "atproto",
+      "sha256": "8fe11a42fcd9e8d6f6636634f986c7b918a77b1f71e026524b8b79d2454d5718"
+    },
+    "com/atproto/sync/defs.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/defs.json",
+      "repo": "atproto",
+      "sha256": "ad9f2b16e0718fae2c85c9dc847de8dd6626b5f279bf2cf84ab3a1385efb50a5"
+    },
+    "com/atproto/sync/getBlob.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/getBlob.json",
+      "repo": "atproto",
+      "sha256": "aaed9c4f39fe76a0eec90afd8635e5e2a655575e85f752cb6d8ae50be4057421"
+    },
+    "com/atproto/sync/getBlocks.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/getBlocks.json",
+      "repo": "atproto",
+      "sha256": "7186125e93d5342bfafe5d8086811e9b14e9f119d750222a02f2d03b292f8fee"
+    },
+    "com/atproto/sync/getCheckout.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/getCheckout.json",
+      "repo": "atproto",
+      "sha256": "940510053188e75c5150b78fd9972858e67f7b5bac44c7dbb133f454cbda97aa"
+    },
+    "com/atproto/sync/getHead.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/getHead.json",
+      "repo": "atproto",
+      "sha256": "56ce8ea3d41358e1d86b6796b1207fa44e6fe60b25c407cc29edb25057e61cf4"
+    },
+    "com/atproto/sync/getHostStatus.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/getHostStatus.json",
+      "repo": "atproto",
+      "sha256": "5721239eb13143fb8e64ebdc35824ff1078d0fec925aeb8562c140307f946fa3"
+    },
+    "com/atproto/sync/getLatestCommit.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/getLatestCommit.json",
+      "repo": "atproto",
+      "sha256": "698b4028ce312d629948ea6efe7eebe1e543fc7d3d289ee5a7966825d1f5856c"
+    },
+    "com/atproto/sync/getRecord.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/getRecord.json",
+      "repo": "atproto",
+      "sha256": "1d5a50caf428c87b87922e0adf021956c719af589cb89c7a3dc513875df13cdb"
+    },
+    "com/atproto/sync/getRepo.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/getRepo.json",
+      "repo": "atproto",
+      "sha256": "c16b1b22bef031f0456d90cd4b4f648bc12ea1b3b9918eeb53177362875ee5fa"
+    },
+    "com/atproto/sync/getRepoStatus.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/getRepoStatus.json",
+      "repo": "atproto",
+      "sha256": "389167313a4e806c422ff2bbbd3e9a6190ad4480b57afd97354610b4c6020927"
+    },
+    "com/atproto/sync/listBlobs.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/listBlobs.json",
+      "repo": "atproto",
+      "sha256": "26671c6ff5946f09ec633019d20dc3fe8c86af7675f3f9666397f25f8d69d7f1"
+    },
+    "com/atproto/sync/listHosts.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/listHosts.json",
+      "repo": "atproto",
+      "sha256": "4d4d5a8e072f9e1c1f9c53ed79458dbfefbb6f31f18713db5f386f385d9baa8e"
+    },
+    "com/atproto/sync/listRepos.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/listRepos.json",
+      "repo": "atproto",
+      "sha256": "afb3599e6075c8b413cf3431e3d0ce0e66aa7eff681bcdfd0bf88aefdf0b52d1"
+    },
+    "com/atproto/sync/listReposByCollection.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/listReposByCollection.json",
+      "repo": "atproto",
+      "sha256": "bf5b12386212596edbcd9b074c7e7db55b373846cf5dfb0d4b5a008cdc935f37"
+    },
+    "com/atproto/sync/notifyOfUpdate.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/notifyOfUpdate.json",
+      "repo": "atproto",
+      "sha256": "4d5b9288fa95053f2426c84a4b324ec010cd124872e667867eddf3e56fde974b"
+    },
+    "com/atproto/sync/requestCrawl.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/requestCrawl.json",
+      "repo": "atproto",
+      "sha256": "923338266ef71f30b90593946af6e8438e734ddbf90c6d33409d915a74eef1cd"
+    },
+    "com/atproto/sync/subscribeRepos.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/sync/subscribeRepos.json",
+      "repo": "atproto",
+      "sha256": "bfc3e22bfeae701736fbbbd68a56f0b4b8b66ef4e0e10f1c281b2de61c3328ae"
+    },
+    "com/atproto/temp/addReservedHandle.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/temp/addReservedHandle.json",
+      "repo": "atproto",
+      "sha256": "4cab3ffc4277eacb02ee3b787a6ffef4ba94a618224fbb0c59083be1c8cf62e0"
+    },
+    "com/atproto/temp/checkHandleAvailability.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/temp/checkHandleAvailability.json",
+      "repo": "atproto",
+      "sha256": "28828ebca514b77ba15b41dc6be96279790c5d3c0e176b612b693b8b6bd977b5"
+    },
+    "com/atproto/temp/checkSignupQueue.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/temp/checkSignupQueue.json",
+      "repo": "atproto",
+      "sha256": "ccb97807dabddf2f5703b1b8034362af47600fcf8d034395d0c603e156fca7d9"
+    },
+    "com/atproto/temp/dereferenceScope.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/temp/dereferenceScope.json",
+      "repo": "atproto",
+      "sha256": "2647d79b84c8d930f213c2b114b2e203aac6ed21c68d756da8eca7df4e2cdaf6"
+    },
+    "com/atproto/temp/fetchLabels.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/temp/fetchLabels.json",
+      "repo": "atproto",
+      "sha256": "71b0f84dcaafecf99d16086fba55f60dba884097e33c01f3a763ae7a45b22e4d"
+    },
+    "com/atproto/temp/requestPhoneVerification.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/temp/requestPhoneVerification.json",
+      "repo": "atproto",
+      "sha256": "221526e4c3711e69274759f7f7fed0fd9520fc328b1fb392642e420d90cebccd"
+    },
+    "com/atproto/temp/revokeAccountCredentials.json": {
+      "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+      "path": "lexicons/com/atproto/temp/revokeAccountCredentials.json",
+      "repo": "atproto",
+      "sha256": "ed5656937ed690bad5b0fd63a304b0d2ac8112c03d4853aa55b0367f9a525afd"
+    }
+  }
+}
