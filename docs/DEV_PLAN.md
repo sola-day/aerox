@@ -529,3 +529,108 @@ written during the milestone.
   exist) rather than upstream's stateless mode, so revocation is immediate.
 - **Carried.** `bulletin`'s login (its data steps wait for M8/M9) is not
   yet exercised; JAR (`request` objects) is not supported (metadata says so).
+
+### M8 — Labeler and moderation backend (closed 2026-09-09)
+
+- **What done took.** A labeler that is an ordinary account on our PDS
+  (`mix aerox.labeler.setup` creates it, publishes `#atproto_labeler` and
+  the label key in its DID document, and persists `did`/key in
+  `labeler.setting`), signed labels with their own sequencer feeding
+  `subscribeLabels`, `queryLabels`, report intake with the reporter's
+  service JWT, an append-only `mod_event` log with the `Actions` behaviour
+  (`Actions.Default`: label, takedown, acknowledge; replayable through
+  `applied_at`), takedown propagation to the PDS through its admin API and
+  in-node to the AppView, and the minimal admin API under our own
+  `aerox.moderation.*` lexicons. The AppView subscribes to the configured
+  labelers and applies their labels by default (DESIGN §15.6); the PDS
+  proxies `createReport` to `mod_service`. Verified end to end on the dev
+  stack: the labeler's DID document resolves, `queryLabels` answers on
+  `labeler.<dev-domain>`.
+- **What the design got wrong.** §17's separate labeler signing key: the
+  PDS verifies the labeler's service JWTs against the DID document's
+  `#atproto` key, so the label key *is* the account's repo signing key
+  (ozone does the same). Labels are upserted per `(src, uri, cid, val)`
+  (ozone's `createLabels` semantics) rather than one row per emission.
+- **Carried.** Moderator e-mail notices; a remote AppView learns takedowns
+  only from `#account`; Ozone compatibility, as planned.
+
+### M9 — Spaces (closed 2026-09-09, alpha-tracking)
+
+- **What done took.** The finding that drove everything: `bulletin` pins
+  the *published* alpha package (`@atproto/space@0.0.0-spaces-alpha-20260818163953`),
+  and that package differs from the `permissioned-data` branch in four
+  wire-level ways — JWT model (delegation / credential / client-attestation,
+  exactly DESIGN §12.4), set-hash element (`collection/rkey/cid`), the
+  signed commit (`atproto-space-v1` context, HKDF-Expand, `ver: 1`) and
+  canonical CAR block order, plus `at://did/space/type/skey` URIs. The
+  goldens were regenerated from the real package
+  (`test/golden/space/alpha.json`: our CAR export is byte-identical to
+  `serializeRepo`, MACs and signatures cross-verify). Then the PDS side:
+  space tables keyed by `did`, `Spaces`/`Records`/`Credentials`/`Policy`/
+  `Notify`, 25 `com.atproto.space.*`/`simplespace.*` routes behind
+  `enabled: true`, `space:` scopes enforced, DPoP-bound credentials over
+  the shared verifier, Oban fan-out for `notifyWrite`, and scenario 9 as a
+  flow test.
+- **What the design got wrong.** The design (and the kernel's first
+  `Commit`) followed the branch; the alpha is the oracle. §12.5's
+  `checkUserAccess` is served by the managing app, not the PDS (the PDS
+  calls it). Branch-only `notifyMembership` does not exist in the alpha.
+- **Carried.** `bulletin` end to end (needs the Next.js app on a loopback
+  origin with its `did:web:localhost%3A3000` resolvable by our PDS and
+  `getRelationships` on the AppView); DPoP nonces are not required on
+  space-credential proofs because the alpha client sends none.
+
+### M5 — Bundle and migration tooling (closed 2026-09-09)
+
+- **What done took.** Bundle format v1 (`docs/BUNDLE.md`) with the
+  encryption decision made as **Option A**: one content key per bundle
+  wrapped per recipient (`ECDH-ES+A256KW` to P-256/X25519, or
+  `PBES2-HS512+A256KW` for an operator passphrase), AES-256-GCM chunked
+  file bodies with path-bound AAD, and the manifest as an ES256K JWS by the
+  instance signer (works with the KMS/Remote signers). `Bundle.Postgres`
+  in both directions with `interop_progress`, `Verify` for the §13.3
+  report, `mix aerox.bundle.{export,import}`, and in `lib_tool/` the
+  reference-PDS 0.4 SQLite adapter with `aerox.interop.{from_pds,to_pds}`.
+  The round trip was proven the hard way: fixture → bundle → data dir →
+  the stock `ghcr.io/bluesky-social/pds:0.4` image boots on it, serves the
+  same repo root and block set, and `createSession` succeeds.
+- **What the design got wrong.** `state.json` needs a per-block `rev` map
+  (not in the CAR) to reproduce `repo_block` rows byte for byte. `pds:0.4`
+  actually ships `@atproto/pds` 0.5.27; the adapter is pinned to that.
+  jose 1.11 cannot mint ECDH-ES ephemeral keys and hangs on cross-curve
+  unwraps, so recipients are matched by `kid` thumbprint first.
+- **Carried.** The §10.4 migration drill against a real production
+  snapshot (no snapshot on this box, by §1.3); `Sequencer.reload/0` so a
+  takeover import can run with the PDS up.
+
+### M10 — Hardening and release readiness (closed 2026-09-09; rows carried)
+
+- **What done took.** `Signer.Remote` (pinned `did:key`, refuses
+  signatures that do not verify) and `Signer.Kms` (SigV4 against the KMS
+  JSON API, DER → raw low-S, upstream-compatible key spec) with
+  fake-service tests; `config :aerox, :env` so `Signer.Local` is genuinely
+  refused in prod; the full production runtime config from
+  `/etc/aerox/<env>.env` (`ops/aerox.env.example`), `mix release` +
+  `Aerox.Release.migrate/0` + the systemd unit, age-encrypted
+  `ops/backup.sh` / `ops/restore.sh` (refuses non-empty targets),
+  `docs/OPS.md`; the in-process fault suite (§10.2: sequencer kill,
+  starvation, slow subscriber); the rotation-key drill on the dev PLC
+  (`test/harness/rotation-drill.mjs`: an instance-key hijack nullified by
+  the recovery key, `nullified: 1`); the first load baseline
+  (`bench/RESULTS.md`) and the CI `network` / `release-config` jobs.
+- **What the baseline found.** Two real defects under 32 concurrent
+  writers: the sequencer's flush queued behind request connections
+  (priority inversion — it now owns a one-connection pool), and hot-account
+  writers held connections while waiting on the row lock (a FIFO
+  `Aerox.PDS.RepoLock` is now taken before the transaction). And the R2
+  answer: the read path is bounded by 21 sequential AppView queries per
+  timeline, not by pure-Elixir crypto/CBOR — the Rustler swap is not
+  warranted; concurrent hydration is the scheduled optimisation.
+- **Decisions.** R3 (sequencer across nodes): single PDS node; the repo
+  lock and sequencer are per node and both have a cluster-lock seam.
+  Telemetry export: Prometheus on a private port when the first release is
+  cut. Reverse proxy: Traefik (the box's), not Caddy.
+- **Carried.** §10.3 network faults with Toxiproxy (needs the
+  multi-container topology), the restore drill on a clean second host, a
+  release candidate deployed to that host, relay fan-out / ingest / image
+  CDN rows of §10.1, the reference AppView parity rows from M7.

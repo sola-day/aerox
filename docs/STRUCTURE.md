@@ -177,11 +177,14 @@ lib/aerox/
 │   └── cache.ex                   disk LRU + edge purge behaviour
 │
 │  ── band 4: cross-cutting workflows ──
-└── interop/
-    └── bundle/                 the account bundle (§13.0)
-        ├── manifest.ex
-        ├── postgres.ex             aerox PG ⇄ bundle
-        └── protocol.ex             live PDS → partial bundle (Layer A)
+└── interop/                    (docs/BUNDLE.md)
+    ├── bundle.ex               format v1: write/read/stream, hashes, discovery
+    ├── bundle/
+    │   ├── crypto.ex           content key per bundle, per-recipient JWE, ES256K manifest JWS
+    │   └── postgres.ex         aerox PG ⇄ bundle
+    ├── progress.ex             interop_progress (resumable per-account state)
+    ├── verify.ex               §13.3 reconciliation report
+    └── runtime.ex              mix-task runtime: PDS repo only, no params in logs
 ```
 
 Two placements worth stating explicitly, because the obvious alternative is wrong:
