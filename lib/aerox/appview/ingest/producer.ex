@@ -236,8 +236,10 @@ defmodule Aerox.AppView.Ingest.Producer do
     {http_scheme, ws_scheme} =
       if uri.scheme in ["wss", "https"], do: {:https, :wss}, else: {:http, :ws}
 
-    path =
-      "/xrpc/com.atproto.sync.subscribeRepos" <> if(cursor > 0, do: "?cursor=#{cursor}", else: "")
+    # always with a cursor: a fresh AppView asks for everything the Relay
+    # retains (cursor=0 → OutdatedCursor + replay from the window start),
+    # never a live-only tail that would miss the existing repos
+    path = "/xrpc/com.atproto.sync.subscribeRepos?cursor=#{cursor}"
 
     with {:ok, conn} <- Mint.HTTP.connect(http_scheme, uri.host, uri.port, protocols: [:http1]),
          {:ok, conn, ref} <-

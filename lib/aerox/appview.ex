@@ -5,6 +5,6 @@ defmodule Aerox.AppView do
   """
   use Boundary,
     top_level?: true,
-    deps: [Aerox.ATProto, Aerox.Identity, Aerox.Auth, Aerox.Blob],
+    deps: [Aerox.ATProto, Aerox.Identity, Aerox.Auth, Aerox.Blob, Aerox.ImageServer],
     exports: :all
 end

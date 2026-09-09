@@ -2,12 +2,13 @@
 
 
 VERIFICATION §7.1 item 3: every XRPC endpoint aerox routes is listed here with its
-parity status and any documented deviation. The router test
-(`test/aerox_web/router_parity_test.exs`) fails if the router serves a method this
-table does not list, or lists one the router does not serve.
+service, parity status and any documented deviation. The router test
+(`test/aerox_web/router_parity_test.exs`) fails if any of the three routers (PDS,
+Relay, AppView — dispatched by hostname, `AeroxWeb.Dispatch`) serves a method this
+table does not list for that service, or lists one it does not serve.
 
-Every other `/xrpc/<nsid>` is the proxy catch-all (DESIGN §11.1): forwarded to
-the `atproto-proxy` target or the default service for the NSID, else 501.
+Every other `/xrpc/<nsid>` on the PDS host is the proxy catch-all (DESIGN §11.1):
+forwarded to the `atproto-proxy` target or the default service for the NSID, else 501.
 
 Status: `flow` = exercised by the HTTP flow tests against our own stack;
 `parity` = diffed against the reference stack (§7.1 items 1–2, from M7);
@@ -54,14 +55,14 @@ Status: `flow` = exercised by the HTTP flow tests against our own stack;
 | `com.atproto.repo.uploadBlob` | POST | pds | pending |  |
 | `com.atproto.repo.listMissingBlobs` | GET | pds | pending |  |
 | `com.atproto.repo.importRepo` | POST | pds | pending |  |
-| `com.atproto.sync.getRepo` | GET | pds | flow |  |
-| `com.atproto.sync.getRecord` | GET | pds | pending |  |
-| `com.atproto.sync.getBlocks` | GET | pds | pending |  |
+| `com.atproto.sync.getRepo` | GET | pds | flow | relay: non-archival, 404 naming the hosting PDS (DESIGN §19) |
+| `com.atproto.sync.getRecord` | GET | pds | pending | relay: non-archival (DESIGN §19) |
+| `com.atproto.sync.getBlocks` | GET | pds | pending | relay: non-archival (DESIGN §19) |
 | `com.atproto.sync.getLatestCommit` | GET | pds | flow |  |
 | `com.atproto.sync.getRepoStatus` | GET | pds | flow |  |
 | `com.atproto.sync.listRepos` | GET | pds | flow |  |
-| `com.atproto.sync.getBlob` | GET | pds | pending |  |
-| `com.atproto.sync.listBlobs` | GET | pds | pending |  |
+| `com.atproto.sync.getBlob` | GET | pds | pending | relay: non-archival (DESIGN §19) |
+| `com.atproto.sync.listBlobs` | GET | pds | pending | relay: non-archival (DESIGN §19) |
 | `app.bsky.actor.getPreferences` | GET | pds | flow | served by the PDS, not proxied (DESIGN §11.1) |
 | `app.bsky.actor.putPreferences` | POST | pds | flow | served by the PDS, not proxied (DESIGN §11.1) |
 | `com.atproto.admin.getAccountInfo` | GET | pds | pending |  |
@@ -79,3 +80,68 @@ Status: `flow` = exercised by the HTTP flow tests against our own stack;
 | `com.atproto.admin.enableAccountInvites` | POST | pds | pending |  |
 | `com.atproto.moderation.createReport` | POST | pds | pending | 501 until the labeler (M8) accepts reports |
 | `com.atproto.sync.subscribeRepos` | GET | pds | pending | frame-by-frame parity is VERIFICATION §7.1 item 4 |
+| `com.atproto.sync.subscribeRepos` | GET | relay | pending | frame-by-frame parity is VERIFICATION §7.1 item 4 |
+| `com.atproto.sync.requestCrawl` | POST | relay | flow |  |
+| `com.atproto.sync.listHosts` | GET | relay | flow |  |
+| `com.atproto.sync.getHostStatus` | GET | relay | flow |  |
+| `com.atproto.sync.listRepos` | GET | relay | flow |  |
+| `com.atproto.sync.getRepoStatus` | GET | relay | flow |  |
+| `com.atproto.sync.getLatestCommit` | GET | relay | flow |  |
+| `com.atproto.sync.getRepo` | GET | relay | flow | relay: non-archival, 404 naming the hosting PDS (DESIGN §19) |
+| `com.atproto.sync.getRecord` | GET | relay | pending | relay: non-archival (DESIGN §19) |
+| `com.atproto.sync.getBlocks` | GET | relay | pending | relay: non-archival (DESIGN §19) |
+| `com.atproto.sync.getBlob` | GET | relay | pending | relay: non-archival (DESIGN §19) |
+| `com.atproto.sync.listBlobs` | GET | relay | pending | relay: non-archival (DESIGN §19) |
+| `com.atproto.sync.listReposByCollection` | GET | relay | pending | deferred: needs a collection index (DESIGN §19) |
+| `com.atproto.sync.getCheckout` | GET | relay | pending | deprecated upstream; 501 |
+| `com.atproto.sync.getHead` | GET | relay | pending | deprecated upstream; 501 |
+| `com.atproto.sync.notifyOfUpdate` | POST | relay | pending | deprecated upstream; 501 |
+| `admin.subscribeHost` | POST | relay | pending |  |
+| `admin.setHostAccountLimit` | POST | relay | pending |  |
+| `admin.banDomain` | POST | relay | pending |  |
+| `admin.setHostStatus` | POST | relay | pending |  |
+| `app.bsky.actor.getProfile` | GET | appview | pending |  |
+| `app.bsky.actor.getProfiles` | GET | appview | pending |  |
+| `app.bsky.actor.getSuggestions` | GET | appview | pending | empty by design (DESIGN §15.4) |
+| `app.bsky.actor.searchActors` | GET | appview | pending |  |
+| `app.bsky.actor.searchActorsTypeahead` | GET | appview | pending |  |
+| `app.bsky.feed.getTimeline` | GET | appview | pending |  |
+| `app.bsky.feed.getAuthorFeed` | GET | appview | pending |  |
+| `app.bsky.feed.getPostThread` | GET | appview | pending |  |
+| `app.bsky.feed.getPosts` | GET | appview | pending |  |
+| `app.bsky.feed.getLikes` | GET | appview | pending |  |
+| `app.bsky.feed.getRepostedBy` | GET | appview | pending |  |
+| `app.bsky.feed.getQuotes` | GET | appview | pending |  |
+| `app.bsky.feed.getActorLikes` | GET | appview | pending |  |
+| `app.bsky.feed.getFeed` | GET | appview | pending |  |
+| `app.bsky.feed.getFeedGenerator` | GET | appview | pending |  |
+| `app.bsky.feed.getFeedGenerators` | GET | appview | pending |  |
+| `app.bsky.feed.getActorFeeds` | GET | appview | pending |  |
+| `app.bsky.feed.getListFeed` | GET | appview | pending |  |
+| `app.bsky.feed.searchPosts` | GET | appview | pending |  |
+| `app.bsky.feed.describeFeedGenerator` | GET | appview | pending | feedgen-side method; 501 here |
+| `app.bsky.graph.getFollows` | GET | appview | pending |  |
+| `app.bsky.graph.getFollowers` | GET | appview | pending |  |
+| `app.bsky.graph.getKnownFollowers` | GET | appview | pending |  |
+| `app.bsky.graph.getBlocks` | GET | appview | pending |  |
+| `app.bsky.graph.getMutes` | GET | appview | pending |  |
+| `app.bsky.graph.getList` | GET | appview | pending |  |
+| `app.bsky.graph.getLists` | GET | appview | pending |  |
+| `app.bsky.graph.getListMutes` | GET | appview | pending |  |
+| `app.bsky.graph.getListBlocks` | GET | appview | pending |  |
+| `app.bsky.graph.getRelationships` | GET | appview | pending |  |
+| `app.bsky.graph.getStarterPack` | GET | appview | pending |  |
+| `app.bsky.graph.getStarterPacks` | GET | appview | pending |  |
+| `app.bsky.graph.getActorStarterPacks` | GET | appview | pending |  |
+| `app.bsky.graph.muteActor` | POST | appview | pending |  |
+| `app.bsky.graph.unmuteActor` | POST | appview | pending |  |
+| `app.bsky.graph.muteActorList` | POST | appview | pending |  |
+| `app.bsky.graph.unmuteActorList` | POST | appview | pending |  |
+| `app.bsky.graph.muteThread` | POST | appview | pending |  |
+| `app.bsky.graph.unmuteThread` | POST | appview | pending |  |
+| `app.bsky.notification.listNotifications` | GET | appview | pending |  |
+| `app.bsky.notification.getUnreadCount` | GET | appview | pending |  |
+| `app.bsky.notification.updateSeen` | POST | appview | pending |  |
+| `app.bsky.labeler.getServices` | GET | appview | pending |  |
+| `app.bsky.unspecced.getPopularFeedGenerators` | GET | appview | pending | empty by design (DESIGN §15.4) |
+| `app.bsky.unspecced.getConfig` | GET | appview | pending |  |
