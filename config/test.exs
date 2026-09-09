@@ -24,6 +24,24 @@ for {repo, role, database} <- [
 end
 
 config :aerox, Aerox.PDS.Sequencer, unboxed: true
+
+# The PDS talks to the PLC directory over HTTP. In tests the "network" is the
+# Phoenix endpoint itself, so the in-process directory (sandboxed) answers.
+config :aerox, Aerox.PDS,
+  public_url: "https://pds.aerox.sola.town",
+  service_did: "did:web:pds.aerox.sola.town",
+  handle_domains: [".aerox.sola.town", ".test"],
+  plc_url: "https://plc.aerox.sola.town",
+  jwt_secret: "test-jwt-secret-test-jwt-secret-test-jwt-secret"
+
+config :aerox, Aerox.PDS.PlcOps, http: [plug: AeroxWeb.Endpoint]
+config :aerox, Aerox.Identity.HTTP, plug: AeroxWeb.Endpoint, allow_private: true
+
+config :aerox, Aerox.Crypto.Signer,
+  adapter: Aerox.Crypto.Signer.Local,
+  private_key_hex: "9085d2bef69286a6cbb51623c8fa258629945cd55ca705cc4e66700396894e0c"
+
+config :aerox, Aerox.Blob.Store, adapter: Aerox.Blob.Disk, root: "tmp/test-blobs"
 config :aerox, Oban.PDS, testing: :manual
 config :aerox, Oban.Core, testing: :manual
 

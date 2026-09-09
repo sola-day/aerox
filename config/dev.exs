@@ -110,3 +110,24 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# PDS (DESIGN §18, §14.2): dev keys only. Handles live under the dev domain.
+config :aerox, Aerox.PDS,
+  handle_domains: [".aerox.sola.town"],
+  plc_url: System.get_env("AEROX_PLC_URL", "https://plc.aerox.sola.town"),
+  contact_email: "lisbon@appendonly.org"
+
+config :aerox, Aerox.PDS.PlcOps, http: [allow_private: true]
+config :aerox, Aerox.Identity.HTTP, allow_private: true
+
+config :aerox, Aerox.Crypto.Signer,
+  adapter: Aerox.Crypto.Signer.Local,
+  private_key_hex:
+    System.get_env(
+      "AEROX_PLC_ROTATION_KEY_HEX",
+      "9085d2bef69286a6cbb51623c8fa258629945cd55ca705cc4e66700396894e0c"
+    )
+
+config :aerox, Aerox.Blob.Store,
+  adapter: Aerox.Blob.Disk,
+  root: System.get_env("AEROX_BLOB_ROOT", "blobs")
