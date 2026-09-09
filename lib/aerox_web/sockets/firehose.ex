@@ -164,8 +164,10 @@ defmodule AeroxWeb.Sockets.Firehose.Plug do
       )
       |> Plug.Conn.halt()
     else
+      # Relays hold idle firehose connections for hours; the idle timeout is a
+      # day, and any client ping (indigo and our consumer send them) resets it.
       WebSockAdapter.upgrade(conn, AeroxWeb.Sockets.Firehose, %{cursor: cursor, source: source},
-        timeout: 60_000
+        timeout: 24 * 3600 * 1000
       )
     end
   end

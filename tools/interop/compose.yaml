@@ -5,7 +5,7 @@
 # the box's Traefik can front them under ref-*.aerox.sola.town
 # (ops/traefik/aerox.dynamic.yml).
 #
-#   docker compose -f tools/interop/compose.yaml up -d ref-plc
+#   docker compose -f tools/interop/compose.yaml up -d ref-plc ref-relay ref-pds
 name: aerox-interop
 
 services:
@@ -28,6 +28,66 @@ services:
     networks:
       - aerox
     restart: unless-stopped
+
+  # indigo relay built from the reading-room checkout at dfe5578f:
+  #   docker build -f cmd/relay/Dockerfile -t aerox-ref-relay:dfe5578f .   (in ../bsky/indigo)
+  # Sync v1.1 relay; RELAY_ALLOW_INSECURE_HOSTS lets it crawl plain-http dev
+  # hosts, strict sync validation stays on so it is a real oracle for our PDS.
+  ref-relay:
+    image: aerox-ref-relay:dfe5578f
+    environment:
+      DATABASE_URL: postgres://aerox:aerox@db:5432/ref_relay
+      RELAY_ADMIN_PASSWORD: REDACTED-ref-REDACTED-relay-admin-password-password
+      RELAY_PLC_HOST: https://plc.aerox.sola.town
+      RELAY_API_BIND: ":2470"
+      RELAY_PERSIST_DIR: /data/relay
+      RELAY_ALLOW_INSECURE_HOSTS: "true"
+      RELAY_LENIENT_SYNC_VALIDATION: "false"
+      RELAY_DEFAULT_ACCOUNT_LIMIT: "100"
+      ENVIRONMENT: dev
+    volumes:
+      - ref-relay-data:/data/relay
+    ports:
+      - "172.18.0.1:2470:2470"
+    networks:
+      - aerox
+    restart: unless-stopped
+
+  # Upstream PDS distribution, pinned image tag. Secrets below are dev-only
+  # throwaways generated with openssl (see bluesky-social/pds installer.sh).
+  # Handles live under .ref-pds.aerox.sola.town; that is two labels below the
+  # *.aerox.sola.town certificate, so they resolve via DNS TXT, not by hostname.
+  ref-pds:
+    image: ghcr.io/bluesky-social/pds:0.4
+    environment:
+      PDS_HOSTNAME: ref-pds.aerox.sola.town
+      PDS_PORT: "3000"
+      PDS_DATA_DIRECTORY: /pds
+      PDS_BLOBSTORE_DISK_LOCATION: /pds/blocks
+      PDS_BLOB_UPLOAD_LIMIT: "52428800"
+      PDS_DID_PLC_URL: https://plc.aerox.sola.town
+      PDS_JWT_SECRET: REDACTED-ref-pds-jwt-secret
+      PDS_ADMIN_PASSWORD: REDACTED-ref-REDACTED-pds-admin-password-password
+      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: REDACTED-ref-pds-rotation-key
+      PDS_SERVICE_HANDLE_DOMAINS: .ref-pds.aerox.sola.town
+      PDS_CRAWLERS: https://relay.aerox.sola.town
+      PDS_BSKY_APP_VIEW_URL: https://appview.aerox.sola.town
+      PDS_BSKY_APP_VIEW_DID: did:web:appview.aerox.sola.town
+      PDS_REPORT_SERVICE_URL: https://labeler.aerox.sola.town
+      PDS_REPORT_SERVICE_DID: did:web:labeler.aerox.sola.town
+      PDS_DEV_MODE: "true"
+      LOG_ENABLED: "true"
+    volumes:
+      - ref-pds-data:/pds
+    ports:
+      - "172.18.0.1:2583:3000"
+    networks:
+      - aerox
+    restart: unless-stopped
+
+volumes:
+  ref-relay-data:
+  ref-pds-data:
 
 networks:
   aerox:

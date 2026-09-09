@@ -18,6 +18,7 @@ defmodule Aerox.Relay.Consumer do
   alias Aerox.Relay.Schema.Host
 
   @persist_every 4_000
+  @ping_every 30_000
   @max_backoff_ms 60_000
   @offline_after 16
 
@@ -34,7 +35,9 @@ defmodule Aerox.Relay.Consumer do
   def init(%Host{} = host) do
     Process.flag(:trap_exit, true)
     send(self(), :connect)
-    :timer.send_interval(@persist_every, :persist)
+    persist_every = Application.get_env(:aerox, __MODULE__, [])[:persist_every] || @persist_every
+    :timer.send_interval(persist_every, :persist)
+    :timer.send_interval(@ping_every, :ping)
 
     {:ok,
      %{
@@ -71,6 +74,18 @@ defmodule Aerox.Relay.Consumer do
   end
 
   def handle_info(:persist, state), do: {:noreply, persist(state)}
+
+  # keepalive: a ping every 30 s so idle-timeout proxies and servers keep the socket
+  def handle_info(:ping, %{ws: ws, conn: conn} = state) when ws != nil and conn != nil do
+    with {:ok, ws, bytes} <- Mint.WebSocket.encode(ws, {:ping, ""}),
+         {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, state.ref, bytes) do
+      {:noreply, %{state | ws: ws, conn: conn}}
+    else
+      _ -> retry(close(state))
+    end
+  end
+
+  def handle_info(:ping, state), do: {:noreply, state}
 
   def handle_info({:stop_host, status}, state) do
     Hosts.update_status(state.host.id, status)
@@ -148,7 +163,9 @@ defmodule Aerox.Relay.Consumer do
     end
   end
 
-  defp handle_response({:done, ref}, {:ok, %{ref: ref} = state}), do: {:halt, {:reconnect, state}}
+  # `:done` here is the end of the 101 response itself, not of the stream;
+  # a closed socket surfaces as a `:close` frame or a transport error.
+  defp handle_response({:done, ref}, {:ok, %{ref: ref} = state}), do: {:cont, {:ok, state}}
   defp handle_response(_, acc), do: {:cont, acc}
 
   defp unwrap_halt({:cont, {:ok, state}}), do: {:cont, {:ok, state}}

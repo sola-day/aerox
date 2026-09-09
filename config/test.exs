@@ -34,6 +34,7 @@ config :aerox, Aerox.Relay,
   resubscribe_on_start: false,
   admin_password: "REDACTED-relay-admin-password"
 
+config :aerox, Aerox.Relay.Consumer, persist_every: 100
 config :aerox, Aerox.Relay.HostChecker, plug: AeroxWeb.Endpoint, allow_private: true
 
 # The PDS talks to the PLC directory over HTTP. In tests the "network" is the
