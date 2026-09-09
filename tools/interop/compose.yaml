@@ -1,0 +1,35 @@
+# Reference stacks for VERIFICATION §7.2 (interop) — the upstream oracles run
+# as pinned containers next to the aerox dev stack. They share the aerox
+# Postgres (compose.yaml at the repo root) through its compose network, one
+# database per oracle, and are published on the multica bridge gateway so
+# the box's Traefik can front them under ref-*.aerox.sola.town
+# (ops/traefik/aerox.dynamic.yml).
+#
+#   docker compose -f tools/interop/compose.yaml up -d ref-plc
+name: aerox-interop
+
+services:
+  # did-method-plc server built from the reading-room checkout at 1e301e5e:
+  #   docker build -t aerox-ref-plc:1e301e5e -f packages/server/Dockerfile .   (in ../bsky/did-method-plc)
+  ref-plc:
+    image: aerox-ref-plc:1e301e5e
+    environment:
+      DB_CREDS_JSON: '{"username":"aerox","password":"aerox","host":"db","port":"5432","database":"ref_plc"}'
+      DB_MIGRATE_CREDS_JSON: '{"username":"aerox","password":"aerox","host":"db","port":"5432","database":"ref_plc"}'
+      ENABLE_MIGRATIONS: "true"
+      PLC_VERSION: "1e301e5e"
+      PORT: "3000"
+      ADMIN_SECRET: REDACTED-ref-plc-admin-secret
+      LOG_ENABLED: "true"
+      LOG_LEVEL: info
+      DD_TRACE_ENABLED: "false"
+    ports:
+      - "172.18.0.1:2582:3000"
+    networks:
+      - aerox
+    restart: unless-stopped
+
+networks:
+  aerox:
+    name: aerox_default
+    external: true

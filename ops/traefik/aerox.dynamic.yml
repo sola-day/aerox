@@ -51,8 +51,23 @@ http:
       service: aerox-dev-pds
       tls: {}
 
+    # The reference oracles of VERIFICATION §7.2 (tools/interop/compose.yaml),
+    # published on the bridge gateway like the dev server, one router each so
+    # interop tests reach them over real hostnames and TLS. Default priority
+    # (rule length) keeps them above the handle catch-all.
+    aerox-ref-plc:
+      rule: "Host(`ref-plc.aerox.sola.town`)"
+      entryPoints:
+        - websecure
+      service: aerox-ref-plc
+      tls: {}
+
   services:
     aerox-dev-pds:
       loadBalancer:
         servers:
           - url: "http://172.18.0.1:4000"
+    aerox-ref-plc:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.1:2582"

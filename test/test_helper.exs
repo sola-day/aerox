@@ -17,7 +17,7 @@ for repo <- [Aerox.PDS.Repo, Aerox.PLC.Repo, Aerox.Relay.Repo, Aerox.AppView.Rep
   end
 end
 
-ExUnit.start()
+ExUnit.start(exclude: [:interop])
 
 for repo <- [Aerox.PDS.Repo, Aerox.PLC.Repo, Aerox.Relay.Repo, Aerox.AppView.Repo] do
   Ecto.Adapters.SQL.Sandbox.mode(repo, :manual)

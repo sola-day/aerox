@@ -127,11 +127,14 @@ lib/aerox/
 │   ├── firehose/               fan-out over PubSub                         (§5.1)
 │   ├── proxy.ex                pipethrough to the AppView                  (§11.1)
 │   ├── mailer/                 five token purposes                         (§18.1)
+│   ├── plc_ops.ex              THE ONLY caller of Signer.sign for PLC ops  (§14.2),
+│   │                           with plc_op_audit in aerox_pds — not in plc/,
+│   │                           which the PDS may not depend on (§6)
 │   └── space/                  Spaces, feature-flagged                     (§12.3)
 ├── plc/
 │   ├── repo.ex                 Aerox.PLC.Repo → aerox_core, schema `plc`
 │   ├── operations.ex           validation, priority, 72-hour nullification
-│   └── ops.ex                  THE ONLY caller of Signer.sign for PLC ops  (§14.2)
+│   └── directory.ex            storage, admission, export, audited removeInvalidOps
 ├── relay/
 │   ├── repo.ex                 Aerox.Relay.Repo → aerox_core, schema `relay`
 │   ├── host_consumer.ex        one GenServer per upstream host             (§21.4)

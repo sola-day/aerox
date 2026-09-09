@@ -329,4 +329,60 @@ Appended as each milestone closes: what the definition of done actually took, wh
 the design got wrong, which VERIFICATION items were added, and any decision-log rows
 written during the milestone.
 
-*(none yet)*
+### M0 — Foundation (closed 2026-09-09)
+
+- **What done took.** Two databases and four repos with per-service Postgres
+  roles (the REVOKE matrix is a runtime test, `test/aerox/repo_boundary_test.exs`),
+  `boundary` on every band with the kernel at `deps: []`, the `tool` env and
+  `lib_tool/`, the golden corpus (120 files, all with provenance) and
+  `mix aerox.golden.verify`, the Node harness skeleton, the CI workflow, and the
+  dev domain `aerox.sola.town` behind the box's Traefik with a DNS-01 wildcard.
+- **What the design got wrong.** §1.1 named Caddy; the box already runs Traefik on
+  :80/:443, so aerox splices its routers into it (`ops/traefik/`). STRUCTURE §10's
+  Ecto question resolved the other way than planned: `migration_default_prefix`
+  does not place `schema_migrations`, which follows `search_path`, so the
+  per-service schema must pre-exist (created by the bootstrap script, re-asserted
+  by each repo's first migration).
+- **Decision-log rows.** None new; the §4.6 rows were applied as written.
+
+### M1 — Kernel (closed 2026-09-09)
+
+- **What done took.** Syntax, Bytes, CID, DagCBOR, Data, Blockstore (Memory,
+  Layered), MST (with covering proofs and the structural verifier), CAR, TID,
+  Crypto (K256 via NIF, P-256 via OTP), Identity parse, Repo (format and verify,
+  inductive check), Frame, and the lexicon interpreter over 131 vendored
+  documents. Every L0–L4 golden is green: 16 syntax files, 43 generated DAG-CBOR
+  vectors, indigo's data-model and lexicon verdicts, the MST interop roots and
+  commit-proof inversions in every permutation, the crypto fixtures including
+  the high-S and DER negatives, and a real reference-PDS CAR whose root recomputes.
+- **What the design got wrong.** §3.5's "MST over an explicit Blockstore" is right
+  but the walker-based diff has to start on the root *node* (upstream's
+  `MstWalker`), not on its first entry — the round-trip test caught the missing
+  root block. §6.6 anticipated `type: "space"`; the vendored branch also carries
+  a `space-uri` string format, added to `Syntax`. The kernel is process-free, so
+  TID monotonicity is a pure `next/3` and the clock lives in the PDS (§3.7).
+- **VERIFICATION items added.** The real-CAR exit test (`Aerox.ATProto.RealCarTest`)
+  with the account's PLC document in the corpus; twelve hand-written non-canonical
+  DAG-CBOR mutations (§3.3).
+
+### M2 — PLC directory (closed 2026-09-09)
+
+- **What done took.** `Aerox.PLC.Operations` (all twenty did-method-plc audit-log
+  vectors, replayed through the admission rule with nullification flags compared),
+  `Aerox.PLC.Directory` over the `plc` schema with the per-DID row lock, rate
+  limits, both export cursors and the audited `removeInvalidOps`; the REST
+  surface route for route with the reference server; `Aerox.Identity` (hardened
+  HTTP, DNS behaviour, resolver, two-layer single-flight cache per service); and
+  the interop row "PLC": the reference directory (`ref-plc.aerox.sola.town`, built
+  from the reading-room checkout, `tools/interop/compose.yaml`) accepts operations
+  we sign, we accept its, both answer identically, and our resolver resolves
+  through either over real TLS (`test/interop/plc_interop_test.exs`, `--only interop`).
+- **What the design got wrong.** §14.2 point 5 places the single `Signer.sign`
+  call site in `Aerox.PLC.Ops`, but STRUCTURE §6 forbids the PDS from depending on
+  `Aerox.PLC`; the signing call site and `plc_op_audit` therefore belong to the PDS
+  (M3), and the directory has no signing path at all. The reference server's
+  `seq` export cursor is a Postgres sequence assigned at insert, so it carries the
+  §5.3 caveat; it is kept only because the reference has the same behaviour.
+- **VERIFICATION items added.** `validate_audit_log` (full replay with timestamps)
+  beyond upstream's timestamp-free `validateOperationLog`; the `:interop` tag,
+  excluded by default.
