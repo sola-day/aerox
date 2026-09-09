@@ -7,7 +7,13 @@ defmodule Aerox.DataCase do
   use Boundary, top_level?: true, deps: [Aerox.PDS, Aerox.PLC, Aerox.Relay, Aerox.AppView]
   use ExUnit.CaseTemplate
 
-  @repos [Aerox.PDS.Repo, Aerox.PLC.Repo, Aerox.Relay.Repo, Aerox.AppView.Repo]
+  @repos [
+    Aerox.PDS.Repo,
+    Aerox.PLC.Repo,
+    Aerox.Relay.Repo,
+    Aerox.AppView.Repo,
+    Aerox.Labeler.Repo
+  ]
 
   using opts do
     quote do

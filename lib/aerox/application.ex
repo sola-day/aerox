@@ -14,7 +14,8 @@ defmodule Aerox.Application do
       Aerox.AppView,
       Aerox.ImageServer,
       Aerox.Identity,
-      Aerox.Auth
+      Aerox.Auth,
+      Aerox.Labeler
     ]
 
   use Application
@@ -120,7 +121,17 @@ defmodule Aerox.Application do
     ]
   end
 
-  defp children_for(:labeler), do: []
+  # DESIGN §17: repo, identity cache, then whatever the labeler service adds
+  # (`Aerox.Labeler.children/0` when it exists).
+  defp children_for(:labeler) do
+    extra =
+      if Code.ensure_loaded?(Aerox.Labeler.Supervisor) and
+           function_exported?(Aerox.Labeler.Supervisor, :children, 0),
+         do: Aerox.Labeler.Supervisor.children(),
+         else: []
+
+    [Aerox.Labeler.Repo, identity_cache(Aerox.Labeler.Identity, Aerox.Labeler.Repo)] ++ extra
+  end
 
   defp identity_cache(name, repo) do
     {Aerox.Identity.Cache,

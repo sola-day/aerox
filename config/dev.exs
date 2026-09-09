@@ -10,7 +10,8 @@ for {repo, role, database} <- [
       {Aerox.PDS.Repo, "aerox_pds", "aerox_pds"},
       {Aerox.PLC.Repo, "aerox_plc", "aerox_core"},
       {Aerox.Relay.Repo, "aerox_relay", "aerox_core"},
-      {Aerox.AppView.Repo, "aerox_appview", "aerox_core"}
+      {Aerox.AppView.Repo, "aerox_appview", "aerox_core"},
+      {Aerox.Labeler.Repo, "aerox_labeler", "aerox_core"}
     ] do
   config :aerox, repo,
     username: role,
@@ -172,3 +173,10 @@ config :aerox, Aerox.AppView,
 # The PDS proxies app.bsky.* to our AppView (DESIGN §11.1).
 config :aerox, Aerox.PDS,
   appview: [url: "https://appview.aerox.sola.town", did: "did:web:appview.aerox.sola.town"]
+
+# Labeler (DESIGN §17): hostname; `did` is the labeler account created by
+# `mix aerox.labeler.setup` (dev) or the test setup.
+config :aerox, Aerox.Labeler,
+  hostname: "labeler.aerox.sola.town",
+  public_url: "https://labeler.aerox.sola.town",
+  did: System.get_env("AEROX_LABELER_DID")

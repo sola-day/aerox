@@ -13,7 +13,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres <<'SQL'
 DO $$
 DECLARE r text;
 BEGIN
-  FOREACH r IN ARRAY ARRAY['aerox_pds','aerox_plc','aerox_relay','aerox_appview'] LOOP
+  FOREACH r IN ARRAY ARRAY['aerox_pds','aerox_plc','aerox_relay','aerox_appview','aerox_labeler'] LOOP
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r) THEN
       EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', r, r);
     END IF;
@@ -39,7 +39,7 @@ for suffix in "" "_test"; do
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres -c "ALTER DATABASE $pds OWNER TO aerox_pds"
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres -c "REVOKE CONNECT ON DATABASE $pds FROM PUBLIC"
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$pds" -c "ALTER SCHEMA public OWNER TO aerox_pds"
-  for r in aerox_plc aerox_relay aerox_appview; do
+  for r in aerox_plc aerox_relay aerox_appview aerox_labeler; do
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres -c "REVOKE CONNECT ON DATABASE $pds FROM $r"
   done
 
@@ -48,17 +48,17 @@ for suffix in "" "_test"; do
   # back door. The AppView role also hosts Oban (DESIGN §21.6).
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres -c "REVOKE CONNECT ON DATABASE $core FROM PUBLIC"
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres -c "REVOKE CONNECT ON DATABASE $core FROM aerox_pds"
-  for r in aerox_plc aerox_relay aerox_appview; do
+  for r in aerox_plc aerox_relay aerox_appview aerox_labeler; do
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres -c "GRANT CONNECT, CREATE ON DATABASE $core TO $r"
   done
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$core" -c "REVOKE ALL ON SCHEMA public FROM PUBLIC"
   # Each service's schema pre-exists, owned by its role: Ecto puts the repo's
   # `schema_migrations` wherever `search_path` points, so the schema has to be
   # there before the first migration can record itself (STRUCTURE §10).
-  for r in aerox_plc aerox_relay aerox_appview; do
+  for r in aerox_plc aerox_relay aerox_appview aerox_labeler; do
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$core" -c "CREATE SCHEMA IF NOT EXISTS ${r#aerox_} AUTHORIZATION $r"
     psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$core" -c "REVOKE ALL ON SCHEMA ${r#aerox_} FROM PUBLIC"
   done
   # pg_trgm's functions live in public; USAGE (not CREATE) keeps them callable.
-  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$core" -c "GRANT USAGE ON SCHEMA public TO aerox_plc, aerox_relay, aerox_appview"
+  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$core" -c "GRANT USAGE ON SCHEMA public TO aerox_plc, aerox_relay, aerox_appview, aerox_labeler"
 done

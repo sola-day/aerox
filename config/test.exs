@@ -11,7 +11,8 @@ for {repo, role, database} <- [
       {Aerox.PDS.Repo, "aerox_pds", "aerox_pds_test"},
       {Aerox.PLC.Repo, "aerox_plc", "aerox_core_test"},
       {Aerox.Relay.Repo, "aerox_relay", "aerox_core_test"},
-      {Aerox.AppView.Repo, "aerox_appview", "aerox_core_test"}
+      {Aerox.AppView.Repo, "aerox_appview", "aerox_core_test"},
+      {Aerox.Labeler.Repo, "aerox_labeler", "aerox_core_test"}
     ] do
   config :aerox, repo,
     username: role,
@@ -118,3 +119,10 @@ config :aerox, Aerox.ImageServer,
   cache_dir: "tmp/test-image-cache",
   sweeper: false,
   concurrency: 2
+
+# Labeler (DESIGN §17): hostname; `did` is the labeler account created by
+# `mix aerox.labeler.setup` (dev) or the test setup.
+config :aerox, Aerox.Labeler,
+  hostname: "labeler.aerox.sola.town",
+  public_url: "https://labeler.aerox.sola.town",
+  did: System.get_env("AEROX_LABELER_DID")

@@ -7,7 +7,13 @@ import Config
 # puts `schema_migrations` inside it, and `after_connect` sets `search_path`
 # so unqualified table names resolve there and nowhere else.
 config :aerox,
-  ecto_repos: [Aerox.PDS.Repo, Aerox.PLC.Repo, Aerox.Relay.Repo, Aerox.AppView.Repo],
+  ecto_repos: [
+    Aerox.PDS.Repo,
+    Aerox.PLC.Repo,
+    Aerox.Relay.Repo,
+    Aerox.AppView.Repo,
+    Aerox.Labeler.Repo
+  ],
   generators: [timestamp_type: :utc_datetime]
 
 config :aerox, Aerox.PDS.Repo, priv: "priv/pds_repo"
@@ -15,7 +21,8 @@ config :aerox, Aerox.PDS.Repo, priv: "priv/pds_repo"
 for {repo, schema} <- [
       {Aerox.PLC.Repo, "plc"},
       {Aerox.Relay.Repo, "relay"},
-      {Aerox.AppView.Repo, "appview"}
+      {Aerox.AppView.Repo, "appview"},
+      {Aerox.Labeler.Repo, "labeler"}
     ] do
   config :aerox, repo,
     priv: "priv/#{schema}_repo",
