@@ -101,6 +101,9 @@ defmodule Aerox.Application do
         do: [],
         else: [Aerox.AppView.Ingest]
 
+    # DESIGN §15.6: one subscribeLabels consumer per configured labeler
+    labels = if Aerox.AppView.Config.labelers() == [], do: [], else: [Aerox.AppView.Labels]
+
     [
       %{
         id: Aerox.AppView.Supervisor,
@@ -114,7 +117,7 @@ defmodule Aerox.Application do
                # DESIGN §16: the image CDN runs inside the AppView service
                Aerox.ImageServer,
                {Oban, Application.fetch_env!(:aerox, Oban.Core)}
-             ] ++ ingest,
+             ] ++ ingest ++ labels,
              [strategy: :rest_for_one, name: Aerox.AppView.Supervisor]
            ]}
       }

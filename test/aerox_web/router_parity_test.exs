@@ -1,5 +1,5 @@
 defmodule AeroxWeb.RouterParityTest do
-  @moduledoc "VERIFICATION §7.1 item 3: the three routers and test/parity/ENDPOINTS.md agree exactly."
+  @moduledoc "VERIFICATION §7.1 item 3: the four routers and test/parity/ENDPOINTS.md agree exactly."
   use ExUnit.Case, async: true
 
   @table Path.expand("../parity/ENDPOINTS.md", __DIR__)
@@ -7,7 +7,8 @@ defmodule AeroxWeb.RouterParityTest do
   @routers [
     {AeroxWeb.Router, "pds"},
     {AeroxWeb.RelayRouter, "relay"},
-    {AeroxWeb.AppViewRouter, "appview"}
+    {AeroxWeb.AppViewRouter, "appview"},
+    {AeroxWeb.LabelerRouter, "labeler"}
   ]
 
   test "every routed XRPC method is in the parity table for its service, and vice versa" do

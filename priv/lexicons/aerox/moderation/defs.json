@@ -1,0 +1,46 @@
+{
+  "lexicon": 1,
+  "id": "aerox.moderation.defs",
+  "description": "aerox's own moderation admin API (DESIGN §17.3): the event log and report intake a frontend drives. Handwritten, not vendored.",
+  "defs": {
+    "subject": {
+      "type": "union",
+      "refs": [
+        "com.atproto.admin.defs#repoRef",
+        "com.atproto.repo.strongRef",
+        "com.atproto.admin.defs#repoBlobRef"
+      ]
+    },
+    "action": {
+      "type": "string",
+      "description": "One of the Actions behaviour's operations.",
+      "knownValues": ["label", "unlabel", "takedown", "restore", "acknowledge", "comment"]
+    },
+    "modEventView": {
+      "type": "object",
+      "required": ["id", "action", "subject", "createdBy", "createdAt"],
+      "properties": {
+        "id": { "type": "integer" },
+        "action": { "type": "ref", "ref": "#action" },
+        "subject": { "type": "ref", "ref": "#subject" },
+        "createdBy": { "type": "string" },
+        "comment": { "type": "string" },
+        "meta": { "type": "unknown" },
+        "createdAt": { "type": "string", "format": "datetime" },
+        "appliedAt": { "type": "string", "format": "datetime" }
+      }
+    },
+    "reportView": {
+      "type": "object",
+      "required": ["id", "reasonType", "subject", "reportedBy", "createdAt"],
+      "properties": {
+        "id": { "type": "integer" },
+        "reasonType": { "type": "ref", "ref": "com.atproto.moderation.defs#reasonType" },
+        "reason": { "type": "string" },
+        "subject": { "type": "ref", "ref": "#subject" },
+        "reportedBy": { "type": "string", "format": "did" },
+        "createdAt": { "type": "string", "format": "datetime" }
+      }
+    }
+  }
+}

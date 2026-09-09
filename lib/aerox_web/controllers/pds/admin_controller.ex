@@ -4,7 +4,7 @@ defmodule AeroxWeb.PDS.AdminController do
   use AeroxWeb.Plugs.XRPCError
   import AeroxWeb.XRPC
   alias Aerox.ATProto.{CID, Syntax}
-  alias Aerox.PDS.{Accounts, Blobs, Config, Records, Sequencer, Sessions}
+  alias Aerox.PDS.{Accounts, Blobs, Config, Records, Sequencer}
   alias AeroxWeb.XRPC.Error
 
   defp admin!(conn) do
@@ -273,11 +273,5 @@ defmodule AeroxWeb.PDS.AdminController do
     )
 
     send_resp(conn, 200, "")
-  end
-
-  # Not admin, but lives beside them: the moderation report intake is proxied to the labeler (M8).
-  def create_report(conn, _) do
-    _ = require_auth!(conn, scopes: Sessions.access_standard())
-    {:error, Error.not_implemented("Moderation reports are handled by the labeler service (M8)")}
   end
 end

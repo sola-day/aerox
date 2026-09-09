@@ -4,7 +4,7 @@ defmodule AeroxWeb.PDS.ProxyController do
   serve itself is forwarded to the `atproto-proxy: <did>#<serviceId>` target
   or, failing that, to the default service for the NSID (the configured
   AppView for `app.bsky.*`, the chat service for `chat.bsky.*`, the mod
-  service for `tools.ozone.*`), with a service JWT signed by the caller's
+  service for `tools.ozone.*` and `com.atproto.moderation.createReport`), with a service JWT signed by the caller's
   repo signing key (`iss` = caller, `aud` = target DID, `lxm` = NSID).
   Unauthenticated calls are forwarded without an `authorization` header.
   With no target the answer is 501 `MethodNotImplemented`, as in xrpc-server.
@@ -119,6 +119,8 @@ defmodule AeroxWeb.PDS.ProxyController do
     key =
       cond do
         String.starts_with?(lxm, "tools.ozone.") -> :mod_service
+        # DESIGN §17.2: report intake is proxied to the moderation service
+        lxm == "com.atproto.moderation.createReport" -> :mod_service
         String.starts_with?(lxm, "chat.bsky.") -> :chat
         String.starts_with?(lxm, "app.bsky.") -> :appview
         true -> nil

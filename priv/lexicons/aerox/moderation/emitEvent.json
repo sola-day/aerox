@@ -1,0 +1,31 @@
+{
+  "lexicon": 1,
+  "id": "aerox.moderation.emitEvent",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Record a moderation action in the event log and apply it (label, unlabel, takedown, restore, acknowledge, comment). Admin only.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["action", "subject"],
+          "properties": {
+            "action": { "type": "ref", "ref": "aerox.moderation.defs#action" },
+            "subject": { "type": "ref", "ref": "aerox.moderation.defs#subject" },
+            "createdBy": { "type": "string", "description": "The moderator; defaults to 'admin'." },
+            "comment": { "type": "string", "maxGraphemes": 10000, "maxLength": 100000 },
+            "meta": {
+              "type": "unknown",
+              "description": "The action's arguments: {val} for label/unlabel, {report} for acknowledge."
+            }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": { "type": "ref", "ref": "aerox.moderation.defs#modEventView" }
+      }
+    }
+  }
+}

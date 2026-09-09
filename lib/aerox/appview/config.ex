@@ -12,8 +12,17 @@ defmodule Aerox.AppView.Config do
   def relay_url, do: get(:relay_url) || "wss://relay.localhost"
   @doc "Image CDN base for view URLs (DESIGN §16); defaults to `<public_url>/img`."
   def image_url, do: get(:image_url) || public_url() <> "/img"
-  @doc "Labelers applied by default (DESIGN §15.6)."
-  def default_labelers, do: get(:default_labelers, [])
+
+  @doc "Labelers this AppView subscribes to (DESIGN §15.6): `[%{did:, url:}]`, entries without a DID dropped."
+  def labelers do
+    for %{did: did, url: url} <- get(:labelers, []) || [],
+        is_binary(did),
+        is_binary(url),
+        do: %{did: did, url: url}
+  end
+
+  @doc "Labelers applied by default (DESIGN §15.6): the configured set, else every subscribed labeler."
+  def default_labelers, do: get(:default_labelers) || Enum.map(labelers(), & &1.did)
 
   @doc "The AppView's own signing keypair (K256), used for outbound service JWTs (feed generators, DESIGN §15.4)."
   def signing_keypair do
