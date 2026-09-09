@@ -26,8 +26,19 @@ defmodule AeroxWeb.PDS.SpaceHelpers do
   end
 
   @doc "Upstream `assertSpaceScope`: OAuth sessions need a matching `space:` scope."
-  def assert_space_scope!(conn, parsed, action, collection \\ nil) do
-    target = %{type: parsed.type, did: parsed.did, skey: parsed.skey, action: action}
+  def assert_space_scope!(conn, parsed, action, collection \\ nil)
+
+  def assert_space_scope!(conn, parsed, {:manage, op}, _collection) do
+    authorize_oauth!(conn, :space, %{
+      type: parsed.type,
+      authority: parsed.did,
+      skey: parsed.skey,
+      manage: op
+    })
+  end
+
+  def assert_space_scope!(conn, parsed, action, collection) do
+    target = %{type: parsed.type, authority: parsed.did, skey: parsed.skey, action: action}
     target = if collection, do: Map.put(target, :collection, collection), else: target
     authorize_oauth!(conn, :space, target)
   end
@@ -294,7 +305,7 @@ defmodule AeroxWeb.PDS.SpaceController do
 
     authorize_oauth!(conn, :space, %{
       type: params["type"] || "*",
-      did: params["did"] || "*",
+      authority: params["did"] || "*",
       skey: "*",
       action: "read"
     })

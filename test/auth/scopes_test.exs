@@ -119,31 +119,33 @@ defmodule Aerox.Auth.ScopesTest do
     end
   end
 
-  describe "space (permissioned data)" do
+  describe "space (permissioned data, published alpha grammar)" do
     test "grammar and matching" do
       assert {:space,
               %{
                 type: "com.example.space",
-                did: "*",
+                authority: "self",
                 skey: "*",
                 collection: [],
-                action: ["read", "create", "update", "delete", "manage"]
-              }} =
-               Scopes.parse("space:com.example.space")
+                action: ["read", "create", "update", "delete"],
+                manage: []
+              }} = Scopes.parse("space:com.example.space")
 
       s =
-        "space:com.example.space?did=did:plc:aaaaaaaaaaaaaaaaaaaaaaaa&skey=abc&collection=com.example.note&action=read&action=create"
+        "space:com.example.space?authority=did:plc:aaaaaaaaaaaaaaaaaaaaaaaa&skey=abc&collection=com.example.note&action=read&action=create&manage=update"
 
       assert {:space,
               %{
-                did: "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa",
+                authority: "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa",
                 skey: "abc",
                 collection: ["com.example.note"],
-                action: ["read", "create"]
+                action: ["read", "create"],
+                manage: ["update"]
               }} = Scopes.parse(s)
 
-      t = %{type: "com.example.space", did: "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa", skey: "abc"}
+      t = %{type: "com.example.space", authority: "did:plc:aaaaaaaaaaaaaaaaaaaaaaaa", skey: "abc"}
       assert Scopes.matches?(s, :space, Map.put(t, :action, "read"))
+      assert Scopes.matches?(s, :space, Map.put(t, :action, "read_self"))
 
       assert Scopes.matches?(
                s,
@@ -157,9 +159,32 @@ defmodule Aerox.Auth.ScopesTest do
                Map.merge(t, %{action: "create", collection: "com.example.other"})
              )
 
-      refute Scopes.matches?(s, :space, Map.put(t, :action, "manage"))
-      assert Scopes.matches?("space:*?action=manage", :space, Map.put(t, :action, "read"))
-      assert nil == Scopes.parse("space:com.example.space?did=nope")
+      assert Scopes.matches?(s, :space, Map.put(t, :manage, "update"))
+      refute Scopes.matches?(s, :space, Map.put(t, :manage, "delete"))
+      # an unresolved `self` authority matches nothing
+      refute Scopes.matches?("space:com.example.space", :space, Map.put(t, :action, "read"))
+      assert nil == Scopes.parse("space:com.example.space?authority=nope")
+
+      assert "space:com.example.space?authority=did:plc:aaaaaaaaaaaaaaaaaaaaaaaa&skey=abc&action=read_self&manage=delete" ==
+               Scopes.needed_for(:space, Map.put(t, :manage, "delete"))
+    end
+
+    test "issuance-time resolution: self → user, default collections from the space type" do
+      perms = Scopes.grant("atproto space:my.bulletin.board?skey=self").permissions
+
+      assert [{:atproto, nil}, {:space, %{authority: "did:plc:user", collection: cols}}] =
+               Scopes.resolve_space(perms, "did:plc:user")
+
+      assert cols == ["my.bulletin.post", "my.bulletin.removal", "my.bulletin.position"]
+    end
+
+    test "include: expands bulletin's permission set into a space permission" do
+      %{permissions: perms} = Scopes.grant("atproto include:my.bulletin.permissions")
+
+      assert [{:space, p}] = Enum.filter(perms, &match?({:space, _}, &1))
+      assert p.type == "my.bulletin.board" and p.authority == "*" and p.skey == "self"
+      assert p.manage == ["create", "update", "delete"]
+      assert "my.bulletin.post" in p.collection
     end
   end
 

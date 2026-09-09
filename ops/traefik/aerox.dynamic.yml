@@ -83,7 +83,20 @@ http:
       service: aerox-ouranos
       tls: {}
 
+    # bulletin (DESIGN §12.5 / VERIFICATION §6 scenario 9): the spaces demo app
+    # on the bridge gateway at :3002, its managing-app DID is did:web:bulletin.aerox.sola.town.
+    aerox-bulletin:
+      rule: "Host(`bulletin.aerox.sola.town`)"
+      entryPoints:
+        - websecure
+      service: aerox-bulletin
+      tls: {}
+
   services:
+    aerox-bulletin:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.1:3002"
     aerox-ouranos:
       loadBalancer:
         servers:

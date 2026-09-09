@@ -837,7 +837,7 @@ defmodule AeroxWeb.PDS.SpaceFlowTest do
 
     scoped =
       {:oauth, member.did,
-       "atproto space:#{@type_nsid}?did=#{owner.did}&skey=self&collection=#{@post}&action=create"}
+       "atproto space:#{@type_nsid}?authority=#{owner.did}&skey=self&collection=#{@post}&action=create"}
 
     body = %{
       "space" => space,
@@ -875,7 +875,8 @@ defmodule AeroxWeb.PDS.SpaceFlowTest do
     assert %{"error" => "InvalidToken"} =
              conn |> get_xrpc("com.atproto.space.listSpaces", %{}, scoped) |> json_response(403)
 
-    list_scope = {:oauth, member.did, "atproto space:#{@type_nsid}?did=#{owner.did}&action=read"}
+    list_scope =
+      {:oauth, member.did, "atproto space:#{@type_nsid}?authority=#{owner.did}&action=read"}
 
     assert %{"error" => "InvalidToken"} =
              conn
@@ -891,12 +892,14 @@ defmodule AeroxWeb.PDS.SpaceFlowTest do
              )
              |> json_response(200)
 
-    # managing the member list is `action=manage`
+    # managing the member list is `manage=update`
     manage =
-      {:oauth, owner.did, "atproto space:#{@type_nsid}?did=#{owner.did}&skey=self&action=manage"}
+      {:oauth, owner.did,
+       "atproto space:#{@type_nsid}?authority=#{owner.did}&skey=self&action=read_self&manage=update"}
 
     read_only =
-      {:oauth, owner.did, "atproto space:#{@type_nsid}?did=#{owner.did}&skey=self&action=read"}
+      {:oauth, owner.did,
+       "atproto space:#{@type_nsid}?authority=#{owner.did}&skey=self&action=read"}
 
     assert conn
            |> post_xrpc(

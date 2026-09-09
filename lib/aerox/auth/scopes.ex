@@ -17,7 +17,13 @@ defmodule Aerox.Auth.Scopes do
   @account_attributes ~w(email repo status)
   @account_actions ~w(read manage)
   @identity_attributes ~w(handle *)
-  @space_actions ~w(read create update delete manage)
+  # The published spaces alpha (`@atproto/oauth-scopes@0.0.0-spaces-alpha-20260818163953`,
+  # `space-permission.ts`), which is what `bulletin` and its permission set speak:
+  # `authority` (default `self`, resolved to the user at issuance), separate
+  # `manage` ops, and `read_self` as the narrowest action.
+  @space_actions ~w(read_self read create update delete)
+  @space_default_actions ~w(read create update delete)
+  @space_manage_ops ~w(create update delete)
 
   @type permission ::
           {:repo, %{collection: [String.t()], action: [String.t()]}}
@@ -28,10 +34,11 @@ defmodule Aerox.Auth.Scopes do
           | {:space,
              %{
                type: String.t(),
-               did: String.t(),
+               authority: String.t(),
                skey: String.t(),
                collection: [String.t()],
-               action: [String.t()]
+               action: [String.t()],
+               manage: [String.t()]
              }}
           | {:include, %{nsid: String.t(), aud: String.t() | nil}}
           | {:atproto, nil}
@@ -272,12 +279,12 @@ defmodule Aerox.Auth.Scopes do
   defp parse_space(syn) do
     schema = [
       {"type", false, true, nil, &star_or_nsid?/1, &id/1},
-      {"did", false, false, "*", fn v -> v == "*" or did?(v) end, &id/1},
-      {"skey", false, false, "*", fn v -> is_binary(v) and v != "" and byte_size(v) <= 512 end,
-       &id/1},
+      {"authority", false, false, "self", fn v -> v in ["*", "self"] or did?(v) end, &id/1},
+      {"skey", false, false, "*", fn v -> v == "*" or Syntax.valid_record_key?(v) end, &id/1},
       {"collection", true, false, [], &star_or_nsid?/1, &sort_unique_or_star/1},
-      {"action", true, false, @space_actions, one_of(@space_actions),
-       filter_in_order(@space_actions)}
+      {"action", true, false, @space_default_actions, one_of(@space_actions),
+       filter_in_order(@space_actions)},
+      {"manage", true, false, [], one_of(@space_manage_ops), filter_in_order(@space_manage_ops)}
     ]
 
     case parse_params(syn, schema, "type") do
@@ -316,13 +323,14 @@ defmodule Aerox.Auth.Scopes do
 
   def format({:identity, %{attr: attr}}), do: build("identity", attr, [])
 
-  def format({:space, %{type: t, did: did, skey: skey, collection: c, action: a}}),
+  def format({:space, %{type: t, authority: auth, skey: skey, collection: c, action: a} = p}),
     do:
       build("space", t, [
-        {"did", did, "*"},
+        {"authority", auth, "self"},
         {"skey", skey, "*"},
         {"collection", c, []},
-        {"action", a, @space_actions}
+        {"action", a, @space_default_actions},
+        {"manage", Map.get(p, :manage, []), []}
       ])
 
   def format({:include, %{nsid: nsid, aud: aud}}), do: build("include", nsid, [{"aud", aud, nil}])
@@ -401,14 +409,19 @@ defmodule Aerox.Auth.Scopes do
 
   def matches?({:identity, %{attr: attr}}, :identity, %{attr: at}), do: attr == "*" or attr == at
 
-  def matches?({:space, p}, :space, %{type: t, did: d, skey: s, action: action} = target) do
+  # Alpha `SpacePermission.matches`: an unresolved `self` authority matches
+  # nothing (targets always carry a concrete DID); a target with `manage:`
+  # is a space-management op; reads are collection-independent and `read`
+  # implies `read_self`.
+  def matches?({:space, p}, :space, %{type: t, authority: d, skey: s} = target) do
     cond do
       p.type != "*" and p.type != t -> false
-      p.did != "*" and p.did != d -> false
+      p.authority != "*" and p.authority != d -> false
       p.skey != "*" and p.skey != s -> false
-      action == "read" -> "read" in p.action or "manage" in p.action
-      action == "manage" -> "manage" in p.action
-      action not in p.action -> false
+      Map.has_key?(target, :manage) -> target.manage in Map.get(p, :manage, [])
+      target[:action] == "read" -> "read" in p.action
+      target[:action] == "read_self" -> "read" in p.action or "read_self" in p.action
+      target[:action] not in p.action -> false
       true -> "*" in p.collection or target[:collection] in p.collection
     end
   end
@@ -436,18 +449,59 @@ defmodule Aerox.Auth.Scopes do
 
   def needed_for(:identity, %{attr: at}), do: format({:identity, %{attr: at}})
 
-  def needed_for(:space, %{type: t, did: d, skey: s, action: a} = target),
+  def needed_for(:space, %{type: t, authority: d, skey: s, manage: m}),
+    do:
+      format(
+        {:space,
+         %{type: t, authority: d, skey: s, collection: [], action: ["read_self"], manage: [m]}}
+      )
+
+  def needed_for(:space, %{type: t, authority: d, skey: s, action: a} = target),
     do:
       format(
         {:space,
          %{
            type: t,
-           did: d,
+           authority: d,
            skey: s,
-           collection: if(c = target[:collection], do: [c], else: []),
-           action: [a]
+           collection:
+             if(a in ["read", "read_self"], do: [], else: List.wrap(target[:collection])),
+           action: [a],
+           manage: []
          }}
       )
+
+  @doc """
+  Issuance-time resolution of `space:` permissions (alpha `withResolvedAuthority`
+  / `withDefaultCollections`): `authority=self` becomes the user's DID and a
+  grant without `collection` takes the space type's declared collections.
+  """
+  @spec resolve_space([permission], String.t(), (String.t() -> [String.t()])) :: [permission]
+  def resolve_space(perms, user_did, collections \\ &default_space_collections/1) do
+    Enum.map(perms, fn
+      {:space, %{authority: "self"} = p} ->
+        resolve_space_one(%{p | authority: user_did}, collections)
+
+      {:space, p} ->
+        resolve_space_one(p, collections)
+
+      other ->
+        other
+    end)
+  end
+
+  defp resolve_space_one(%{collection: [], type: type} = p, collections) when type != "*" do
+    {:space, %{p | collection: collections.(type)}}
+  end
+
+  defp resolve_space_one(p, _), do: {:space, p}
+
+  defp default_space_collections(nsid) do
+    case Aerox.ATProto.Lexicon.Registry.get_def(Aerox.ATProto.Lexicon.default_registry(), nsid) do
+      {:ok, %{"type" => "space", "collections" => cols}} when is_list(cols) -> cols
+      _ -> []
+    end
+  end
 
   # ------------------------------------------------------------- include
 
@@ -490,6 +544,17 @@ defmodule Aerox.Auth.Scopes do
     end
   end
 
+  # `spaceType` in JSON is `type` on the wire (`type` is the discriminator).
+  defp lex_permission_syntax(%{"type" => "permission", "resource" => "space"} = perm, _aud) do
+    build("space", perm["spaceType"], [
+      {"authority", perm["authority"], nil},
+      {"skey", perm["skey"], nil},
+      {"collection", perm["collection"] && List.wrap(perm["collection"]), nil},
+      {"action", perm["action"] && List.wrap(perm["action"]), nil},
+      {"manage", perm["manage"] && List.wrap(perm["manage"]), nil}
+    ])
+  end
+
   defp lex_permission_syntax(_, _), do: nil
 
   defp allowed_include?(nsid, {:rpc, %{lxm: lxm}}),
@@ -498,6 +563,8 @@ defmodule Aerox.Auth.Scopes do
   defp allowed_include?(nsid, {:repo, %{collection: c}}),
     do: Enum.all?(c, &parent_authority?(nsid, &1))
 
+  # only the space type is authority-checked; collections may live elsewhere
+  defp allowed_include?(nsid, {:space, %{type: type}}), do: parent_authority?(nsid, type)
   defp allowed_include?(_, _), do: false
 
   @doc "Upstream isParentAuthorityOf: the including lexicon's group prefix (up to its last dot) must prefix the other NSID."

@@ -2015,6 +2015,36 @@
       "path": "lexicons/com/atproto/temp/revokeAccountCredentials.json",
       "repo": "atproto",
       "sha256": "ed5656937ed690bad5b0fd63a304b0d2ac8112c03d4853aa55b0367f9a525afd"
+    },
+    "my/bulletin/board.json": {
+      "commit": "2e72c147f4743808ef142aed375058ec455b7b70",
+      "path": "lexicons/my/bulletin.board.json",
+      "repo": "bulletin",
+      "sha256": "6b574b72bcb541e1138ec5f9235ea987627aed04e5ed9876d7cd4d09e88d2dd4"
+    },
+    "my/bulletin/permissions.json": {
+      "commit": "2e72c147f4743808ef142aed375058ec455b7b70",
+      "path": "lexicons/my/bulletin.permissions.json",
+      "repo": "bulletin",
+      "sha256": "8f4d32c3bfe79ec98822f9978799a4d94a408bb9848d4bbba0600805ab346684"
+    },
+    "my/bulletin/position.json": {
+      "commit": "2e72c147f4743808ef142aed375058ec455b7b70",
+      "path": "lexicons/my/bulletin.position.json",
+      "repo": "bulletin",
+      "sha256": "ef2b855f27bed9a8da43ee77d0a3d921ec1e9b26c8bece6a407ddf391d2d6863"
+    },
+    "my/bulletin/post.json": {
+      "commit": "2e72c147f4743808ef142aed375058ec455b7b70",
+      "path": "lexicons/my/bulletin.post.json",
+      "repo": "bulletin",
+      "sha256": "a886fb79f77e21eb8d9d0a6502b7bdf623505a049203aa7812ce8225ab8aa347"
+    },
+    "my/bulletin/removal.json": {
+      "commit": "2e72c147f4743808ef142aed375058ec455b7b70",
+      "path": "lexicons/my/bulletin.removal.json",
+      "repo": "bulletin",
+      "sha256": "489e8b911a21df6a1c5452e2e3c46a458f556ffa536508eb534db463be13bbd0"
     }
   }
 }

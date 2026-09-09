@@ -1,0 +1,41 @@
+{
+  "lexicon": 1,
+  "id": "my.bulletin.position",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "A board-owner position override for a specific version of a note.",
+      "record": {
+        "type": "object",
+        "required": ["subject", "position", "createdAt"],
+        "properties": {
+          "subject": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef"
+          },
+          "position": {
+            "type": "object",
+            "required": ["x", "y"],
+            "properties": {
+              "x": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000
+              },
+              "y": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000
+              }
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

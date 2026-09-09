@@ -1,0 +1,17 @@
+{
+  "lexicon": 1,
+  "id": "my.bulletin.board",
+  "defs": {
+    "main": {
+      "type": "space",
+      "key": "literal:self",
+      "name": "Bulletin Board",
+      "description": "A personal board where followers can read and post notes.",
+      "collections": [
+        "my.bulletin.post",
+        "my.bulletin.removal",
+        "my.bulletin.position"
+      ]
+    }
+  }
+}

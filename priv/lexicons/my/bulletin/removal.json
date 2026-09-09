@@ -1,0 +1,25 @@
+{
+  "lexicon": 1,
+  "id": "my.bulletin.removal",
+  "defs": {
+    "main": {
+      "type": "record",
+      "key": "tid",
+      "description": "An authority-authored removal of a note from a board.",
+      "record": {
+        "type": "object",
+        "required": ["subject", "createdAt"],
+        "properties": {
+          "subject": {
+            "type": "ref",
+            "ref": "com.atproto.repo.strongRef"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}

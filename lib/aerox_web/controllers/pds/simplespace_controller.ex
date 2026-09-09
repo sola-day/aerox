@@ -60,7 +60,7 @@ defmodule AeroxWeb.PDS.SimplespaceController do
 
     uri = Uri.format(space_did, type, skey, :at)
     parsed = space!(uri)
-    assert_space_scope!(conn, parsed, "manage")
+    assert_space_scope!(conn, parsed, {:manage, "create"})
     config = config_from(body)
 
     case Spaces.create(did, uri, true, config) do
@@ -136,7 +136,7 @@ defmodule AeroxWeb.PDS.SimplespaceController do
   def update_space(conn, _) do
     input = input!(conn, "com.atproto.simplespace.updateSpace")
     {parsed, space} = owner!(conn, input["space"])
-    assert_space_scope!(conn, parsed, "manage")
+    assert_space_scope!(conn, parsed, {:manage, "update"})
 
     patch =
       %{}
@@ -169,7 +169,7 @@ defmodule AeroxWeb.PDS.SimplespaceController do
     input = input!(conn, "com.atproto.simplespace.deleteSpace")
     parsed = space!(input["space"])
     %{did: did} = require_auth!(conn)
-    assert_space_scope!(conn, parsed, "manage")
+    assert_space_scope!(conn, parsed, {:manage, "delete"})
     if parsed.did != did, do: raise(Error.invalid_request("Not the space owner", "NotSpaceOwner"))
 
     case Spaces.get(did, parsed.space) do
@@ -213,7 +213,7 @@ defmodule AeroxWeb.PDS.SimplespaceController do
   def add_member(conn, _) do
     input = input!(conn, "com.atproto.simplespace.addMember")
     {parsed, _space} = owner!(conn, input["space"])
-    assert_space_scope!(conn, parsed, "manage")
+    assert_space_scope!(conn, parsed, {:manage, "update"})
 
     case Spaces.add_member(parsed.did, parsed.space, input["did"]) do
       {:ok, _rev} -> send_resp(conn, 200, "")
@@ -224,7 +224,7 @@ defmodule AeroxWeb.PDS.SimplespaceController do
   def remove_member(conn, _) do
     input = input!(conn, "com.atproto.simplespace.removeMember")
     {parsed, _space} = owner!(conn, input["space"])
-    assert_space_scope!(conn, parsed, "manage")
+    assert_space_scope!(conn, parsed, {:manage, "update"})
 
     case Spaces.remove_member(parsed.did, parsed.space, input["did"]) do
       {:ok, _rev} -> send_resp(conn, 200, "")
@@ -235,7 +235,7 @@ defmodule AeroxWeb.PDS.SimplespaceController do
   def list_members(conn, _) do
     params = params!(conn, "com.atproto.simplespace.listMembers")
     {parsed, _space} = owner!(conn, params["space"])
-    assert_space_scope!(conn, parsed, "manage")
+    assert_space_scope!(conn, parsed, "read_self")
 
     members =
       Spaces.list_members(parsed.did, parsed.space,

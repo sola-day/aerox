@@ -97,7 +97,7 @@ defmodule Aerox.ATProto.LexiconGoldenTest do
   describe "the vendored registry" do
     test "loads every priv/lexicons document and every ref resolves" do
       reg = Lexicon.default_registry()
-      assert map_size(reg.docs) == 340
+      assert map_size(reg.docs) == 345
       assert Registry.dangling_refs(reg) == []
       assert Registry.known?(reg, "com.atproto.repo.strongRef")
       assert Registry.known?(reg, "com.atproto.label.defs#label")
@@ -105,7 +105,7 @@ defmodule Aerox.ATProto.LexiconGoldenTest do
       assert Registry.known?(reg, "app.bsky.authFullApp")
       assert "com.atproto.lexicon.schema" in Registry.record_types(reg)
       assert "app.bsky.feed.post" in Registry.record_types(reg)
-      assert length(Registry.defs_of_type(reg, "permission-set")) == 10
+      assert length(Registry.defs_of_type(reg, "permission-set")) == 11
     end
 
     test "three-state record admission (DESIGN §6.3)" do

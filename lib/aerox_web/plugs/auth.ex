@@ -221,7 +221,7 @@ defmodule AeroxWeb.Plugs.Auth do
         type: :oauth,
         did: did,
         scope: :oauth,
-        permissions: Aerox.Auth.Scopes.grant(scope),
+        permissions: Aerox.Auth.Scopes.grant(scope) |> resolve_space_scopes(did),
         token_id: info.token_id,
         client_id: info.client_id,
         token: token
@@ -316,4 +316,8 @@ defmodule AeroxWeb.Plugs.Auth do
       _ -> AeroxWeb.Plugs.XRPCError.render(conn, Error.auth_required())
     end
   end
+
+  # alpha `withResolvedAuthority` / `withDefaultCollections` at use time
+  defp resolve_space_scopes(%{permissions: perms} = granted, did),
+    do: %{granted | permissions: Aerox.Auth.Scopes.resolve_space(perms, did)}
 end

@@ -1,0 +1,27 @@
+{
+  "lexicon": 1,
+  "id": "my.bulletin.permissions",
+  "defs": {
+    "main": {
+      "type": "permission-set",
+      "title": "Bulletin",
+      "detail": "Read and post on Bulletin boards",
+      "permissions": [
+        {
+          "type": "permission",
+          "resource": "space",
+          "spaceType": "my.bulletin.board",
+          "authority": "*",
+          "skey": "self",
+          "collection": [
+            "my.bulletin.post",
+            "my.bulletin.removal",
+            "my.bulletin.position"
+          ],
+          "action": ["read", "create", "update", "delete"],
+          "manage": ["create", "update", "delete"]
+        }
+      ]
+    }
+  }
+}
