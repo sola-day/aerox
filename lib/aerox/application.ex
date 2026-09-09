@@ -13,7 +13,8 @@ defmodule Aerox.Application do
       Aerox.Relay,
       Aerox.AppView,
       Aerox.ImageServer,
-      Aerox.Identity
+      Aerox.Identity,
+      Aerox.Auth
     ]
 
   use Application
@@ -55,6 +56,8 @@ defmodule Aerox.Application do
              [
                Aerox.PDS.Repo,
                Aerox.PDS.Clock,
+               # DESIGN §11.2/§12.4: the DPoP verifier shared by OAuth and Spaces
+               Aerox.Auth.DPoP,
                Aerox.PDS.Sequencer,
                identity_cache(Aerox.PDS.Identity, Aerox.PDS.Repo),
                {Oban, Application.fetch_env!(:aerox, Oban.PDS)}

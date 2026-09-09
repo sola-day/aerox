@@ -24,6 +24,10 @@ for {repo, role, database} <- [
 end
 
 config :aerox, Aerox.PDS.Sequencer, unboxed: true
+
+config :aerox, Aerox.Auth.DPoP,
+  secret: "1111111111111111111111111111111111111111111111111111111111111111"
+
 config :aerox, Aerox.Relay.Sequencer, unboxed: true
 
 # DESIGN §20.1: every service resolves did:plc through our own directory.
@@ -59,6 +63,7 @@ config :aerox, Aerox.PDS,
   public_url: "https://pds.aerox.sola.town",
   service_did: "did:web:pds.aerox.sola.town",
   handle_domains: [".aerox.sola.town", ".test"],
+  oauth_key_hex: "REDACTED-dev-oauth-key-rotated-2026-09-16",
   plc_url: "https://plc.aerox.sola.town",
   jwt_secret: "test-jwt-secret-test-jwt-secret-test-jwt-secret"
 

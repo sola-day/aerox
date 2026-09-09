@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Authorize {client_name(@page.client)}</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 32rem; margin: 3rem auto; padding: 0 1rem; color: #222; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; }
+      label { display: block; margin: .75rem 0 .25rem; font-weight: 600; }
+      input[type=text], input[type=password] { width: 100%; padding: .5rem; font-size: 1rem; box-sizing: border-box; }
+      button { padding: .6rem 1.2rem; font-size: 1rem; border-radius: 6px; border: 1px solid #888; background: #f6f6f6; cursor: pointer; margin-right: .5rem; }
+      button.primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+      .error { color: #b00020; margin: .5rem 0; }
+      ul { padding-left: 1.2rem; }
+      .muted { color: #666; font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Sign in to {client_name(@page.client)}</h1>
+      <p class="muted">{@page.client.id}</p>
+      <p>This app would like to:</p>
+      <ul>
+        <li :for={line <- scope_lines(@page.parameters["scope"])}>{line}</li>
+      </ul>
+      <p :if={@error} class="error">{@error}</p>
+
+      <%= if @page.sessions == [] do %>
+        <form method="post" action={~p"/oauth/authorize/sign-in"}>
+          <input type="hidden" name="_csrf_token" value={@csrf} />
+          <input type="hidden" name="request_uri" value={@page.request_uri} />
+          <input type="hidden" name="client_id" value={@page.client.id} />
+          <label for="identifier">Handle or email</label>
+          <input
+            id="identifier"
+            type="text"
+            name="identifier"
+            value={@page.parameters["login_hint"]}
+            autocomplete="username"
+            required
+          />
+          <label for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required
+          />
+          <p><button class="primary" type="submit">Sign in</button></p>
+        </form>
+      <% else %>
+        <form :for={session <- @page.sessions} method="post" action={~p"/oauth/authorize/accept"}>
+          <input type="hidden" name="_csrf_token" value={@csrf} />
+          <input type="hidden" name="request_uri" value={@page.request_uri} />
+          <input type="hidden" name="did" value={session.did} />
+          <p>
+            <strong>{session.handle}</strong> <span class="muted">{session.did}</span>
+            <button class="primary" type="submit">Allow</button>
+          </p>
+        </form>
+        <form method="post" action={~p"/oauth/authorize/reject"}>
+          <input type="hidden" name="_csrf_token" value={@csrf} />
+          <input type="hidden" name="request_uri" value={@page.request_uri} />
+          <button type="submit">Deny</button>
+        </form>
+        <form method="post" action={~p"/oauth/authorize/sign-in"}>
+          <input type="hidden" name="_csrf_token" value={@csrf} />
+          <input type="hidden" name="request_uri" value={@page.request_uri} />
+          <input type="hidden" name="client_id" value={@page.client.id} />
+          <details>
+            <summary class="muted">Use another account</summary>
+            <label for="identifier2">Handle or email</label>
+            <input id="identifier2" type="text" name="identifier" autocomplete="username" />
+            <label for="password2">Password</label>
+            <input id="password2" type="password" name="password" autocomplete="current-password" />
+            <p><button type="submit">Sign in</button></p>
+          </details>
+        </form>
+      <% end %>
+    </div>
+  </body>
+</html>

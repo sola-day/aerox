@@ -44,7 +44,9 @@ defmodule Aerox.Auth.DPoP do
       Keyword.get(opts, :rotation_interval_ms) || config(:rotation_interval_ms) ||
         div(@nonce_max_age_ms, 3)
 
-    :ets.new(@replay_table, [:named_table, :public, :set, read_concurrency: true])
+    if :ets.whereis(@replay_table) == :undefined,
+      do: :ets.new(@replay_table, [:named_table, :public, :set, read_concurrency: true])
+
     {:ok, %{secret: secret, interval: interval}}
   end
 

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@atproto/api": "0.18.13",
+    "@atproto/oauth-client-node": "^0.5.4",
     "ws": "^8.21.3"
   },
   "devDependencies": {

@@ -129,6 +129,8 @@ defmodule AeroxWeb.PDS.ServerController do
   end
 
   def get_session(conn, _) do
+    # OAuth sessions see their email only with the email scope (upstream getSession)
+
     %{did: did} =
       require_auth!(conn, scopes: Sessions.access_standard() ++ [:signup_queued, :takendown])
 
@@ -138,14 +140,23 @@ defmodule AeroxWeb.PDS.ServerController do
 
     {active, status} = Accounts.status(account)
 
+    email_allowed? =
+      case conn.assigns[:auth] do
+        %{type: :oauth, permissions: perms} ->
+          Aerox.Auth.Scopes.allows?(perms, :account, %{attr: "email", action: "read"})
+
+        _ ->
+          true
+      end
+
     json(
       conn,
       %{
         "did" => did,
         "didDoc" => did_doc(did),
         "handle" => account.handle || "handle.invalid",
-        "email" => account.email,
-        "emailConfirmed" => not is_nil(account.email_confirmed_at),
+        "email" => if(email_allowed?, do: account.email),
+        "emailConfirmed" => if(email_allowed?, do: not is_nil(account.email_confirmed_at)),
         "active" => active,
         "status" => status
       }

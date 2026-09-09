@@ -116,6 +116,12 @@ config :aerox, Aerox.PDS,
   # DEV_PLAN §1.2: the PDS is pds.<dev-domain>; the apex also routes here.
   public_url: System.get_env("AEROX_PDS_PUBLIC_URL", "https://pds.aerox.sola.town"),
   handle_domains: [".aerox.sola.town"],
+  # OAuth issuer key (P-256) and DPoP nonce secret: dev/test throwaways
+  oauth_key_hex:
+    System.get_env(
+      "AEROX_OAUTH_KEY_HEX",
+      "REDACTED-dev-oauth-key-rotated-2026-09-16"
+    ),
   plc_url: System.get_env("AEROX_PLC_URL", "https://plc.aerox.sola.town"),
   contact_email: "lisbon@appendonly.org"
 

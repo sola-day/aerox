@@ -92,6 +92,13 @@ defmodule AeroxWeb.XRPC do
     scopes = Keyword.get(opts, :scopes, Aerox.PDS.Sessions.access_standard())
 
     case conn.assigns[:auth] do
+      # OAuth sessions stand in for legacy access tokens; granular scope
+      # checks are `authorize_oauth!/3` in the handlers that need them
+      %{type: :oauth} = auth ->
+        if :access in kinds,
+          do: auth,
+          else: raise(Error.invalid_request("Unexpected authorization type", "InvalidToken"))
+
       %{type: type} = auth when type in [:access] ->
         if type in kinds and auth.scope in scopes,
           do: auth,
@@ -106,6 +113,27 @@ defmodule AeroxWeb.XRPC do
         raise Error.auth_required("Authentication Required", "AuthMissing")
     end
   end
+
+  @doc """
+  For OAuth sessions, asserts the granted scope allows `resource`/`target`
+  (`Aerox.Auth.Scopes`); legacy sessions pass (their scope is the coarse
+  `access`/app-password grant already checked by `require_auth!/2`).
+  """
+  def authorize_oauth!(
+        %Plug.Conn{assigns: %{auth: %{type: :oauth, permissions: perms}}},
+        resource,
+        target
+      ) do
+    case Aerox.Auth.Scopes.assert(perms, resource, target) do
+      :ok ->
+        :ok
+
+      {:error, {:scope_missing, needed}} ->
+        raise Error.forbidden("Missing required scope: #{needed}", "InvalidToken")
+    end
+  end
+
+  def authorize_oauth!(_conn, _resource, _target), do: :ok
 
   @doc "The authenticated DID, or raises."
   def did!(conn, opts \\ []), do: require_auth!(conn, opts).did

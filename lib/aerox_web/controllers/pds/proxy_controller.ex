@@ -46,6 +46,7 @@ defmodule AeroxWeb.PDS.ProxyController do
         {:error, Error.not_implemented()}
 
       {did, url} ->
+        AeroxWeb.XRPC.authorize_oauth!(conn, :rpc, %{lxm: lxm, aud: did})
         auth = authorization(conn, did, lxm)
         forward(conn, url, lxm, auth)
     end
@@ -133,6 +134,14 @@ defmodule AeroxWeb.PDS.ProxyController do
 
   defp authorization(conn, aud, lxm) do
     case conn.assigns[:auth] do
+      %{type: :oauth, did: did} ->
+        keypair = Accounts.signing_keypair(did) || raise(Error.auth_required("Account not found"))
+
+        [
+          {"authorization",
+           "Bearer " <> ServiceJWT.create(keypair: keypair, iss: did, aud: aud, lxm: lxm)}
+        ]
+
       %{type: :access, did: did, scope: scope} ->
         privileged =
           String.starts_with?(lxm, "chat.bsky.") or lxm == "com.atproto.server.createAccount"

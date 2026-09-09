@@ -498,3 +498,34 @@ written during the milestone.
   `pending` until they are. Feed generators receive a JWT signed by the
   AppView's own key (`iss` = our service DID) rather than upstream's
   pass-through of the PDS-minted viewer JWT.
+
+### M4 — OAuth (closed 2026-09-09)
+
+- **What done took.** `Aerox.Auth.Scopes` (the whole `oauth-scopes`
+  grammar incl. `include:` expansion against the vendored permission sets
+  and the permissioned-data branch's `space:` scope, upstream vectors
+  transcribed), `Aerox.Auth.DPoP` (the one verifier OAuth and Spaces share:
+  rotating HMAC nonces, `htm`/`htu`/`ath`/`jti`, jkt thumbprints), and the
+  authorization server in the PDS: `Clients` (loopback and discoverable
+  client-metadata documents validated rule for rule, `none` and
+  `private_key_jwt`), `Requests` (PAR, five-minute expiry, inactivity
+  timeout, device binding, single-use codes), `Tokens` (ES256 `at+jwt`
+  bound to `cnf.jkt`, refresh rotation with replay revocation, upstream's
+  session/refresh lifetimes), the metadata documents, `/oauth/{par,token,
+  revoke,jwks,authorize}` with the consent pages on the `:browser`
+  pipeline, and the Auth plug's OAuth path with `DPoP-Nonce` on every
+  response. Granular scopes are enforced where they bite: repo writes,
+  blob uploads, the `app.bsky.*` proxy (`rpc`), `updateHandle`, and the
+  email on `getSession`. Interop: `@atproto/oauth-client-node` 0.5.4 as a
+  loopback client runs the full flow through our consent page in headless
+  Chromium and then calls XRPC through the DPoP session
+  (`test/harness/oauth.mjs`) — the "@atproto/api logs in (OAuth)" row.
+- **What the design got wrong.** Nothing structural. Two upstream
+  behaviours worth recording: a replayed authorization code revokes the
+  tokens it produced (so a client that double-submits loses its session, by
+  design), and the first proof of every exchange is refused with
+  `use_dpop_nonce` — clients must expect a 400/401 round trip before the
+  real one. Access tokens are verified statefully (the token row must still
+  exist) rather than upstream's stateless mode, so revocation is immediate.
+- **Carried.** `bulletin`'s login (its data steps wait for M8/M9) is not
+  yet exercised; JAR (`request` objects) is not supported (metadata says so).

@@ -68,7 +68,9 @@ defmodule Aerox.Auth.DPoPTest do
              DPoP.verify(
                proof(jwk, %{base | "htu" => "https://PDS.aerox.sola.town:443/oauth/token?x=1#f"}),
                "POST",
-               url, server: server)
+               url,
+               server: server
+             )
 
     assert {:error, :use_dpop_nonce} =
              DPoP.verify(proof(jwk, Map.delete(base, "nonce")), "POST", url, server: server)
@@ -94,7 +96,9 @@ defmodule Aerox.Auth.DPoPTest do
              DPoP.verify(
                proof(jwk, Map.put(base, "iat", System.os_time(:second) - 1000)),
                "POST",
-               url, server: server)
+               url,
+               server: server
+             )
 
     assert msg =~ "iat"
 

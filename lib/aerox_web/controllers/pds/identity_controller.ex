@@ -39,6 +39,7 @@ defmodule AeroxWeb.PDS.IdentityController do
   end
 
   def update_handle(conn, _) do
+    authorize_oauth!(conn, :identity, %{attr: "handle"})
     %{did: did} = require_auth!(conn)
     input = input!(conn, "com.atproto.identity.updateHandle")
 

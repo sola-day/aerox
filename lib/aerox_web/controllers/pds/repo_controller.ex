@@ -12,6 +12,11 @@ defmodule AeroxWeb.PDS.RepoController do
   # ---------------------------------------------------------------- writes
 
   def create_record(conn, _) do
+    authorize_oauth!(conn, :repo, %{
+      collection: conn.body_params["collection"] || "",
+      action: "create"
+    })
+
     input = input!(conn, "com.atproto.repo.createRecord")
     did = writer!(conn, input["repo"])
 
@@ -45,6 +50,11 @@ defmodule AeroxWeb.PDS.RepoController do
   end
 
   def put_record(conn, _) do
+    authorize_oauth!(conn, :repo, %{
+      collection: conn.body_params["collection"] || "",
+      action: "update"
+    })
+
     input = input!(conn, "com.atproto.repo.putRecord")
     did = writer!(conn, input["repo"])
 
@@ -103,6 +113,11 @@ defmodule AeroxWeb.PDS.RepoController do
   end
 
   def delete_record(conn, _) do
+    authorize_oauth!(conn, :repo, %{
+      collection: conn.body_params["collection"] || "",
+      action: "delete"
+    })
+
     input = input!(conn, "com.atproto.repo.deleteRecord")
     did = writer!(conn, input["repo"])
 
@@ -125,6 +140,17 @@ defmodule AeroxWeb.PDS.RepoController do
   end
 
   def apply_writes(conn, _) do
+    for w <- conn.body_params["writes"] || [], is_map(w) do
+      action =
+        case w["$type"] do
+          "com.atproto.repo.applyWrites#create" -> "create"
+          "com.atproto.repo.applyWrites#update" -> "update"
+          _ -> "delete"
+        end
+
+      authorize_oauth!(conn, :repo, %{collection: w["collection"] || "", action: action})
+    end
+
     input = input!(conn, "com.atproto.repo.applyWrites")
     did = writer!(conn, input["repo"])
     writes = input["writes"] || []
@@ -337,6 +363,10 @@ defmodule AeroxWeb.PDS.RepoController do
   # ----------------------------------------------------------------- blobs
 
   def upload_blob(conn, _) do
+    authorize_oauth!(conn, :blob, %{
+      mime: conn |> get_req_header("content-type") |> List.first() || "application/octet-stream"
+    })
+
     %{did: did} = require_auth!(conn, kinds: [:access, :service])
 
     with {:ok, conn} <- RateLimit.consume(conn, :upload_blob, 1) do

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" /><title>Redirecting…</title>
+  </head>
+  <body onload="document.forms[0].submit()">
+    <form method="post" action={@redirect_uri}>
+      <input :for={{k, v} <- @params} type="hidden" name={k} value={v} />
+      <noscript><button type="submit">Continue</button></noscript>
+    </form>
+  </body>
+</html>

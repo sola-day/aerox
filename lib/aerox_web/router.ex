@@ -31,6 +31,14 @@ defmodule AeroxWeb.Router do
     plug AeroxWeb.Plugs.ServiceEnabled, :pds
   end
 
+  pipeline :oauth_api do
+    plug AeroxWeb.Plugs.CORS
+    plug :accepts, ["json"]
+    plug AeroxWeb.Plugs.ClientIP
+    plug AeroxWeb.Plugs.RateLimit, :global_ip
+    plug AeroxWeb.Plugs.ServiceEnabled, :pds
+  end
+
   pipeline :well_known do
     plug AeroxWeb.Plugs.CORS
     plug AeroxWeb.Plugs.ServiceEnabled, :pds
@@ -47,6 +55,31 @@ defmodule AeroxWeb.Router do
 
     get "/atproto-did", WellKnownController, :atproto_did
     get "/did.json", WellKnownController, :did_json
+  end
+
+  # OAuth authorization server (DESIGN §11.2): JSON endpoints on the API
+  # pipeline, consent pages on :browser.
+  scope "/", AeroxWeb do
+    pipe_through :well_known
+    get "/.well-known/oauth-authorization-server", OAuthController, :server_metadata
+    get "/.well-known/oauth-protected-resource", OAuthController, :protected_resource
+  end
+
+  scope "/oauth", AeroxWeb do
+    pipe_through :oauth_api
+    get "/jwks", OAuthController, :jwks
+    post "/par", OAuthController, :par
+    post "/token", OAuthController, :token
+    post "/revoke", OAuthController, :revoke
+    options "/*path", OAuthController, :jwks
+  end
+
+  scope "/oauth", AeroxWeb do
+    pipe_through :browser
+    get "/authorize", OAuthController, :authorize
+    post "/authorize/sign-in", OAuthController, :sign_in
+    post "/authorize/accept", OAuthController, :accept
+    post "/authorize/reject", OAuthController, :reject
   end
 
   scope "/xrpc", AeroxWeb.PDS do
