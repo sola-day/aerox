@@ -1,0 +1,635 @@
+{
+  "files": {
+    "car/car-file-fixtures.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "78a6503167b3a2dfb90633d7a7b126ad4d0f151a2182517a31002035322fe9f0",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "packages/repo/tests/car-file-fixtures.json",
+        "repo": "atproto"
+      }
+    },
+    "crypto/signature-fixtures.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "df784026e45c791a7bb14b49a62260b0437716b0280028e9b8c7cc6eade1b1c3",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/crypto/signature-fixtures.json",
+        "repo": "atproto"
+      }
+    },
+    "crypto/w3c_didkey_K256.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "d940afa86f4a63b72683e15ea7f0bb2f901e1b37087c19fd1fd3c29d30a49fd7",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/crypto/w3c_didkey_K256.json",
+        "repo": "atproto"
+      }
+    },
+    "crypto/w3c_didkey_P256.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "f52ce904d192075fcbd162c95e43e8bb593e1b0d7024b390066e5c5e010a54a7",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/crypto/w3c_didkey_P256.json",
+        "repo": "atproto"
+      }
+    },
+    "data-model/data-model-fixtures.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "9218dd162089b625637ea1bf4ac1cd4dac9ece86e08ab4b3923324a3a9ddf315",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/atdata/testdata/data-model-fixtures.json",
+        "repo": "indigo"
+      }
+    },
+    "data-model/data-model-invalid.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "25c358c219dcae0d46634e7e2d81ead9ddb9f13ec6fee85374814b04bf52978f",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/atdata/testdata/data-model-invalid.json",
+        "repo": "indigo"
+      }
+    },
+    "data-model/data-model-valid.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "c44b9c6d4457ad696621f7463ddc109bd16e53785e15b8921e2e15411cfd4e37",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/atdata/testdata/data-model-valid.json",
+        "repo": "indigo"
+      }
+    },
+    "data-model/feedpost_record.cbor": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "ce78b5737c18bd655b1b7570431040b72705a09d0be3ade2aabfe4f318fbd014",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/atdata/testdata/feedpost_record.cbor",
+        "repo": "indigo"
+      }
+    },
+    "firehose/firehose_commit_4621317030.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "c9e4927f5c117c504d8fc6ea40087b3462b8881c31420f63ec6a1044fb300749",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/repo/testdata/firehose_commit_4621317030.json",
+        "repo": "indigo"
+      }
+    },
+    "firehose/firehose_commit_4621317332.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "0c16c2467baf82239eff596424809fbaa846022b9ed5c2384923385fa6279435",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/repo/testdata/firehose_commit_4621317332.json",
+        "repo": "indigo"
+      }
+    },
+    "firehose/firehose_commit_4621332152.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "46268681a92f54afb7090fef843df3b612b7323f0d8b7277b13365a8b0183069",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/repo/testdata/firehose_commit_4621332152.json",
+        "repo": "indigo"
+      }
+    },
+    "firehose/firehose_commit_4623075231.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "cc5774d1a4c41ca7ea324887afeb980458d166137b905b3e702036a933d201d2",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/repo/testdata/firehose_commit_4623075231.json",
+        "repo": "indigo"
+      }
+    },
+    "lexicon/catalog/com_atproto_label_defs.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "8d3abdce21842c73d5b3ddde8d4489ffadae2fdc86b15e4ddfe2e15d0e850c65",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/lexicon/testdata/catalog/com_atproto_label_defs.json",
+        "repo": "indigo"
+      }
+    },
+    "lexicon/catalog/minimal-procedure.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "782dbf65c035ddbc8894b5055ccefbf6f473ab0ad56708a6e42cd0f8042dc73b",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/lexicon/testdata/catalog/minimal-procedure.json",
+        "repo": "indigo"
+      }
+    },
+    "lexicon/catalog/minimal-query.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "e2d6c5e3dd0e69964bdcabfbe29468b96ac27b25dc1f4e048fc69e7dbfd7c201",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/lexicon/testdata/catalog/minimal-query.json",
+        "repo": "indigo"
+      }
+    },
+    "lexicon/catalog/query.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "299abcc7a9c98c8322e01ef2fb1dd8e0b9d03a28fbe8985db10c1098a005f198",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/lexicon/testdata/catalog/query.json",
+        "repo": "indigo"
+      }
+    },
+    "lexicon/catalog/record.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "d9513607eab8ca8d205f87ce3c9dffac363c8d3fec839c064f4d52a362f30b9a",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/lexicon/testdata/catalog/record.json",
+        "repo": "indigo"
+      }
+    },
+    "lexicon/catalog/subscription.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "0c54a2ef103473b3694514bc4f742b9a605458559a8a0f72a9ed217826d45f09",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/lexicon/testdata/catalog/subscription.json",
+        "repo": "indigo"
+      }
+    },
+    "lexicon/lexicon-invalid.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "0766c188736845dbce5c71870c9bf4369a1a63dbe4c3c924b218bbb0b6abe3df",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/lexicon/testdata/lexicon-invalid.json",
+        "repo": "indigo"
+      }
+    },
+    "lexicon/lexicon-valid.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "950face7bbd3f9f76dfa959bc083b3abcfdbc21d2a684a7891d72b9e65d830e9",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/lexicon/testdata/lexicon-valid.json",
+        "repo": "indigo"
+      }
+    },
+    "lexicon/record-data-invalid.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "993f4ac90ae00c5feeef2a58a9d9734ebb7fd61e5a0ca595db1ecce52b499d2f",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/lexicon/testdata/record-data-invalid.json",
+        "repo": "indigo"
+      }
+    },
+    "lexicon/record-data-valid.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "f8f700e93244c818cdeb87ee5f550fe7627c400f64adb85777e697407f66e0d5",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/lexicon/testdata/record-data-valid.json",
+        "repo": "indigo"
+      }
+    },
+    "mst/commit-proof-fixtures.indigo.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "15c6823778d7e1162e1132aa85f37f1ca8a6beb751812a2869bd37537d38a83b",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/repo/testdata/commit-proof-fixtures.json",
+        "repo": "indigo"
+      }
+    },
+    "mst/commit-proof-fixtures.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "15c6823778d7e1162e1132aa85f37f1ca8a6beb751812a2869bd37537d38a83b",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "packages/repo/tests/commit-proof-fixtures.json",
+        "repo": "atproto"
+      }
+    },
+    "mst/example_keys.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "9cdf1432d6407972168e4c66bb0548f97520ff11262d3dfa4eb7d8f5001bac37",
+      "source": {
+        "commit": "dfe5578fd537e71dd1ed884dd09b876dd768dfd5",
+        "path": "atproto/repo/mst/testdata/example_keys.txt",
+        "repo": "indigo"
+      }
+    },
+    "mst/known-maps.json": {
+      "date": "2026-09-09",
+      "kind": "transcribed",
+      "note": "roots, layers and leaf counts transcribed by hand from the 'MST Interop' describe blocks; the leaf CID is the constant used there",
+      "sha256": "5d76a72ca4a7025aa9f71239b6f3b7b94812aa612f0dd3029b9ae77d98cb0698",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "packages/repo/tests/mst.test.ts",
+        "repo": "atproto"
+      }
+    },
+    "plc/invalid/log_invalid_nullification_reused_key.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "81d2cfba69b2020d463552aede0de53762d7532689d5368626f26dbfe635cd45",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/invalid/log_invalid_nullification_reused_key.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/invalid/log_invalid_nullification_too_slow.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "56b3985885f0b14c1a949e732d2c5b8c47c171305a70079cfabee6aa086006c4",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/invalid/log_invalid_nullification_too_slow.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/invalid/log_invalid_sig_b64_newline.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "d40ed3f1e4a7b120c9c62a7708595907b9f31a80cb186bbfcbdde5bb1c80ac4b",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/invalid/log_invalid_sig_b64_newline.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/invalid/log_invalid_sig_b64_padding_bits.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "3683879b9344265152abc32529daa291426bc144bf6e59db3cbb9bcdbf137a63",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/invalid/log_invalid_sig_b64_padding_bits.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/invalid/log_invalid_sig_b64_padding_chars.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "cc1ee8ccc3a55b85d2d9be3a8bee6ce986f9aec467ffeeb1b9c7317c0553898a",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/invalid/log_invalid_sig_b64_padding_chars.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/invalid/log_invalid_sig_der.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "cdbdeb7bce9254fcca769fef5d1376b82957ee824325fbb9e28658472896ca8a",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/invalid/log_invalid_sig_der.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/invalid/log_invalid_sig_k256_high_s.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "1778ff8aea9f09347fb7fd5c31a04c5e7c25bb9fc4418a7b22431900833e4d1c",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/invalid/log_invalid_sig_k256_high_s.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/invalid/log_invalid_sig_p256_high_s.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "c108dce12c45e4ab23324e099cf7f3491b515a9cd1bc0b6941ce27dd1f81adaa",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/invalid/log_invalid_sig_p256_high_s.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/invalid/log_invalid_update_nullified.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "886a4821eadcd66e059984f35b039f0108554dd9126306de207411116ec3bcdf",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/invalid/log_invalid_update_nullified.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/invalid/log_invalid_update_tombstoned.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "2affcd78f911199c2cfcaa682aaf83d227433bd7c2a9907dc08f0516f9310812",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/invalid/log_invalid_update_tombstoned.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/valid/log_bnewbold_robocracy.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "b1573b1d7c593bb4891c080908884bead57576fe02ce38c9e71438fd9e40ada6",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/valid/log_bnewbold_robocracy.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/valid/log_bskyapp.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "4791932894dea484355f93c37f559fe1cd4717cb36f291f071cb467b4d38ef1f",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/valid/log_bskyapp.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/valid/log_duplicate_rotation_keys.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "8a578a281d9437f0ce894f1a5dc4d0578d449c3378f87fd3856bf3929901af8e",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/valid/log_duplicate_rotation_keys.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/valid/log_empty_rotation_keys.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "2645e8855f265e94b6dee7fa84095e01ef655249d90a697b35a065b0526bed3e",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/valid/log_empty_rotation_keys.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/valid/log_legacy_dholms.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "e0e7e6f4686532524f2b847547dc8807a6f976dc6a1a4c07ce275aad36c257f8",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/valid/log_legacy_dholms.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/valid/log_nullification.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "fa55fc2bec1c9a3b3a73030ec448a781889b8cd2d9c3f0e9699c5f05731f624c",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/valid/log_nullification.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/valid/log_nullification_at_exactly_72h.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "be720e9d8d258ce32ad397429610bae5a86733c06e7f0b119818496ab24e95f5",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/valid/log_nullification_at_exactly_72h.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/valid/log_nullification_nontrivial.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "5c711d0a1c50b60a17db0e10a12b88666ba4e12aaf2c5ae4de0715b03bab0f4d",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/valid/log_nullification_nontrivial.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/valid/log_nullified_tombstone.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "3a9e92276fb5d9d07c7d77bb9eb134f0900828765e8f4a6c011cb05ed06db8a2",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/valid/log_nullified_tombstone.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "plc/valid/log_tombstone.json": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "4197f36edb9a55f0f39e286421bca928a8205d196b7ef3cf419cca3484552a03",
+      "source": {
+        "commit": "1e301e5e29dd419c4dfc7d3100a2a614f9286ebe",
+        "path": "interop_tests/audit_log/valid/log_tombstone.json",
+        "repo": "did-method-plc"
+      }
+    },
+    "syntax/atidentifier_syntax_invalid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "26014d5ffe87185bb4f915295c188366e6c068f07152ad1ea812ac4ea2428aeb",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/atidentifier_syntax_invalid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/atidentifier_syntax_valid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "a83a3267623bb3dbeb04529f3b06c3ab0279f070dcc15b128d710adcbb6815d7",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/atidentifier_syntax_valid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/aturi_syntax_invalid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "f57124a9e823c0941a960005c3d7a88a3f00c8eaf28c023d4f1f1ca2229ff727",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/aturi_syntax_invalid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/aturi_syntax_valid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "ec268ffc5f5c006c87dfa46fe2be6835b65ab941b24b4a9b0d28d249a7459c80",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/aturi_syntax_valid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/datetime_parse_invalid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "1f12efdd346bb45fc8141bb6d162e7d345169134f668b56540a9265eeae28ec5",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/datetime_parse_invalid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/datetime_syntax_invalid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "5c89cf279fa23e6c5b8d503e2e9b76362cf7ff70137005c83d0d35ea1b018397",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/datetime_syntax_invalid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/datetime_syntax_valid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "bdcb83145c2e8bdf0872f53671661f9f09ff7b8ebd6923f65550282b7e6ee71d",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/datetime_syntax_valid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/did_syntax_invalid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "98eeae969cb8d6adcc3ffcbf72b49773c57635cdd3b873c05af71bdfcbbdd25a",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/did_syntax_invalid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/did_syntax_valid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "dea2bf95d29f2141efe2f9d4762e25033bac900c5600b19bbf4120ce1442b9e6",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/did_syntax_valid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/handle_syntax_invalid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "9069133ace3e34263ecd585c78a434bdc4558cb4115cb883255a2493a08a0d2f",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/handle_syntax_invalid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/handle_syntax_valid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "6cff66b8dee405f9b516e49726f679e732beab3e275820a88ad53d0c114318cb",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/handle_syntax_valid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/nsid_syntax_invalid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "eec328b5342e38b1e070411146a14409e6bb91d0ecdc27d9d8ca668505159f42",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/nsid_syntax_invalid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/nsid_syntax_valid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "ff2c80b7f95c37377272c724da9a5ecb9b9720e9f46e7cc9e939acc7639a21a6",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/nsid_syntax_valid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/recordkey_syntax_invalid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "ab813eb308bfef83d1a0c00f35f0610767c8a3489ba7d48618e94eb1f9d99aaa",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/recordkey_syntax_invalid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/recordkey_syntax_valid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "47c42d524964e5c90bdae69031d4f3ab5090df99944581c33511c684055c469e",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/recordkey_syntax_valid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/tid_syntax_invalid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "2b5b695ca9831be3fe96103a08f7ecea908daef76e93d446a9d289a6c367d30b",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/tid_syntax_invalid.txt",
+        "repo": "atproto"
+      }
+    },
+    "syntax/tid_syntax_valid.txt": {
+      "date": "2026-09-09",
+      "kind": "copied",
+      "sha256": "e75625036f39a89990c891d96b9d88e51169f8a3bbebc5eaa69d45e87893a819",
+      "source": {
+        "commit": "62f944dd6452d90f6e7ac35eaae970a6042ff544",
+        "path": "interop-test-files/syntax/tid_syntax_valid.txt",
+        "repo": "atproto"
+      }
+    }
+  }
+}

@@ -197,7 +197,7 @@ promised, and the order is more important than the durations.
 
 Deliverables: repository, `mix phx.new aerox --no-assets --no-live`, the two-database
 Ecto setup and sandbox, `MIX_ENV=tool` profile, CI fast stage on the self-hosted
-runner, Caddy + DNS for the hostnames in §1.2, `mise` toolchain, LiveDashboard
+runner, Traefik routing + DNS for the hostnames in §1.2, `mise` toolchain, LiveDashboard
 reachable on `dev`. The golden corpus directory with `MANIFEST.json` and the
 provenance check. The Node harness skeleton with `@atproto/api`.
 

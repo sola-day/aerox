@@ -1,0 +1,13 @@
+{
+  "name": "aerox-harness",
+  "private": true,
+  "type": "module",
+  "description": "Drives the aerox all-in-one stack through @atproto/api, the client ouranos uses (VERIFICATION §6).",
+  "scripts": {
+    "smoke": "node smoke.mjs",
+    "scenarios": "node --test scenarios/"
+  },
+  "dependencies": {
+    "@atproto/api": "0.18.13"
+  }
+}

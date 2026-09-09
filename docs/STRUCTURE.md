@@ -364,9 +364,23 @@ Node or Go a laptop happens to have is not an oracle (VERIFICATION §2.3).
 
 ## 10. Open points
 
-- **Three repos on one database.** `search_path` via `after_connect` plus a distinct
-  `migration_source` per repo is the plan; confirm it against Ecto 3.13 behaviour when
-  the split lands in M0a, and record the result here.
+- **Three repos on one database — resolved 2026-09-09 (M0a).** Confirmed against
+  Ecto SQL 3.14: `migration_default_prefix` only prefixes the tables a migration
+  creates; the repo's own `schema_migrations` table is created *unqualified* and
+  lands wherever `search_path` points. So the per-service schema must exist,
+  owned by the service role, **before** the first migration runs — it is created
+  by `docker/postgres/init/01-databases.sh`, and each repo's first migration is
+  the in-repo record that re-asserts ownership idempotently. `after_connect`
+  sets `search_path TO <schema>, public` (public only for `pg_trgm`'s
+  functions; CREATE on it is revoked), and `migration_default_prefix` is kept so
+  migration DDL is explicit. Four `schema_migrations` tables, one per schema,
+  and the sandbox works on all four repos. `test/aerox/repo_boundary_test.exs`
+  proves the REVOKE matrix at runtime.
+- **The core-side Oban instance is owned by `Aerox.AppView.Repo`** (prefix
+  `appview`). Oban binds to one repo; the AppView is the core service with
+  durable jobs (backfill, purges, label subscriptions). PLC and Relay have none
+  today; if one appears, it gets its own instance rather than a grant into the
+  `appview` schema.
 - **`lib_tool/` naming.** Chosen over `tool/lib/` because `elixirc_paths` takes a flat
   list and a sibling of `lib/` reads clearly in that list. Revisit if a second
   environment-scoped source root ever appears.

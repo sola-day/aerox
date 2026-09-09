@@ -1,0 +1,189 @@
+{
+  "comment": "Transcribed from atproto packages/repo/tests/mst.test.ts (commit 62f944dd6452d90f6e7ac35eaae970a6042ff544). Every leaf value is the same CID; only the key set determines the root.",
+  "leafValue": "bafyreie5cvv4h45feadgeuwhbcutmh6t2ceseocckahdoe6uat64zmz454",
+  "cases": [
+    {
+      "name": "empty",
+      "keys": [],
+      "root": "bafyreie5737gdxlw5i64vzichcalba3z2v5n6icifvx5xytvske7mr3hpm",
+      "layer": 0
+    },
+    {
+      "name": "trivial",
+      "keys": [
+        "com.example.record/3jqfcqzm3fo2j"
+      ],
+      "root": "bafyreibj4lsc3aqnrvphp5xmrnfoorvru4wynt6lwidqbm2623a6tatzdu",
+      "layer": 0
+    },
+    {
+      "name": "singlelayer2",
+      "keys": [
+        "com.example.record/3jqfcqzm3fx2j"
+      ],
+      "root": "bafyreih7wfei65pxzhauoibu3ls7jgmkju4bspy4t2ha2qdjnzqvoy33ai",
+      "layer": 2
+    },
+    {
+      "name": "simple",
+      "keys": [
+        "com.example.record/3jqfcqzm3fp2j",
+        "com.example.record/3jqfcqzm3fr2j",
+        "com.example.record/3jqfcqzm3fs2j",
+        "com.example.record/3jqfcqzm3ft2j",
+        "com.example.record/3jqfcqzm4fc2j"
+      ],
+      "root": "bafyreicmahysq4n6wfuxo522m6dpiy7z7qzym3dzs756t5n7nfdgccwq7m",
+      "layer": 1
+    }
+  ],
+  "sequences": [
+    {
+      "name": "trims top of tree on delete",
+      "steps": [
+        {
+          "add": [
+            "com.example.record/3jqfcqzm3fn2j",
+            "com.example.record/3jqfcqzm3fo2j",
+            "com.example.record/3jqfcqzm3fp2j",
+            "com.example.record/3jqfcqzm3fs2j",
+            "com.example.record/3jqfcqzm3ft2j",
+            "com.example.record/3jqfcqzm3fu2j"
+          ],
+          "leaves": 6,
+          "layer": 1,
+          "root": "bafyreifnqrwbk6ffmyaz5qtujqrzf5qmxf7cbxvgzktl4e3gabuxbtatv4"
+        },
+        {
+          "del": [
+            "com.example.record/3jqfcqzm3fs2j"
+          ],
+          "leaves": 5,
+          "layer": 0,
+          "root": "bafyreie4kjuxbwkhzg2i5dljaswcroeih4dgiqq6pazcmunwt2byd725vi"
+        }
+      ]
+    },
+    {
+      "name": "handles insertion that splits two layers down",
+      "steps": [
+        {
+          "add": [
+            "com.example.record/3jqfcqzm3fo2j",
+            "com.example.record/3jqfcqzm3fp2j",
+            "com.example.record/3jqfcqzm3fr2j",
+            "com.example.record/3jqfcqzm3fs2j",
+            "com.example.record/3jqfcqzm3ft2j",
+            "com.example.record/3jqfcqzm3fz2j",
+            "com.example.record/3jqfcqzm4fc2j",
+            "com.example.record/3jqfcqzm4fd2j",
+            "com.example.record/3jqfcqzm4ff2j",
+            "com.example.record/3jqfcqzm4fg2j",
+            "com.example.record/3jqfcqzm4fh2j"
+          ],
+          "leaves": 11,
+          "layer": 1,
+          "root": "bafyreiettyludka6fpgp33stwxfuwhkzlur6chs4d2v4nkmq2j3ogpdjem"
+        },
+        {
+          "add": [
+            "com.example.record/3jqfcqzm3fx2j"
+          ],
+          "leaves": 12,
+          "layer": 2,
+          "root": "bafyreid2x5eqs4w4qxvc5jiwda4cien3gw2q6cshofxwnvv7iucrmfohpm"
+        },
+        {
+          "del": [
+            "com.example.record/3jqfcqzm3fx2j"
+          ],
+          "leaves": 11,
+          "layer": 1,
+          "root": "bafyreiettyludka6fpgp33stwxfuwhkzlur6chs4d2v4nkmq2j3ogpdjem"
+        }
+      ]
+    },
+    {
+      "name": "handles new layers that are two higher than existing",
+      "steps": [
+        {
+          "add": [
+            "com.example.record/3jqfcqzm3ft2j",
+            "com.example.record/3jqfcqzm3fz2j"
+          ],
+          "leaves": 2,
+          "layer": 0,
+          "root": "bafyreidfcktqnfmykz2ps3dbul35pepleq7kvv526g47xahuz3rqtptmky"
+        },
+        {
+          "add": [
+            "com.example.record/3jqfcqzm3fx2j"
+          ],
+          "leaves": 3,
+          "layer": 2,
+          "root": "bafyreiavxaxdz7o7rbvr3zg2liox2yww46t7g6hkehx4i4h3lwudly7dhy"
+        },
+        {
+          "del": [
+            "com.example.record/3jqfcqzm3fx2j"
+          ],
+          "leaves": 2,
+          "layer": 0,
+          "root": "bafyreidfcktqnfmykz2ps3dbul35pepleq7kvv526g47xahuz3rqtptmky"
+        },
+        {
+          "add": [
+            "com.example.record/3jqfcqzm3fx2j",
+            "com.example.record/3jqfcqzm4fd2j"
+          ],
+          "leaves": 4,
+          "layer": 2,
+          "root": "bafyreig4jv3vuajbsybhyvb7gggvpwh2zszwfyttjrj6qwvcsp24h6popu"
+        },
+        {
+          "del": [
+            "com.example.record/3jqfcqzm4fd2j"
+          ],
+          "leaves": 3,
+          "layer": 2,
+          "root": "bafyreiavxaxdz7o7rbvr3zg2liox2yww46t7g6hkehx4i4h3lwudly7dhy"
+        }
+      ]
+    }
+  ],
+  "allowedKeys": [
+    "coll/3jui7kd54zh2y",
+    "coll/self",
+    "coll/example.com",
+    "com.example/rkey",
+    "coll/~1.2-3_",
+    "coll/dHJ1ZQ",
+    "coll/pre:fix",
+    "coll/_"
+  ],
+  "rejectedKeys": [
+    "",
+    "asdf",
+    "nested/collection/asdf",
+    "coll/",
+    "/rkey",
+    "coll/jalapeñoA",
+    "coll/coöperative",
+    "coll/abc💩",
+    "coll/key$",
+    "coll/key%",
+    "coll/key(",
+    "coll/key)",
+    "coll/key+",
+    "coll/key=",
+    "coll/@handle",
+    "coll/any space",
+    "coll/#extra",
+    "coll/any+space",
+    "coll/number[3]",
+    "coll/number(3)",
+    "coll/dHJ1ZQ==",
+    "coll/\"quote\""
+  ],
+  "maxKeyLength": 1024
+}

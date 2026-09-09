@@ -1,0 +1,58 @@
+# Runs on the self-hosted runner on the dev box (DEV_PLAN §1.4): the fast and
+# services stages need the two Postgres databases; integration needs real
+# hostnames. Stage names follow VERIFICATION §11.
+name: ci
+on:
+  push:
+  pull_request:
+    branches: [main]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  MIX_ENV: test
+  DATABASE_HOST: 127.0.0.1
+  DATABASE_PORT: "5433"
+jobs:
+  fast:
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: toolchain
+        run: |
+          echo "$HOME/.local/share/mise/shims:$HOME/.local/bin" >> "$GITHUB_PATH"
+          mise install
+      - name: deps
+        run: mix deps.get
+      - name: compile (warnings are errors, boundary enforced)
+        run: mix compile --warnings-as-errors
+      - name: format
+        run: mix format --check-formatted
+      - name: credo
+        run: mix credo --strict
+      - name: golden corpus provenance
+        run: mix aerox.golden.verify --upstream
+      - name: kernel, contract and unit tests (L0–L5)
+        run: mix test --exclude service --exclude integration
+  services:
+    runs-on: self-hosted
+    needs: fast
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "$HOME/.local/share/mise/shims:$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: mix deps.get
+      - name: service suites (L6)
+        run: mix test --only service
+  integration:
+    runs-on: self-hosted
+    needs: services
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "$HOME/.local/share/mise/shims:$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: mix deps.get
+      - name: all-in-one scenarios via the Node harness (L7)
+        run: mix test --only integration
