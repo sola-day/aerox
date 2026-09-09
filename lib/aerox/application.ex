@@ -56,8 +56,26 @@ defmodule Aerox.Application do
   defp children_for(:plc),
     do: [Aerox.PLC.Repo, identity_cache(Aerox.PLC.Identity, Aerox.PLC.Repo)]
 
-  defp children_for(:relay),
-    do: [Aerox.Relay.Repo, identity_cache(Aerox.Relay.Identity, Aerox.Relay.Repo)]
+  # DESIGN §19/§21.4: repo, sequencer, identity cache, then the per-host
+  # consumers (registry + dynamic supervisor + the resubscribe task).
+  defp children_for(:relay) do
+    [
+      %{
+        id: Aerox.Relay.Supervisor,
+        type: :supervisor,
+        start:
+          {Supervisor, :start_link,
+           [
+             [
+               Aerox.Relay.Repo,
+               Aerox.Relay.Sequencer,
+               identity_cache(Aerox.Relay.Identity, Aerox.Relay.Repo)
+             ] ++ Aerox.Relay.Consumers.child_specs(),
+             [strategy: :rest_for_one, name: Aerox.Relay.Supervisor]
+           ]}
+      }
+    ]
+  end
 
   defp children_for(:appview),
     do: [

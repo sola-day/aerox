@@ -18,25 +18,34 @@ defmodule AeroxWeb.Sockets.Firehose do
   """
   @behaviour WebSock
   alias Aerox.ATProto.Frame
-  alias Aerox.PDS.Sequencer
-  alias Aerox.PDS.Sequencer.Events
 
   @page 500
   @max_queue 5_000
   @nsid "com.atproto.sync.subscribeRepos"
 
+  defmodule Source do
+    @moduledoc "What a firehose serves from: the PDS's or the Relay's sequencer."
+    @callback topic() :: String.t()
+    @callback current() :: pos_integer | nil
+    @callback next_after(pos_integer) :: map | nil
+    @callback earliest_after_time(DateTime.t()) :: map | nil
+    @callback range(pos_integer | nil, pos_integer) :: [map]
+    @callback to_frame(map) :: {String.t(), map}
+    @callback backfill_window_ms() :: pos_integer
+  end
+
   @impl true
-  def init(%{cursor: cursor} = opts) do
-    backfill_window = Map.get(opts, :backfill_window_ms, 3 * 24 * 3600 * 1000)
-    Phoenix.PubSub.subscribe(Aerox.PubSub, Sequencer.topic())
-    state = %{last_seen: nil, pending: []}
+  def init(%{cursor: cursor, source: source} = opts) do
+    backfill_window = Map.get(opts, :backfill_window_ms, source.backfill_window_ms())
+    Phoenix.PubSub.subscribe(Aerox.PubSub, source.topic())
+    state = %{last_seen: nil, pending: [], source: source}
 
     case cursor do
       nil ->
         {:ok, state}
 
       cursor ->
-        current = Sequencer.current() || 0
+        current = source.current() || 0
 
         cond do
           cursor > current ->
@@ -45,7 +54,7 @@ defmodule AeroxWeb.Sockets.Firehose do
 
           true ->
             outdated? =
-              case Sequencer.next_after(cursor) do
+              case source.next_after(cursor) do
                 %{sequenced_at: at} ->
                   DateTime.diff(DateTime.utc_now(), at, :millisecond) > backfill_window
 
@@ -56,7 +65,7 @@ defmodule AeroxWeb.Sockets.Firehose do
             {frames, start} =
               if outdated? do
                 start_row =
-                  Sequencer.earliest_after_time(
+                  source.earliest_after_time(
                     DateTime.add(DateTime.utc_now(), -backfill_window, :millisecond)
                   )
 
@@ -85,8 +94,8 @@ defmodule AeroxWeb.Sockets.Firehose do
 
   @impl true
   def handle_info({:backfill, after_seq}, state) do
-    rows = Sequencer.range(after_seq, @page)
-    frames = rows |> Enum.map(&encode_row/1) |> Enum.map(&{:binary, &1})
+    rows = state.source.range(after_seq, @page)
+    frames = rows |> Enum.map(&encode_row(state.source, &1)) |> Enum.map(&{:binary, &1})
     last = List.last(rows)
 
     state = if last, do: %{state | last_seen: last.seq}, else: state
@@ -101,7 +110,7 @@ defmodule AeroxWeb.Sockets.Firehose do
 
       _ ->
         fresh = Enum.filter(rows, &(is_nil(state.last_seen) or &1.seq > state.last_seen))
-        frames = fresh |> Enum.map(&encode_row/1) |> Enum.map(&{:binary, &1})
+        frames = fresh |> Enum.map(&encode_row(state.source, &1)) |> Enum.map(&{:binary, &1})
         last = List.last(fresh)
         state = if last, do: %{state | last_seen: last.seq}, else: state
         {:push, frames, state}
@@ -113,8 +122,8 @@ defmodule AeroxWeb.Sockets.Firehose do
   @impl true
   def terminate(_reason, _state), do: :ok
 
-  defp encode_row(row) do
-    {t, body} = Events.to_frame(row)
+  defp encode_row(source, row) do
+    {t, body} = source.to_frame(row)
     Frame.encode({:message, t, body})
   end
 
@@ -125,12 +134,12 @@ defmodule AeroxWeb.Sockets.Firehose.Plug do
   @moduledoc "Router entry for the firehose: validates the cursor, then hands the connection to `AeroxWeb.Sockets.Firehose`."
   @behaviour Plug
   @impl true
-  def init(opts), do: opts
+  def init(source) when is_atom(source), do: source
   @impl true
-  def call(conn, _opts), do: upgrade(conn, [])
+  def call(conn, source), do: upgrade(conn, source)
 
   @doc "The Plug that upgrades `/xrpc/com.atproto.sync.subscribeRepos`."
-  def upgrade(conn, _opts) do
+  def upgrade(conn, source) do
     cursor =
       case conn.query_params["cursor"] do
         nil ->
@@ -155,7 +164,9 @@ defmodule AeroxWeb.Sockets.Firehose.Plug do
       )
       |> Plug.Conn.halt()
     else
-      WebSockAdapter.upgrade(conn, AeroxWeb.Sockets.Firehose, %{cursor: cursor}, timeout: 60_000)
+      WebSockAdapter.upgrade(conn, AeroxWeb.Sockets.Firehose, %{cursor: cursor, source: source},
+        timeout: 60_000
+      )
     end
   end
 end

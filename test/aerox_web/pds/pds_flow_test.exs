@@ -216,7 +216,9 @@ defmodule AeroxWeb.PDS.FlowTest do
     # account, commit (creation), then the four writes. The sequencer is
     # shared across tests, so start at the seq before signup and keep this
     # DID's events only.
-    {:push, frames, state} = Firehose.init(%{cursor: seq_before})
+    {:push, frames, state} =
+      Firehose.init(%{cursor: seq_before, source: Aerox.PDS.Sequencer.Source})
+
     assert frames == []
     assert_receive {:backfill, ^seq_before}
     {:push, frames, _} = Firehose.handle_info({:backfill, seq_before}, state)
@@ -241,7 +243,10 @@ defmodule AeroxWeb.PDS.FlowTest do
 
     # a future cursor is an error frame
     {:push, {:binary, err}, %{closing: true}} =
-      Firehose.init(%{cursor: (Sequencer.current() || 0) + 100})
+      Firehose.init(%{
+        cursor: (Sequencer.current() || 0) + 100,
+        source: Aerox.PDS.Sequencer.Source
+      })
 
     assert {:ok, {:error, "FutureCursor", _}} = Frame.decode(err)
   end

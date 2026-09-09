@@ -24,6 +24,17 @@ for {repo, role, database} <- [
 end
 
 config :aerox, Aerox.PDS.Sequencer, unboxed: true
+config :aerox, Aerox.Relay.Sequencer, unboxed: true
+
+config :aerox, Aerox.Relay,
+  hostname: "relay.aerox.sola.town",
+  public_url: "https://relay.aerox.sola.town",
+  allow_insecure_hosts: true,
+  skip_account_host_check: false,
+  resubscribe_on_start: false,
+  admin_password: "REDACTED-relay-admin-password"
+
+config :aerox, Aerox.Relay.HostChecker, plug: AeroxWeb.Endpoint, allow_private: true
 
 # The PDS talks to the PLC directory over HTTP. In tests the "network" is the
 # Phoenix endpoint itself, so the in-process directory (sandboxed) answers.

@@ -133,3 +133,11 @@ config :aerox, Aerox.Crypto.Signer,
 config :aerox, Aerox.Blob.Store,
   adapter: Aerox.Blob.Disk,
   root: System.get_env("AEROX_BLOB_ROOT", "blobs")
+
+# Relay (DESIGN §19): dev accepts plain-http hosts (the docker reference PDS).
+config :aerox, Aerox.Relay,
+  hostname: "relay.aerox.sola.town",
+  public_url: "https://relay.aerox.sola.town",
+  allow_insecure_hosts: true,
+  trusted_domains: ["aerox.sola.town"],
+  admin_password: System.get_env("AEROX_RELAY_ADMIN_PASSWORD", "REDACTED-relay-admin-password")

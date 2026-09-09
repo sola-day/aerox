@@ -139,7 +139,7 @@ defmodule AeroxWeb.Router do
 
   scope "/xrpc", AeroxWeb do
     pipe_through [:xrpc, :pds]
-    get "/com.atproto.sync.subscribeRepos", Sockets.Firehose.Plug, :upgrade
+    get "/com.atproto.sync.subscribeRepos", Sockets.Firehose.Plug, Aerox.PDS.Sequencer.Source
   end
 
   # Everything else under /xrpc is proxied (DESIGN §11.1) or, with no target,

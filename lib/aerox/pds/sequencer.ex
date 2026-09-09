@@ -10,28 +10,35 @@ defmodule Aerox.PDS.Sequencer do
 
   Broadcast: `{:firehose, rows}` on `Aerox.PubSub` topic `"firehose"`.
   """
-  use GenServer
   import Ecto.Query
   alias Aerox.PDS.Repo
   alias Aerox.PDS.Schema.RepoSeq
   alias Aerox.PDS.Sequencer.Events
 
   @topic "firehose"
-  @flush_after 10
-  @max_batch 200
 
   def topic, do: @topic
 
-  def start_link(opts \\ []),
-    do: GenServer.start_link(__MODULE__, opts, name: Keyword.get(opts, :name, __MODULE__))
+  def child_spec(opts) do
+    %{id: __MODULE__, start: {__MODULE__, :start_link, [opts]}, type: :worker}
+  end
+
+  def start_link(opts \\ []) do
+    Aerox.Sequencer.start_link(
+      name: Keyword.get(opts, :name, __MODULE__),
+      repo: Repo,
+      schema: RepoSeq,
+      topic: @topic,
+      unboxed: Application.get_env(:aerox, __MODULE__, [])[:unboxed] || false
+    )
+  end
 
   @doc "Sequences one or more event rows; returns their seq numbers in order."
   @spec sequence([map] | map, GenServer.server()) :: {:ok, [pos_integer]}
   def sequence(rows, server \\ __MODULE__)
   def sequence(row, server) when is_map(row), do: sequence([row], server)
 
-  def sequence(rows, server) when is_list(rows),
-    do: GenServer.call(server, {:sequence, rows}, 30_000)
+  def sequence(rows, server) when is_list(rows), do: Aerox.Sequencer.sequence(server, rows)
 
   def sequence_commit(did, commit_data, server \\ __MODULE__),
     do: sequence([Events.commit(did, commit_data)], server)
@@ -87,97 +94,15 @@ defmodule Aerox.PDS.Sequencer do
 
   @doc "The latest seq, or nil."
   @spec current() :: pos_integer | nil
-  def current, do: Repo.one(from(r in RepoSeq, select: max(r.seq)))
+  def current, do: Aerox.Sequencer.current(Repo, RepoSeq)
 
   @doc "The first row after `cursor`."
-  def next_after(cursor),
-    do: Repo.one(from(r in RepoSeq, where: r.seq > ^cursor, order_by: [asc: r.seq], limit: 1))
+  def next_after(cursor), do: Aerox.Sequencer.next_after(Repo, RepoSeq, cursor)
 
   @doc "The earliest row sequenced at or after `time`."
-  def earliest_after_time(%DateTime{} = time),
-    do:
-      Repo.one(
-        from(r in RepoSeq,
-          where: r.sequenced_at >= ^time,
-          order_by: [asc: r.sequenced_at, asc: r.seq],
-          limit: 1
-        )
-      )
+  def earliest_after_time(time), do: Aerox.Sequencer.earliest_after_time(Repo, RepoSeq, time)
 
   @doc "Non-invalidated rows in `(after_seq, ∞)`, oldest first, at most `limit`."
   @spec range(pos_integer | nil, pos_integer) :: [map]
-  def range(after_seq, limit) do
-    q = from(r in RepoSeq, where: not r.invalidated, order_by: [asc: r.seq], limit: ^limit)
-    q = if after_seq, do: where(q, [r], r.seq > ^after_seq), else: q
-    q |> Repo.all() |> Enum.map(&Map.from_struct/1)
-  end
-
-  # The insert is the sequencer's own transaction on its own connection
-  # (assign, insert, commit, then broadcast — DESIGN §5.3). Under the test
-  # sandbox that connection must be a real one, or it would wait on the
-  # test's single shared connection forever; `config :aerox, Aerox.PDS.Sequencer, unboxed: true`.
-  defp insert_rows(rows) do
-    run = fn -> Repo.transaction(fn -> Repo.insert_all(RepoSeq, rows) end) end
-
-    if Application.get_env(:aerox, __MODULE__, [])[:unboxed],
-      do: Ecto.Adapters.SQL.Sandbox.unboxed_run(Repo, run),
-      else: run.()
-  end
-
-  # ---------------------------------------------------------------- server
-
-  @impl true
-  def init(_opts) do
-    {:ok, %{last_seq: current() || 0, queue: [], timer: nil}}
-  end
-
-  @impl true
-  def handle_call({:sequence, rows}, from, state) do
-    state = %{state | queue: [{from, rows} | state.queue]}
-    pending = Enum.reduce(state.queue, 0, fn {_, rows}, n -> n + length(rows) end)
-
-    cond do
-      pending >= @max_batch ->
-        {:noreply, flush(state)}
-
-      state.timer == nil ->
-        {:noreply, %{state | timer: Process.send_after(self(), :flush, @flush_after)}}
-
-      true ->
-        {:noreply, state}
-    end
-  end
-
-  @impl true
-  def handle_info(:flush, state), do: {:noreply, flush(%{state | timer: nil})}
-
-  defp flush(%{queue: []} = state), do: state
-
-  defp flush(%{queue: queue, last_seq: last_seq, timer: timer} = state) do
-    if timer, do: Process.cancel_timer(timer)
-    batches = Enum.reverse(queue)
-    now = DateTime.utc_now()
-
-    {rows, _, replies} =
-      Enum.reduce(batches, {[], last_seq, []}, fn {from, evts}, {acc, seq, replies} ->
-        {numbered, seq} =
-          Enum.map_reduce(evts, seq, fn evt, s ->
-            {Map.merge(evt, %{seq: s + 1, invalidated: false, sequenced_at: now}), s + 1}
-          end)
-
-        {acc ++ numbered, seq, [{from, Enum.map(numbered, & &1.seq)} | replies]}
-      end)
-
-    case insert_rows(rows) do
-      {:ok, _} ->
-        new_last = rows |> List.last() |> Map.fetch!(:seq)
-        Enum.each(replies, fn {from, seqs} -> GenServer.reply(from, {:ok, seqs}) end)
-        Phoenix.PubSub.broadcast(Aerox.PubSub, @topic, {:firehose, rows})
-        %{state | queue: [], timer: nil, last_seq: new_last}
-
-      {:error, reason} ->
-        Enum.each(replies, fn {from, _} -> GenServer.reply(from, {:error, reason}) end)
-        %{state | queue: [], timer: nil}
-    end
-  end
+  def range(after_seq, limit), do: Aerox.Sequencer.range(Repo, RepoSeq, after_seq, limit)
 end
