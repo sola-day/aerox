@@ -1,0 +1,30 @@
+# DEV_PLAN §1.1: the standing demo is a `mix release` under systemd.
+#   install -d -o aerox -g aerox /opt/aerox /var/lib/aerox /etc/aerox
+#   cp ops/systemd/aerox.service /etc/systemd/system/ && systemctl enable --now aerox
+[Unit]
+Description=aerox (AT Protocol PDS, PLC, Relay, AppView, Labeler)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=aerox
+Group=aerox
+WorkingDirectory=/opt/aerox
+EnvironmentFile=/etc/aerox/prod.env
+ExecStartPre=/opt/aerox/bin/aerox eval "Aerox.Release.migrate()"
+ExecStart=/opt/aerox/bin/aerox start
+ExecStop=/opt/aerox/bin/aerox stop
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+# Hardening: the release writes only under /var/lib/aerox (blobs, image cache).
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/aerox
+StateDirectory=aerox
+
+[Install]
+WantedBy=multi-user.target

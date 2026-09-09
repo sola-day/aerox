@@ -100,4 +100,7 @@ config :aerox, Aerox.ImageServer.Origin,
   identity_cache: Aerox.AppView.Identity,
   timeout: 10_000
 
+# Aerox.PDS.Config.signer/0 refuses Signer.Local outside dev/test (DESIGN §14.2).
+config :aerox, env: config_env()
+
 import_config "#{config_env()}.exs"

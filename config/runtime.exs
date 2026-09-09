@@ -48,7 +48,8 @@ if config_env() == :prod do
         {Aerox.PDS.Repo, "PDS_DATABASE_URL"},
         {Aerox.PLC.Repo, "PLC_DATABASE_URL"},
         {Aerox.Relay.Repo, "RELAY_DATABASE_URL"},
-        {Aerox.AppView.Repo, "APPVIEW_DATABASE_URL"}
+        {Aerox.AppView.Repo, "APPVIEW_DATABASE_URL"},
+        {Aerox.Labeler.Repo, "LABELER_DATABASE_URL"}
       ] do
     if url = System.get_env(var) do
       config :aerox, repo,
@@ -71,6 +72,100 @@ if config_env() == :prod do
       """
 
   host = System.get_env("PHX_HOST") || "example.com"
+
+  # ------------------------------------------------------------------ services
+  # Every value below comes from /etc/aerox/<env>.env (DEV_PLAN §1.3): the file
+  # is 0600, loaded by systemd, never in the repo. Hostnames default to
+  # <service>.<PHX_HOST>; the PDS answers on PHX_HOST itself.
+  service_host = fn name ->
+    System.get_env("#{name}_HOST") || "#{String.downcase(name)}.#{host}"
+  end
+
+  need = fn var -> System.get_env(var) || raise("environment variable #{var} is missing") end
+
+  config :aerox, :plc_url, System.get_env("PLC_URL") || "https://" <> service_host.("PLC")
+
+  config :aerox,
+         :trusted_proxies,
+         String.split(System.get_env("TRUSTED_PROXIES", "127.0.0.1"), ",", trim: true)
+
+  labeler_did = System.get_env("LABELER_DID")
+
+  config :aerox, Aerox.PDS,
+    public_url: System.get_env("PDS_PUBLIC_URL") || "https://" <> host,
+    handle_domains: String.split(System.get_env("HANDLE_DOMAINS", "." <> host), ",", trim: true),
+    plc_url: System.get_env("PLC_URL") || "https://" <> service_host.("PLC"),
+    oauth_key_hex: need.("OAUTH_KEY_HEX"),
+    jwt_secret: need.("JWT_SECRET"),
+    recovery_did_key: System.get_env("RECOVERY_DID_KEY"),
+    invites_required: System.get_env("INVITES_REQUIRED", "true") in ~w(true 1),
+    contact_email: System.get_env("CONTACT_EMAIL"),
+    appview: [
+      url: "https://" <> service_host.("APPVIEW"),
+      did: "did:web:" <> service_host.("APPVIEW")
+    ],
+    mod_service: [url: "https://" <> service_host.("LABELER"), did: labeler_did],
+    mod_service_did: labeler_did
+
+  # DESIGN §14.2: the rotation key lives in KMS or behind the Remote signer in
+  # production; Signer.Local is refused by Aerox.PDS.Config.signer/0.
+  signer_config =
+    case System.get_env("SIGNER", "remote") do
+      "kms" ->
+        [
+          adapter: Aerox.Crypto.Signer.Kms,
+          key_id: need.("KMS_KEY_ID"),
+          region: need.("AWS_REGION"),
+          access_key_id: need.("AWS_ACCESS_KEY_ID"),
+          secret_access_key: need.("AWS_SECRET_ACCESS_KEY"),
+          session_token: System.get_env("AWS_SESSION_TOKEN")
+        ]
+
+      "remote" ->
+        [
+          adapter: Aerox.Crypto.Signer.Remote,
+          url: need.("SIGNER_URL"),
+          secret: need.("SIGNER_SECRET")
+        ]
+
+      other ->
+        raise "SIGNER must be kms or remote, got #{inspect(other)}"
+    end
+
+  config :aerox, Aerox.Crypto.Signer, signer_config
+
+  config :aerox, Aerox.Blob.Store,
+    adapter: Aerox.Blob.Disk,
+    root: System.get_env("BLOB_ROOT") || "/var/lib/aerox/blobs"
+
+  config :aerox, Aerox.Relay,
+    hostname: service_host.("RELAY"),
+    public_url: "https://" <> service_host.("RELAY"),
+    trusted_domains: String.split(System.get_env("RELAY_TRUSTED_DOMAINS", host), ",", trim: true),
+    admin_password: need.("RELAY_ADMIN_PASSWORD")
+
+  config :aerox, Aerox.ImageServer,
+    cache_dir: System.get_env("IMAGE_CACHE_DIR") || "/var/lib/aerox/image-cache",
+    max_bytes: String.to_integer(System.get_env("IMAGE_CACHE_MAX_BYTES", "4294967296"))
+
+  config :aerox, Aerox.AppView,
+    signing_key_hex: need.("APPVIEW_SIGNING_KEY_HEX"),
+    hostname: service_host.("APPVIEW"),
+    public_url: "https://" <> service_host.("APPVIEW"),
+    relay_url: System.get_env("RELAY_WS_URL") || "wss://" <> service_host.("RELAY"),
+    image_cache_dir: System.get_env("IMAGE_CACHE_DIR") || "/var/lib/aerox/image-cache",
+    labelers:
+      if(labeler_did,
+        do: [%{did: labeler_did, url: "wss://" <> service_host.("LABELER")}],
+        else: []
+      )
+
+  config :aerox, Aerox.Labeler,
+    hostname: service_host.("LABELER"),
+    public_url: "https://" <> service_host.("LABELER"),
+    did: labeler_did,
+    signing_key_hex: System.get_env("LABELER_SIGNING_KEY_HEX"),
+    admin_password: need.("LABELER_ADMIN_PASSWORD")
 
   config :aerox, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 

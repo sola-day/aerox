@@ -11,8 +11,11 @@ defmodule Aerox.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:boundary, :phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader],
+      listeners: if(Mix.env() == :dev, do: [Phoenix.CodeReloader], else: []),
       boundary: [externals_mode: :relaxed],
+      releases: [
+        aerox: [include_executables_for: [:unix], applications: [runtime_tools: :permanent]]
+      ],
       dialyzer: [
         plt_file: {:no_warn, "priv/plts/project.plt"},
         plt_add_apps: [:mix, :ex_unit]
