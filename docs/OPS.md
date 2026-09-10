@@ -19,7 +19,10 @@ Install the release to `/opt/aerox` as the `aerox` user, the env file to
 (`Aerox.Release.migrate/0`) and writes only under `/var/lib/aerox`.
 
 The reverse proxy terminates TLS and must set `x-forwarded-for` and
-`x-forwarded-proto`; list its peer addresses in `TRUSTED_PROXIES`. One release
+`x-forwarded-proto`; list its peer addresses in `TRUSTED_PROXIES`. Set `BIND_IP`
+to the address the proxy dials: the default binds every interface, and on a host
+with no packet filter that publishes the plaintext port beside the proxy, which
+also makes `TRUSTED_PROXIES` moot because clients reach Phoenix directly. One release
 serves every hostname: `AeroxWeb.Dispatch` routes by `Host` to the PDS+PLC
 router, the Relay, the AppView or the Labeler. Hostnames default to
 `<service>.<PHX_HOST>` and can be overridden with `PLC_HOST`, `RELAY_HOST`,
@@ -64,7 +67,11 @@ DESIGN §13.0); it is the only format users can take elsewhere.
 
 ## 4. Health and telemetry
 
-`GET /xrpc/_health` on every host returns the version. Telemetry events are
+`GET /xrpc/_health` answers on the PDS, the relay, the AppView and the
+labeler (the PDS returns the release version; upstream's PDS answers at the same
+path). The PLC directory is route-for-route did-method-plc, which puts its
+liveness check at `GET /_health`, and the relay, AppView and labeler answer
+there as well. Telemetry events are
 emitted by Phoenix, Ecto, Oban and Broadway; the export decision (M10) is
 **Prometheus via `telemetry_metrics_prometheus_core`** on a private port, to
 be wired when the first release is cut. Until then `Aerox.Telemetry` only

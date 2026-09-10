@@ -33,6 +33,7 @@ defmodule AeroxWeb.RelayRouter do
     pipe_through :relay
 
     options "/*path", SyncController, :not_implemented
+    get "/_health", SyncController, :health
     post "/com.atproto.sync.requestCrawl", SyncController, :request_crawl
     get "/com.atproto.sync.listHosts", SyncController, :list_hosts
     get "/com.atproto.sync.getHostStatus", SyncController, :get_host_status

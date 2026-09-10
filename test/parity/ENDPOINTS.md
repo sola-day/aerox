@@ -17,6 +17,10 @@ Status: `flow` = exercised by the HTTP flow tests against our own stack;
 
 | Method | Verb | Service | Status | Deviation |
 |---|---|---|---|---|
+| `_health` | GET | pds | flow | not a lexicon method; upstream's PDS answers here and docs/OPS.md §4 monitors it |
+| `_health` | GET | relay | flow |  |
+| `_health` | GET | appview | flow |  |
+| `_health` | GET | labeler | flow |  |
 | `com.atproto.server.describeServer` | GET | pds | flow |  |
 | `com.atproto.server.createAccount` | POST | pds | flow | no `plcOp` input (DESIGN §18.3: signup mints the DID here) |
 | `com.atproto.server.createSession` | POST | pds | flow |  |

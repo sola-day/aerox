@@ -1,6 +1,8 @@
 // The smallest possible proof that the stack answers an upstream client:
 // describeServer, createAccount, createSession, a post, a read, and the
-// firehose, all through @atproto/api. AEROX_PDS_URL defaults to the dev stack.
+// firehose, all through @atproto/api. AEROX_PDS_URL defaults to the dev stack;
+// AEROX_INVITE_CODE is required against a deployment that runs with
+// INVITES_REQUIRED (as the release drill on the second host does).
 import { AtpAgent } from '@atproto/api'
 import WebSocket from 'ws'
 
@@ -13,7 +15,12 @@ console.log('describeServer', JSON.stringify(res.data))
 const domain = res.data.availableUserDomains[0]
 const handle = `smoke-${Date.now().toString(36)}${domain}`
 const password = 'REDACTED-smoke-harness-password'
-const created = await agent.createAccount({ handle, email: `${handle}@example.invalid`, password })
+const created = await agent.createAccount({
+  handle,
+  email: `${handle}@example.invalid`,
+  password,
+  ...(process.env.AEROX_INVITE_CODE ? { inviteCode: process.env.AEROX_INVITE_CODE } : {}),
+})
 console.log('createAccount', created.data.did, created.data.handle)
 
 const agent2 = new AtpAgent({ service })

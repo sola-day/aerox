@@ -169,15 +169,27 @@ if config_env() == :prod do
 
   config :aerox, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  # The address Bandit listens on. The default binds every interface, which on a
+  # host without a packet filter publishes the plaintext HTTP port beside the
+  # reverse proxy that is supposed to be the only way in — and TRUSTED_PROXIES
+  # then has nothing to check, because the client reaches Phoenix directly. Set
+  # BIND_IP to the private address the proxy dials (dev does the same through
+  # AEROX_BIND_IP).
+  bind_ip =
+    case System.get_env("BIND_IP") do
+      nil ->
+        {0, 0, 0, 0, 0, 0, 0, 0}
+
+      addr ->
+        case :inet.parse_address(String.to_charlist(addr)) do
+          {:ok, ip} -> ip
+          {:error, _} -> raise "BIND_IP is not an IP address: #{inspect(addr)}"
+        end
+    end
+
   config :aerox, AeroxWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
-    http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://bandit.hexdocs.pm/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0}
-    ],
+    http: [ip: bind_ip],
     secret_key_base: secret_key_base
 
   # ## SSL Support

@@ -34,6 +34,7 @@ defmodule AeroxWeb.LabelerRouter do
   scope "/xrpc", AeroxWeb.Labeler do
     pipe_through :labeler
     options "/*path", MetaController, :not_implemented
+    get "/_health", MetaController, :health
 
     get "/com.atproto.label.queryLabels", LabelController, :query_labels
     post "/com.atproto.moderation.createReport", ModerationController, :create_report

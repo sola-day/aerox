@@ -17,6 +17,8 @@ defmodule AeroxWeb.PDS.ServerController do
   alias Aerox.PDS.{Accounts, Config, Mailer, PlcOps, Records, Sequencer, Sessions, Signup}
   alias AeroxWeb.XRPC.Error
 
+  def health(conn, _), do: respond(conn, %{"version" => to_string(Application.spec(:aerox, :vsn))})
+
   def describe_server(conn, _) do
     body =
       %{

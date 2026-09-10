@@ -1,0 +1,42 @@
+# Traefik dynamic configuration for the release drill on the second host
+# (docs/OPS.md §1: a release candidate installed from the runbook on a machine
+# that has never built aerox). That host runs Traefik v3 with a file provider,
+# so this drops in whole; on the dev box the equivalent fragment is spliced into
+# a shared file by ops/traefik/install.sh.
+#
+# One release serves every hostname — AeroxWeb.Dispatch routes by Host — so all
+# routers share one service on the loopback port the unit binds (BIND_IP).
+http:
+  routers:
+    # Owns the certificate for the whole subtree. A handle is one label below
+    # aerox.generic.dev and a TLS wildcard covers exactly one label, so the
+    # `domains` block is what keeps this to a single certificate instead of one
+    # per handle (Let's Encrypt allows 50 a week per registered domain, and
+    # generic.dev already carries other subtrees).
+    aerox:
+      rule: "Host(`aerox.generic.dev`) || Host(`plc.aerox.generic.dev`) || Host(`relay.aerox.generic.dev`) || Host(`appview.aerox.generic.dev`) || Host(`labeler.aerox.generic.dev`)"
+      entryPoints: [websecure]
+      service: aerox
+      priority: 40
+      tls:
+        certResolver: le-dns
+        domains:
+          - main: "aerox.generic.dev"
+            sans:
+              - "*.aerox.generic.dev"
+
+    # Handles. No certResolver: the certificate above is already in Traefik's
+    # store and matched by SNI, so naming a resolver here would only invite
+    # per-handle issuance. Priority stays below the named routers.
+    aerox-handles:
+      rule: 'HostRegexp(`^[a-zA-Z0-9-]+\.aerox\.generic\.dev$`)'
+      entryPoints: [websecure]
+      service: aerox
+      priority: 30
+      tls: {}
+
+  services:
+    aerox:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:4000"

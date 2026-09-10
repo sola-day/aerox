@@ -39,6 +39,7 @@ defmodule AeroxWeb.AppViewRouter do
     pipe_through :appview
 
     options "/*path", MetaController, :not_implemented
+    get "/_health", MetaController, :health
 
     # actor
     get "/app.bsky.actor.getProfile", ActorController, :get_profile

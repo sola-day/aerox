@@ -88,6 +88,11 @@ defmodule AeroxWeb.Router do
     # browser preflights (answered by AeroxWeb.Plugs.CORS in the pipeline)
     options "/*path", ProxyController, :preflight
 
+    # Liveness. Upstream's PDS answers here, so anything already pointed at an
+    # atproto PDS finds it; it must be declared before the proxy catch-all at
+    # the bottom of this router, which would otherwise swallow it.
+    get "/_health", ServerController, :health
+
     # com.atproto.server
     get "/com.atproto.server.describeServer", ServerController, :describe_server
     post "/com.atproto.server.createAccount", ServerController, :create_account

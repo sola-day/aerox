@@ -83,6 +83,21 @@ http:
       service: aerox-ouranos
       tls: {}
 
+    # The rotation-key signing service of DESIGN §14.2, which by definition does
+    # not run on the host it signs for: this box holds the key and the release
+    # under drill on generic.dev calls in. `Signer.Remote` authenticates with a
+    # bearer secret, but a signing oracle should not also be reachable by the
+    # whole internet, so the allow-list pins it to that one host (both of its
+    # addresses — its egress prefers IPv6).
+    aerox-signer:
+      rule: "Host(`signer.aerox.sola.town`)"
+      entryPoints:
+        - websecure
+      service: aerox-signer
+      middlewares:
+        - aerox-signer-allow
+      tls: {}
+
     # bulletin (DESIGN §12.5 / VERIFICATION §6 scenario 9): the spaces demo app
     # on the bridge gateway at :3002, its managing-app DID is did:web:bulletin.aerox.sola.town.
     aerox-bulletin:
@@ -92,7 +107,18 @@ http:
       service: aerox-bulletin
       tls: {}
 
+  middlewares:
+    aerox-signer-allow:
+      ipAllowList:
+        sourceRange:
+          - "51.159.210.79/32"
+          - "2001:bc8:1201:601:2247:47ff:fe7f:8f92/128"
+
   services:
+    aerox-signer:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.1:4900"
     aerox-bulletin:
       loadBalancer:
         servers:
