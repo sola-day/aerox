@@ -640,8 +640,34 @@ written during the milestone.
   (`test/network/faults.sh`, `RESULTS.md`: found that neither firehose
   consumer detected half-open links — both now have a 75 s pong deadline);
   and concurrent AppView hydration (`Hydration.parallel/2`).
-- **Still carried (need resources this box does not have).** A release
-  candidate deployed to a clean second host from `docs/OPS.md`; the §10.4
-  migration drill against a real production snapshot (§1.3 forbids one
-  here); the reference AppView parity rows from M7 (no reference AppView
-  container); the relay fan-out / ingest / image CDN rows of §10.1.
+- **Closed on the second host (2026-09-10, `generic.dev`).** A release
+  candidate installed straight from `docs/OPS.md` — untarred `mix release`,
+  `/etc/aerox/prod.env`, the systemd unit, Postgres 18, a Traefik fragment —
+  serving `aerox.generic.dev` and its handle wildcard, with the rotation key
+  behind `Signer.Remote` on *this* box and reachable only from that one host
+  (DESIGN §14.2). VERIFICATION §6 scenario 1 passes there and the genesis PLC
+  operation carries the offline recovery key and the instance key in that
+  order. The three §10.1 rows that needed two machines are in
+  `bench/RESULTS.md`: relay fan-out (1 000 subscribers replay a backlog with
+  no loss; ~17 KB per idle subscriber), AppView ingest by partition count
+  (ceiling ~450 events/s at 8, and it is the database), and the image CDN at
+  its libvips bound (37 cold images/s on 8 cores, 9 900–15 400 cache hits/s).
+  The §7.1 parity rows are closed too: `tools/interop/bsky-standalone` is the
+  reference AppView, `test/harness/parity.mjs` the driver, and the run is
+  **21 of 21 endpoints identical** (`test/parity/ENDPOINTS.md` records the
+  four defects and one environment trap it took to get there).
+
+  Following the runbook found five things it got wrong, all fixed: the
+  endpoint bound every interface (`BIND_IP`); `GET /xrpc/_health` did not
+  exist on the PDS and was documented for services that answered elsewhere;
+  the smoke harness could not create an account against a deployment with
+  invites required; the unit scored 8.3 on `systemd-analyze security` and now
+  scores 1.3; and a signing service that is down produced an unnamed 500 whose
+  log line blamed the JSON encoder, where it should be a `502 UpstreamFailure`.
+
+- **Still carried.** The §10.4 migration drill against a *real production*
+  snapshot. This is no longer a question of resources: §1.3 forbids production
+  data on these machines, and there is no aerox in production to take a
+  snapshot of. The drill has run against a prepared snapshot (M5 exit) and the
+  restore drill against the dev stack (`docs/OPS.md` §3); the production one
+  belongs to the cutover it exists for.
