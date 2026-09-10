@@ -622,6 +622,38 @@ defmodule Aerox.Auth.Scopes do
     }
   end
 
+  @doc """
+  Upstream `LexiconManager.buildTokenScope` plus the alpha's issuance-time
+  resolution: the scope a token carries (and the token response's `scope`)
+  is composed solely of granular permissions — every `include:` expanded
+  from its permission set, `authority=self` resolved to the account, default
+  collections filled in — so clients such as `bulletin` can evaluate it
+  locally with `ScopePermissions`. Scopes without `include:` are returned
+  as-is (upstream does the same), except that space scopes are still resolved.
+  """
+  @spec build_token_scope(String.t() | nil, String.t()) :: String.t()
+  def build_token_scope(scope_string, user_did) do
+    scopes = (scope_string || "") |> String.split(" ", trim: true) |> Enum.uniq()
+
+    scopes
+    |> Enum.flat_map(fn s ->
+      case parse(s) do
+        {:include, inc} ->
+          expand_include(inc, default_lookup(inc.nsid) || %{})
+          |> resolve_space(user_did)
+          |> Enum.map(&format/1)
+
+        {:space, _} = p ->
+          [p] |> resolve_space(user_did) |> Enum.map(&format/1)
+
+        _ ->
+          [s]
+      end
+    end)
+    |> Enum.uniq()
+    |> Enum.join(" ")
+  end
+
   defp default_lookup(nsid) do
     case Aerox.ATProto.Lexicon.Registry.get_def(Aerox.ATProto.Lexicon.default_registry(), nsid) do
       {:ok, %{"type" => "permission-set"} = def} -> def

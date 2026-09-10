@@ -178,6 +178,27 @@ defmodule Aerox.Auth.ScopesTest do
       assert cols == ["my.bulletin.post", "my.bulletin.removal", "my.bulletin.position"]
     end
 
+    test "build_token_scope materialises include: into granular scopes for the token" do
+      scope =
+        Scopes.build_token_scope(
+          "atproto blob?accept=image/png include:my.bulletin.permissions",
+          "did:plc:user"
+        )
+
+      assert scope =~
+               ~r/^atproto blob\?accept=image\/png space:my\.bulletin\.board\?authority=\*&skey=self/
+
+      assert scope =~ "manage=create&manage=update&manage=delete"
+
+      assert scope =~
+               "collection=my.bulletin.position&collection=my.bulletin.post&collection=my.bulletin.removal"
+
+      refute scope =~ "include:"
+      # no include: → unchanged
+      assert "atproto repo:app.bsky.feed.post" ==
+               Scopes.build_token_scope("atproto repo:app.bsky.feed.post", "did:plc:user")
+    end
+
     test "include: expands bulletin's permission set into a space permission" do
       %{permissions: perms} = Scopes.grant("atproto include:my.bulletin.permissions")
 

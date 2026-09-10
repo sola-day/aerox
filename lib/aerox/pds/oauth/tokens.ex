@@ -27,7 +27,8 @@ defmodule Aerox.PDS.OAuth.Tokens do
     refresh = if "refresh_token" in client.metadata["grant_types"], do: gen("ref-", 32)
     now = DateTime.utc_now()
     expires = DateTime.add(now, @token_max_age, :second)
-    scope = params["scope"]
+    # the token carries granular permissions only (Scopes.build_token_scope)
+    scope = Aerox.Auth.Scopes.build_token_scope(params["scope"], did)
 
     Repo.insert!(%OAuthToken{
       did: did,
@@ -106,7 +107,7 @@ defmodule Aerox.PDS.OAuth.Tokens do
          new_id,
          row.did,
          row.parameters,
-         row.scope,
+         Aerox.Auth.Scopes.build_token_scope(row.scope, row.did),
          now,
          expires,
          new_refresh,
