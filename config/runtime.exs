@@ -146,10 +146,14 @@ if config_env() == :prod do
 
   config :aerox, Aerox.ImageServer,
     cache_dir: System.get_env("IMAGE_CACHE_DIR") || "/var/lib/aerox/image-cache",
-    max_bytes: String.to_integer(System.get_env("IMAGE_CACHE_MAX_BYTES", "4294967296"))
+    max_bytes: String.to_integer(System.get_env("IMAGE_CACHE_MAX_BYTES", "4294967296")),
+    # The libvips concurrency bound of DESIGN §21.8: how many dirty-scheduler
+    # NIF calls may run at once. VERIFICATION §10.1 measures images/s against it.
+    concurrency: String.to_integer(System.get_env("IMAGE_CONCURRENCY", "4"))
 
   config :aerox, Aerox.AppView,
     signing_key_hex: need.("APPVIEW_SIGNING_KEY_HEX"),
+    ingest_concurrency: String.to_integer(System.get_env("INGEST_CONCURRENCY", "4")),
     hostname: service_host.("APPVIEW"),
     public_url: "https://" <> service_host.("APPVIEW"),
     relay_url: System.get_env("RELAY_WS_URL") || "wss://" <> service_host.("RELAY"),

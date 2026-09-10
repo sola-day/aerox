@@ -10,6 +10,11 @@ defmodule Aerox.AppView.Config do
   def service_did, do: get(:service_did) || "did:web:" <> hostname()
   @doc "The Relay the ingest subscribes to (DESIGN §15.1: never the PDS directly)."
   def relay_url, do: get(:relay_url) || "wss://relay.localhost"
+
+  # Processor partitions of the ingest pipeline (DESIGN §21.5). Events of one
+  # repo stay in one partition, so this is the parallelism across repos and
+  # the axis VERIFICATION §10.1 asks to measure ingest throughput along.
+  def ingest_concurrency, do: get(:ingest_concurrency) || 4
   @doc "Image CDN base for view URLs (DESIGN §16); defaults to `<public_url>/img`."
   def image_url, do: get(:image_url) || public_url() <> "/img"
 

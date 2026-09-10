@@ -73,6 +73,12 @@ http:
         - websecure
       service: aerox-ref-pds
       tls: {}
+    aerox-ref-appview:
+      rule: "Host(`ref-appview.aerox.sola.town`)"
+      entryPoints:
+        - websecure
+      service: aerox-ref-appview
+      tls: {}
 
     # ouranos (DEV_PLAN §1.2), the Next.js dev/standalone server on the bridge
     # gateway at :3000, pointed at pds.aerox.sola.town.
@@ -143,3 +149,7 @@ http:
       loadBalancer:
         servers:
           - url: "http://172.18.0.1:2583"
+    aerox-ref-appview:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.1:2584"

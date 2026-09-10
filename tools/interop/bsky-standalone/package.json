@@ -1,0 +1,12 @@
+{
+  "name": "aerox-ref-appview",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.5.2",
+  "dependencies": {
+    "@atproto/bsky": "workspace:^",
+    "@atproto/bsync": "workspace:^",
+    "@atproto/crypto": "workspace:^",
+    "@did-plc/lib": "^0.0.1"
+  }
+}

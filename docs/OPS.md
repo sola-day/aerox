@@ -77,7 +77,18 @@ emitted by Phoenix, Ecto, Oban and Broadway; the export decision (M10) is
 be wired when the first release is cut. Until then `Aerox.Telemetry` only
 logs.
 
-## 5. Drills
+## 5. Tuning
+
+Three knobs decide throughput and all three have defaults chosen for a small
+box; `bench/RESULTS.md` has the measurements behind these.
+
+| Variable | Default | What it costs to get it wrong |
+|---|---|---|
+| `IMAGE_CONCURRENCY` | 4 | The libvips bound (DESIGN §21.8). Cold-image throughput scales almost linearly up to the core count and flat after, so 4 on an 8-core image host leaves a third of the machine idle. Set it to the core count. |
+| `INGEST_CONCURRENCY` | 4 | AppView ingest partitions. Events of one repo stay in one partition, so this only helps when many repos are active; on the drill host it doubled throughput at 8 and gained nothing after. |
+| `POOL_SIZE` | 10 | Per repo, and there are five. `POOL_SIZE` × 5 + one per sequencer + Oban must stay under the database's `max_connections`; past it, throughput *falls* and boot takes minutes as connections are retried. |
+
+## 6. Drills
 
 | Drill | How | Cadence |
 |---|---|---|
