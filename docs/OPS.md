@@ -49,6 +49,16 @@ databases or a non-empty blob root, restores both dumps and the blobs, and
 prints the commit the backup was taken at. Then run the release's migrations
 and VERIFICATION §6 scenario 1 against the restored stack.
 
+Drill record (2026-09-10, commit 3b5180d): backup of the dev stack →
+restore into empty `aerox_pds_drill`/`aerox_core_drill` and a fresh blob
+root → a second server (`AEROX_DB_SUFFIX=_drill AEROX_POOL_SIZE=3 PORT=4001`)
+→ `test/harness/restore-check.mjs`: restored login, records visible, a new
+commit on top, CAR served (`RESTORE OK`). Two things the drill found: a
+`--no-owner` restore silently locks every service role out of its schema
+(the schemas are role-owned), so ownership is now dumped and restored; and
+two full stacks on one Postgres exceed the default 100 connections — budget
+`pool_size` × repos + one per sequencer + Oban per instance.
+
 The per-account logical backup is the bundle (`mix aerox.bundle.export`,
 DESIGN §13.0); it is the only format users can take elsewhere.
 

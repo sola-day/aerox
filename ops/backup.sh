@@ -4,18 +4,22 @@
 # age (the operator's public key; the private key is not on this host).
 #
 #   ops/backup.sh <dest-dir> <age-recipient>
-# Env: PDS_DATABASE_URL, PLC_DATABASE_URL (any aerox_core role URL), BLOB_ROOT.
+# Ownership and grants are dumped as-is: each service schema is *owned* by its
+# role (the DESIGN §4.6 privilege matrix), so a restore that dropped owners
+# would lock every service out (found by the first drill).
+# Env: PDS_DATABASE_URL, CORE_DATABASE_URL (a role that can read the whole
+# database — the owner/superuser, not a per-service role), BLOB_ROOT.
 # Restore with ops/restore.sh. Exercised by VERIFICATION §10.4's restore drill.
 set -euo pipefail
 dest="${1:?dest dir}"; recipient="${2:?age recipient}"
-: "${PDS_DATABASE_URL:?}" "${PLC_DATABASE_URL:?}" "${BLOB_ROOT:?}"
+: "${PDS_DATABASE_URL:?}" "${CORE_DATABASE_URL:?}" "${BLOB_ROOT:?}"
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
 out="$dest/aerox-$stamp"; mkdir -p "$out"
 
 pg_url() { echo "${1#ecto://}" | sed 's#^#postgresql://#'; }
-pg_dump --format=custom --no-owner --file="$work/aerox_pds.dump"  "$(pg_url "$PDS_DATABASE_URL")"
-pg_dump --format=custom --no-owner --file="$work/aerox_core.dump" "$(pg_url "$PLC_DATABASE_URL")"
+pg_dump --format=custom --file="$work/aerox_pds.dump"  "$(pg_url "$PDS_DATABASE_URL")"
+pg_dump --format=custom --file="$work/aerox_core.dump" "$(pg_url "$CORE_DATABASE_URL")"
 # --numeric-owner + xattrs: the rice-storage lesson (DESIGN §4.4) — ownership bits travel with the blobs.
 tar --numeric-owner --xattrs -C "$BLOB_ROOT" -cf "$work/blobs.tar" .
 git -C "$(dirname "$0")/.." rev-parse HEAD > "$work/COMMIT" 2>/dev/null || echo unknown > "$work/COMMIT"

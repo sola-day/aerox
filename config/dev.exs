@@ -5,6 +5,9 @@ import Config
 # by docker/postgres/init and each has exactly the privileges its service needs.
 db_host = System.get_env("DATABASE_HOST", "127.0.0.1")
 db_port = String.to_integer(System.get_env("DATABASE_PORT", "5433"))
+# AEROX_DB_SUFFIX="_drill" points a second dev server at restored copies of
+# both databases (the restore drill, docs/OPS.md §3).
+db_suffix = System.get_env("AEROX_DB_SUFFIX", "")
 
 for {repo, role, database} <- [
       {Aerox.PDS.Repo, "aerox_pds", "aerox_pds"},
@@ -18,11 +21,11 @@ for {repo, role, database} <- [
     password: System.get_env("DATABASE_ROLE_PASSWORD", role),
     hostname: db_host,
     port: db_port,
-    database: database,
+    database: database <> db_suffix,
     stacktrace: true,
     show_sensitive_data_on_connection_error: true,
     # four repos share one small box: STRUCTURE §7 asks for explicit sizing
-    pool_size: 10
+    pool_size: String.to_integer(System.get_env("AEROX_POOL_SIZE", "10"))
 end
 
 # The endpoint binds to loopback by default, so a plain checkout is not exposed
