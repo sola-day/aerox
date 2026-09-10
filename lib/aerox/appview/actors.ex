@@ -7,6 +7,7 @@ defmodule Aerox.AppView.Actors do
   the controllers map reasons to XRPC errors.
   """
   import Ecto.Query
+  alias Aerox.ATProto.Syntax
   alias Aerox.AppView.{Hydration, Repo, Search, Views}
   alias Aerox.AppView.Schema, as: S
 
@@ -41,6 +42,30 @@ defmodule Aerox.AppView.Actors do
 
   @doc "Upstream `getDidsDefined`: the DIDs of the actors that resolve, in order."
   def resolve_dids(actors), do: actors |> Enum.map(&resolve_did/1) |> Enum.reject(&is_nil/1)
+
+  @doc """
+  Upstream `hydrator.resolveUri`: an at-URI whose authority is a handle names
+  the same record as the DID-based one. Clients build them that way — a route
+  like `/user/:handle/post/:rkey` has only the handle to hand — so a lookup
+  that takes a URI has to accept both. A handle that resolves to nothing is
+  left alone, so the caller reports "not found" against what it was given.
+  """
+  @spec resolve_uri(String.t() | nil) :: String.t() | nil
+  def resolve_uri("at://did:" <> _ = uri), do: uri
+
+  def resolve_uri(uri) when is_binary(uri) do
+    with {:ok, parts} <- Syntax.parse_at_uri(uri),
+         false <- String.starts_with?(parts.authority, "did:"),
+         did when is_binary(did) <- resolve_did(parts.authority) do
+      ["at://" <> did, parts.collection, parts.rkey]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.join("/")
+    else
+      _ -> uri
+    end
+  end
+
+  def resolve_uri(uri), do: uri
 
   @doc "Is the actor indexed at all (upstream `actors.get(did)` being defined)?"
   def exists?(did, state), do: match?(%{exists: true}, state.actors[did])

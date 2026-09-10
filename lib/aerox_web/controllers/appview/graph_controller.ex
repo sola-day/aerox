@@ -4,7 +4,7 @@ defmodule AeroxWeb.AppView.GraphController do
   use AeroxWeb.Plugs.XRPCError
   import AeroxWeb.XRPC
   import AeroxWeb.AppView.Helpers
-  alias Aerox.AppView.Graph
+  alias Aerox.AppView.{Actors, Graph}
 
   # ------------------------------------------------------------- queries
 
@@ -96,7 +96,7 @@ defmodule AeroxWeb.AppView.GraphController do
     p = params!(conn, "app.bsky.graph.getStarterPack")
     state = state(conn)
 
-    case Graph.starter_pack(p["starterPack"], state) do
+    case Graph.starter_pack(Actors.resolve_uri(p["starterPack"]), state) do
       {:ok, view} -> respond_labeled(conn, state, %{"starterPack" => view})
       {:error, _} -> raise AeroxWeb.XRPC.Error.invalid_request("Starter pack not found")
     end

@@ -384,6 +384,20 @@ defmodule AeroxWeb.AppView.FeedControllerTest do
     assert {r2_uri, r3_uri} == {r2.uri, r3.uri}
     assert thread["post"]["replyCount"] == 1
 
+    # the anchor may name its author by handle (upstream `hydrator.resolveUri`):
+    # clients that route on `/user/:handle/post/:rkey` have nothing else to build with
+    by_handle = String.replace(r1.uri, bob.did, bob.handle)
+    assert by_handle != r1.uri
+
+    assert xrpc!(conn, "app.bsky.feed.getPostThread", %{"uri" => by_handle})["thread"]["post"][
+             "uri"
+           ] == r1.uri
+
+    assert {400, %{"error" => "NotFound"}} =
+             xrpc_error(conn, "app.bsky.feed.getPostThread", %{
+               "uri" => String.replace(r1.uri, bob.did, "nobody.aerox.sola.town")
+             })
+
     # depth / parentHeight limits
     body =
       xrpc!(conn, "app.bsky.feed.getPostThread", %{

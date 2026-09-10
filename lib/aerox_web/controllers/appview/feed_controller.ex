@@ -10,7 +10,7 @@ defmodule AeroxWeb.AppView.FeedController do
   use AeroxWeb.Plugs.XRPCError
   import AeroxWeb.XRPC
   alias Aerox.ATProto.Syntax
-  alias Aerox.AppView.{Config, Feeds, Hydration, Views}
+  alias Aerox.AppView.{Actors, Config, Feeds, Hydration, Views}
   alias AeroxWeb.XRPC.Error
 
   # ------------------------------------------------------------- timeline
@@ -95,7 +95,7 @@ defmodule AeroxWeb.AppView.FeedController do
     viewer = conn.assigns.viewer
     params = params!(conn, "app.bsky.feed.getPostThread")
     labelers = labelers(conn)
-    anchor = params["uri"]
+    anchor = Actors.resolve_uri(params["uri"])
     depth = params["depth"] || 6
     height = params["parentHeight"] || 80
 
