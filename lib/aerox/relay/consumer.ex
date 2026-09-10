@@ -20,6 +20,9 @@ defmodule Aerox.Relay.Consumer do
   @persist_every 4_000
   @ping_every 30_000
   @max_backoff_ms 60_000
+  # VERIFICATION §10.3 "half-open connections": no data and no pong for this
+  # long means the peer is gone; reconnect from the cursor.
+  @dead_after 75_000
   @offline_after 16
 
   def start_link(%Host{} = host) do
@@ -48,6 +51,7 @@ defmodule Aerox.Relay.Consumer do
        ws: nil,
        ref: nil,
        backoff: 0,
+       last_rx: System.monotonic_time(:millisecond),
        connected?: false,
        buffer: <<>>
      }}
@@ -77,11 +81,19 @@ defmodule Aerox.Relay.Consumer do
 
   # keepalive: a ping every 30 s so idle-timeout proxies and servers keep the socket
   def handle_info(:ping, %{ws: ws, conn: conn} = state) when ws != nil and conn != nil do
-    with {:ok, ws, bytes} <- Mint.WebSocket.encode(ws, {:ping, ""}),
-         {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, state.ref, bytes) do
-      {:noreply, %{state | ws: ws, conn: conn}}
+    if System.monotonic_time(:millisecond) - state.last_rx > @dead_after do
+      Logger.warning(
+        "relay: host silent for #{@dead_after}ms host=#{state.host.hostname}, reconnecting"
+      )
+
+      retry(close(state))
     else
-      _ -> retry(close(state))
+      with {:ok, ws, bytes} <- Mint.WebSocket.encode(ws, {:ping, ""}),
+           {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, state.ref, bytes) do
+        {:noreply, %{state | ws: ws, conn: conn}}
+      else
+        _ -> retry(close(state))
+      end
     end
   end
 
@@ -97,7 +109,7 @@ defmodule Aerox.Relay.Consumer do
   def handle_info(message, %{conn: conn} = state) when conn != nil do
     case Mint.WebSocket.stream(conn, message) do
       {:ok, conn, responses} ->
-        state = %{state | conn: conn}
+        state = %{state | conn: conn, last_rx: System.monotonic_time(:millisecond)}
 
         case Enum.reduce_while(responses, {:ok, state}, &handle_response/2) do
           {:ok, state} -> {:noreply, state}
@@ -134,7 +146,17 @@ defmodule Aerox.Relay.Consumer do
     case Mint.WebSocket.new(state.conn, ref, state.upgrade_status, headers) do
       {:ok, conn, ws} ->
         Logger.info("relay: connected host=#{state.host.hostname} cursor=#{state.cursor}")
-        {:cont, {:ok, %{state | conn: conn, ws: ws, connected?: true, backoff: 0}}}
+
+        {:cont,
+         {:ok,
+          %{
+            state
+            | conn: conn,
+              ws: ws,
+              connected?: true,
+              backoff: 0,
+              last_rx: System.monotonic_time(:millisecond)
+          }}}
 
       {:error, conn, reason} ->
         Logger.warning(

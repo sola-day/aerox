@@ -21,6 +21,9 @@ defmodule Aerox.AppView.Ingest.Producer do
   @low_water 500
   @persist_every 3_000
   @ping_every 30_000
+  # VERIFICATION §10.3 "half-open connections": a peer that stopped answering
+  # (no data, no pong) for this long is dead; reconnect from the cursor.
+  @dead_after 75_000
 
   def start_link(opts), do: GenStage.start_link(__MODULE__, opts)
 
@@ -46,6 +49,7 @@ defmodule Aerox.AppView.Ingest.Producer do
        queued: 0,
        demand: 0,
        backoff: 0,
+       last_rx: System.monotonic_time(:millisecond),
        paused: false,
        cursor: cursor,
        persisted: cursor,
@@ -122,11 +126,16 @@ defmodule Aerox.AppView.Ingest.Producer do
   def handle_info(:persist, state), do: {:noreply, [], persist(state)}
 
   def handle_info(:ping, %{ws: ws, conn: conn} = state) when ws != nil and conn != nil do
-    with {:ok, ws, bytes} <- Mint.WebSocket.encode(ws, {:ping, ""}),
-         {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, state.ref, bytes) do
-      {:noreply, [], %{state | ws: ws, conn: conn}}
+    if System.monotonic_time(:millisecond) - state.last_rx > @dead_after do
+      Logger.warning("appview: firehose peer silent for #{@dead_after}ms, reconnecting")
+      {:noreply, [], retry(close(state))}
     else
-      _ -> {:noreply, [], retry(close(state))}
+      with {:ok, ws, bytes} <- Mint.WebSocket.encode(ws, {:ping, ""}),
+           {:ok, conn} <- Mint.WebSocket.stream_request_body(conn, state.ref, bytes) do
+        {:noreply, [], %{state | ws: ws, conn: conn}}
+      else
+        _ -> {:noreply, [], retry(close(state))}
+      end
     end
   end
 
@@ -135,7 +144,8 @@ defmodule Aerox.AppView.Ingest.Producer do
   def handle_info(message, %{conn: conn} = state) when conn != nil do
     case Mint.WebSocket.stream(conn, message) do
       {:ok, conn, responses} ->
-        state = Enum.reduce(responses, %{state | conn: conn}, &handle_response/2)
+        state = %{state | conn: conn, last_rx: System.monotonic_time(:millisecond)}
+        state = Enum.reduce(responses, state, &handle_response/2)
 
         if state.conn == :reconnect,
           do: {:noreply, [], retry(close(%{state | conn: conn}))},
@@ -158,7 +168,7 @@ defmodule Aerox.AppView.Ingest.Producer do
     case Mint.WebSocket.new(state.conn, ref, state.status, headers) do
       {:ok, conn, ws} ->
         Logger.info("appview: firehose connected url=#{state.url} cursor=#{state.cursor}")
-        %{state | conn: conn, ws: ws, backoff: 0}
+        %{state | conn: conn, ws: ws, backoff: 0, last_rx: System.monotonic_time(:millisecond)}
 
       {:error, conn, reason} ->
         Logger.warning("appview: firehose handshake failed reason=#{inspect(reason)}")
