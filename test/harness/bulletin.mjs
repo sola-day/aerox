@@ -41,13 +41,33 @@ async function pinNote(page, text) {
   const board = page.locator('.spatial-board, [class*="spatial"]').first()
   await board.waitFor({ timeout: 30000 })
   const box = await board.boundingBox()
-  await page.mouse.click(box.x + 80 + Math.random() * 200, box.y + 80 + Math.random() * 200)
+  await page.mouse.click(...(await freeSpot(page, box)))
   await page.locator('textarea.composer-note').waitFor({ timeout: 10000 })
   await page.locator('textarea.composer-note').fill(text)
   await page.locator('form.board-composer-card button.button').first().click()
   await page.waitForLoadState('domcontentloaded')
   await page.getByText(text).first().waitFor({ timeout: 30000 })
   console.log(`  pinned: ${text}`)
+}
+
+// Clicking the board opens the composer, but only on bare cork: a click that
+// lands on a note selects the note instead. The board keeps every note ever
+// pinned, so a fixed (or small random) offset stops working as soon as a few
+// runs have piled notes into that corner. Pick a point no existing note covers.
+async function freeSpot(page, box) {
+  const notes = await page.locator('.spatial-note').evaluateAll((els) =>
+    els.map((el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height } }))
+  const pad = 24
+  const candidates = []
+  for (let x = box.x + 60; x < box.x + box.width - 220; x += 40) {
+    for (let y = box.y + 60; y < box.y + box.height - 140; y += 40) {
+      if (!notes.some((n) => x > n.x - pad && x < n.x + n.w + pad && y > n.y - pad && y < n.y + n.h + pad)) {
+        candidates.push([x, y])
+      }
+    }
+  }
+  if (!candidates.length) throw new Error('the board has no room left for another note')
+  return candidates[Math.floor(Math.random() * candidates.length)]
 }
 
 // ---- owner
