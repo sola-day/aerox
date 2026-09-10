@@ -146,11 +146,11 @@ async function seed(service, label, inviteCode) {
 // Everything a parity diff must ignore, and why. Anything not listed here is
 // compared byte for byte after symbolisation.
 const NORMALISERS = [
-  ['indexedAt', 'server-side index time'],
-  ['createdAt on view objects only where the record carries none', 'derived'],
+  ['indexedAt / sortAt', 'server-side index time'],
   ['cursor', 'opaque; paging equivalence is checked separately'],
   ['avatar/banner/thumb/fullsize URLs', 'image CDN hostname and blob CID'],
-  ['viewer.* record URIs', 'rkeys are TIDs minted per stack'],
+  ['cid', 'a record embedding a URI embeds a DID, so its bytes differ by stack'],
+  ['record keys inside at:// URIs', 'TIDs are minted per stack'],
   ['labels', 'no labeler is attached to the reference stack'],
 ]
 
@@ -170,17 +170,31 @@ function symbolise(value, map) {
 }
 
 const DROP_KEYS = new Set([
-  'indexedAt',
-  'cursor',
-  'avatar',
+  'indexedAt', // when the AppView saw it
+  'cursor', // opaque
+  'avatar', // image CDN host + blob cid
   'banner',
   'thumb',
   'fullsize',
-  'labels',
-  'cid',
+  'labels', // no labeler is attached to the reference stack
+  'cid', // a record that embeds a URI embeds a DID, so its bytes differ
   'sortAt',
-  'uri', // rkeys are TIDs; identity is carried by the symbolised text/subject
 ])
+
+// Record keys are TIDs minted at write time, so the same record has a different
+// rkey in each stack. The rest of an at:// URI — the DID and the collection —
+// is comparable, and the five posts the scenario keeps a handle on are mapped
+// to their own symbols before this runs; this catches everything else (follows,
+// likes, reposts, list items).
+const TID = /\/[a-z2-7]{13}(?![a-z2-7])/g
+function normaliseTids(value) {
+  if (typeof value === 'string') return value.startsWith('at://') ? value.replace(TID, '/$tid') : value
+  if (Array.isArray(value)) return value.map(normaliseTids)
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, normaliseTids(v)]))
+  }
+  return value
+}
 
 function strip(value) {
   if (Array.isArray(value)) return value.map(strip)
@@ -210,7 +224,7 @@ function mapFor(stack) {
 }
 
 function normalise(stack, body) {
-  return strip(symbolise(body, mapFor(stack)))
+  return normaliseTids(strip(symbolise(body, mapFor(stack))))
 }
 
 // The calls. Each is a function of (stack) so it can name that stack's own
@@ -235,7 +249,10 @@ const CALLS = [
   ['app.bsky.graph.getMutes', (s) => s.actors.bob.agent.app.bsky.graph.getMutes({})],
   ['app.bsky.graph.getRelationships', (s) => s.actors.bob.agent.app.bsky.graph.getRelationships({ actor: s.actors.alice.did, others: [s.actors.bob.did, s.actors.carol.did] })],
   ['app.bsky.notification.listNotifications', (s) => s.actors.alice.agent.app.bsky.notification.listNotifications({})],
-  ['app.bsky.unspecced.getPopularFeedGenerators', (s) => s.actors.bob.agent.app.bsky.unspecced.getPopularFeedGenerators({})],
+  // DESIGN §15.4 says ours returns an empty list on purpose; the diff is where
+  // that deviation shows up rather than something anyone has to remember.
+  ['app.bsky.actor.getSuggestions', (s) => s.actors.bob.agent.app.bsky.actor.getSuggestions({})],
+  ['app.bsky.feed.getFeed (no generator)', (s) => s.actors.bob.agent.app.bsky.feed.getFeedGenerators({ feeds: [] })],
 ]
 
 const sortJson = (v) => {

@@ -97,7 +97,14 @@ services:
   # It indexes the reference PDS, so the two stacks stay separate all the way
   # down and a parity diff compares two independent implementations of the same
   # scenario rather than one of them reading the other's index. On first boot it
-  # registers a DID for itself on our PLC and writes it to /data/appview.
+  # registers a DID for itself on our PLC and writes it to its DATA_DIR. Bring
+  # the pair up in that order, because the reference PDS needs that DID as the
+  # audience of its service JWTs:
+  #
+  #   docker compose -f tools/interop/compose.yaml up -d ref-appview
+  #   export REF_APPVIEW_DID=$(docker compose -f tools/interop/compose.yaml \
+  #     exec -T ref-appview cat /home/node/data/server.did)
+  #   docker compose -f tools/interop/compose.yaml up -d ref-pds
   ref-appview:
     image: aerox-ref-appview:62f944dd6
     environment:

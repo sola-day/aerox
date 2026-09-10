@@ -16,7 +16,11 @@ MIX_ENV=prod mix release aerox           # → _build/prod/rel/aerox
 Install the release to `/opt/aerox` as the `aerox` user, the env file to
 `/etc/aerox/prod.env` (`0600`; template in `ops/aerox.env.example`) and the unit
 `ops/systemd/aerox.service`. The unit migrates every repo before start
-(`Aerox.Release.migrate/0`) and writes only under `/var/lib/aerox`.
+(`Aerox.Release.migrate/0`) and writes only under `/var/lib/aerox`. It is
+sandboxed to `systemd-analyze security` 1.3 — no capabilities, no devices, a
+read-only OS, a syscall filter and only TCP and unix address families — with one
+deliberate omission: `MemoryDenyWriteExecute` would stop the BEAM's JIT from
+allocating executable pages and the VM would not start at all.
 
 The reverse proxy terminates TLS and must set `x-forwarded-for` and
 `x-forwarded-proto`; list its peer addresses in `TRUSTED_PROXIES`. Set `BIND_IP`

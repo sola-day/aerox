@@ -18,13 +18,40 @@ ExecStop=/opt/aerox/bin/aerox stop
 Restart=on-failure
 RestartSec=5
 LimitNOFILE=65536
-# Hardening: the release writes only under /var/lib/aerox (blobs, image cache).
+
+# Hardening. The release writes only under /var/lib/aerox (blobs, image cache)
+# and reads /opt/aerox and /etc/aerox/prod.env; it needs no capabilities, no
+# devices and no address family beyond TCP and unix sockets. Verified on the
+# drill host with `systemd-analyze security aerox` (8.3 → 1.3) and by booting,
+# migrating, serving and `bin/aerox rpc` afterwards.
+#
+# MemoryDenyWriteExecute is deliberately NOT set: the BEAM's JIT writes
+# executable pages, and the VM will not start without them.
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
 PrivateTmp=true
 ReadWritePaths=/var/lib/aerox
 StateDirectory=aerox
+UMask=0077
+PrivateDevices=true
+ProtectClock=true
+ProtectHostname=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=true
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
 
 [Install]
 WantedBy=multi-user.target

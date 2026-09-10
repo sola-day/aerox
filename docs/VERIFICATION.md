@@ -295,6 +295,18 @@ returns what a client expects. Parity testing does:
 
 Deviations are allowed only when listed in `ENDPOINTS.md` with a DESIGN reference.
 
+**How it is run.** The reference stack is `tools/interop/compose.yaml`: upstream's
+PDS distribution, `did-method-plc`, the indigo relay, and `ref-appview` — the
+bsky AppView built from the reading-room checkout of `bluesky-social/atproto`
+with `tools/interop/bsky-standalone` as its entrypoint (the data plane, a bsync,
+the AppView and both subscriptions in one process, wired the way upstream's own
+`packages/dev-env` wires them). The driver is `test/harness/parity.mjs`: it
+replays one scenario through `@atproto/api` against each stack's PDS and diffs
+the normalised JSON of every call, as the same authenticated user on both. Both
+seeds use one fixed `createdAt`, so a record whose bytes mention no DID must come
+out with the same CID on both sides — the run refuses to compare anything if that
+fails, because then the two seeds are not the same data.
+
 ### 7.2 Upstream servers and clients as counterparts
 
 CI pins upstream containers and runs aerox against them in both directions:
