@@ -13,6 +13,8 @@ defmodule Aerox.PDS.Signup do
   `did:plc` is minted here. A brought `did:web` (§14.3) is accepted when the
   resolved document already names this PDS and a reserved signing key.
   """
+
+  require Logger
   import Ecto.Query
   alias Aerox.ATProto.Crypto
   alias Aerox.PDS.{Accounts, Config, Handle, PlcOps, Records, Repo, Sequencer, Sessions}
@@ -139,11 +141,33 @@ defmodule Aerox.PDS.Signup do
     do: {:error, {"IncompatibleDidDoc", "Only did:plc and did:web accounts are supported"}}
 
   defp mint_did(params, keypair, handle) do
-    unsigned = PlcOps.genesis_op(Crypto.did_key(keypair), handle, params[:recovery_key])
-
-    with {:ok, signed} <- PlcOps.sign(unsigned, "pending", "signup", "pds") do
-      {:ok, PlcOps.did_for_op(signed), signed}
+    # Reaching the signer first: `genesis_op/3` needs the rotation key's
+    # `did:key` too, and building the signer is what fetches it.
+    with {:ok, _signer} <- Config.fetch_signer() do
+      unsigned = PlcOps.genesis_op(Crypto.did_key(keypair), handle, params[:recovery_key])
+      sign_genesis(unsigned)
+    else
+      {:error, reason} -> signer_unavailable(reason)
     end
+  end
+
+  defp sign_genesis(unsigned) do
+    case PlcOps.sign(unsigned, "pending", "signup", "pds") do
+      {:ok, signed} ->
+        {:ok, PlcOps.did_for_op(signed), signed}
+
+      {:error, reason} ->
+        signer_unavailable(reason)
+    end
+  end
+
+  # The rotation key lives off this host (DESIGN §14.2), so signing is a call to
+  # another service and it can be down. That is not the caller's fault and it is
+  # worth retrying, which is what 502 tells a client; a 400 would tell it to
+  # change its request instead, and a 500 tells it nothing at all.
+  defp signer_unavailable(reason) do
+    Logger.error("signup: rotation-key signer unavailable reason=#{inspect(reason)}")
+    {:error, {"UpstreamFailure", "The signing service is unavailable"}}
   end
 
   # Step 1: everything local, deactivated, in one transaction.

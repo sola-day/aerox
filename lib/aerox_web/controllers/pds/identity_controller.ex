@@ -1,5 +1,6 @@
 defmodule AeroxWeb.PDS.IdentityController do
   @moduledoc "`com.atproto.identity.*` on the PDS (DESIGN §14, §20.1)."
+  require Logger
   use AeroxWeb, :controller
   use AeroxWeb.Plugs.XRPCError
   import AeroxWeb.XRPC
@@ -169,12 +170,15 @@ defmodule AeroxWeb.PDS.IdentityController do
            )
            |> Map.put("services", input["services"] || normalized["services"])
            |> Map.put("prev", PlcOps.cid(last)),
+         {:ok, _signer} <- Config.fetch_signer(),
          {:ok, signed} <- PlcOps.sign(unsigned, did, "sign_plc_operation", did) do
       respond(conn, %{"operation" => signed})
     else
       {:ok, nil} -> {:error, Error.invalid_request("DID not found at the directory")}
       :tombstoned -> {:error, Error.invalid_request("Did is tombstoned")}
-      {:error, reason} -> {:error, Error.upstream_failure(inspect(reason))}
+      {:error, reason} ->
+        Logger.error("signPlcOperation: signer failed did=#{did} reason=#{inspect(reason)}")
+        {:error, Error.upstream_failure("The signing service is unavailable")}
     end
   end
 

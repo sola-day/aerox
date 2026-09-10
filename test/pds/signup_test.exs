@@ -103,4 +103,96 @@ defmodule Aerox.PDS.SignupTest do
     assert [^did] = Signup.reap_orphans()
     assert nil == Accounts.get_account(did, include_deactivated: true)
   end
+  defmodule DeadSigner do
+    @moduledoc "A signer whose host is down, as `Signer.Remote` reports it."
+    @behaviour Aerox.Crypto.Signer
+
+    def init(_), do: %{}
+    def did_key(_), do: "did:key:zQ3shokFTS3brHcDQrn82RUDfCZESWL1ZdCEJwekUDPQiYBme"
+    def sign(_, _), do: {:error, {:remote_signer, %Req.TransportError{reason: :timeout}}}
+  end
+
+  defmodule UnreachableSigner do
+    @moduledoc """
+    A signer whose *construction* fails, which is what a `Remote` signer does
+    when the service is down: `init/1` pins the service's `did:key` by asking
+    for it, and `Req` raises when nobody answers.
+    """
+    @behaviour Aerox.Crypto.Signer
+
+    def init(_), do: raise(Req.TransportError, reason: :timeout)
+    def did_key(_), do: raise("unreachable")
+    def sign(_, _), do: raise("unreachable")
+  end
+
+  test "the rotation key service being down is an upstream failure, not a bad request" do
+    # DESIGN §14.2 puts the rotation key on another host, so signing is a
+    # network call that can fail while everything else on this one is healthy.
+    previous = Application.get_env(:aerox, Aerox.Crypto.Signer)
+    Application.put_env(:aerox, Aerox.Crypto.Signer, adapter: DeadSigner)
+    Aerox.PDS.Config.reset_signer()
+
+    on_exit(fn ->
+      Application.put_env(:aerox, Aerox.Crypto.Signer, previous)
+      Aerox.PDS.Config.reset_signer()
+    end)
+
+    n = System.unique_integer([:positive])
+
+    assert {:error, {"UpstreamFailure", message}} =
+             Signup.create(%{
+               handle: "deadsigner#{n}.test",
+               email: "deadsigner#{n}@example.com",
+               password: "pw#{n}"
+             })
+
+    # The failure term must not reach the client, and the message has to be a
+    # string: the error renderer JSON-encodes it, so a struct here turns the
+    # named 502 into an unnamed 500 whose log line blames the JSON encoder.
+    assert is_binary(message)
+    assert Jason.encode!(AeroxWeb.XRPC.Error.body(%AeroxWeb.XRPC.Error{
+             status: 502,
+             name: "UpstreamFailure",
+             message: message
+           }))
+
+    assert Accounts.get_account("deadsigner#{n}.test", include_deactivated: true) == nil
+  end
+
+  test "a signing service that cannot even be reached is an upstream failure too" do
+    # The signer is built on first use, so after a restart the first account
+    # creation is the request that finds out the service is down — and it finds
+    # out as a raise from inside the HTTP client, not an error tuple.
+    previous = Application.get_env(:aerox, Aerox.Crypto.Signer)
+    Application.put_env(:aerox, Aerox.Crypto.Signer, adapter: UnreachableSigner)
+    Aerox.PDS.Config.reset_signer()
+
+    on_exit(fn ->
+      Application.put_env(:aerox, Aerox.Crypto.Signer, previous)
+      Aerox.PDS.Config.reset_signer()
+    end)
+
+    n = System.unique_integer([:positive])
+
+    assert {:error, {"UpstreamFailure", message}} =
+             Signup.create(%{
+               handle: "nosigner#{n}.test",
+               email: "nosigner#{n}@example.com",
+               password: "pw#{n}"
+             })
+
+    assert is_binary(message)
+    assert Accounts.get_account("nosigner#{n}.test", include_deactivated: true) == nil
+  end
+
+  test "the error renderer survives a non-string message" do
+    body = AeroxWeb.XRPC.Error.body(Aerox.PDS.SignupTest.internal_error())
+    assert %{"error" => "InternalServerError", "message" => message} = body
+    assert is_binary(message)
+    assert Jason.encode!(body)
+  end
+
+  def internal_error,
+    do: AeroxWeb.XRPC.Error.internal(%Req.TransportError{reason: :timeout})
+
 end

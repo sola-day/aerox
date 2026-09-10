@@ -83,4 +83,29 @@ defmodule Aerox.PDS.Config do
         signer
     end
   end
+
+  @doc """
+  The signer, or the reason it cannot be built.
+
+  `signer/0` is lazy and building the `Remote` adapter *asks the signing
+  service for its `did:key`* so it can pin it, so the first PLC operation after
+  a restart is the one that discovers the service is down — and it discovers it
+  as a raise from inside the HTTP client, several frames below anything that
+  knows what to tell the caller. Call sites that can report an upstream failure
+  use this instead.
+  """
+  @spec fetch_signer() :: {:ok, Aerox.Crypto.Signer.signer()} | {:error, term}
+  def fetch_signer do
+    {:ok, signer()}
+  rescue
+    e -> {:error, e}
+  end
+
+  @doc """
+  Drops the cached signer, so the next call rebuilds it from configuration.
+  It is cached in `:persistent_term` because every PLC operation reads it;
+  without this there is no way to point the node at a moved signing service, or
+  to swap the adapter in a test, short of a restart.
+  """
+  def reset_signer, do: :persistent_term.erase({__MODULE__, :signer})
 end

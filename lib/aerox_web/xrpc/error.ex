@@ -38,5 +38,13 @@ defmodule AeroxWeb.XRPC.Error do
 
   @doc "Renders the JSON body."
   def body(%__MODULE__{name: name, message: message}),
-    do: %{"error" => name, "message" => message}
+    do: %{"error" => to_message(name), "message" => to_message(message)}
+
+  # The error path is the one place that must not raise. A caller that builds an
+  # Error out of some other layer's failure term (`{:error, %Req.TransportError{}}`
+  # and friends) would otherwise blow up inside `Jason.encode!` here, and the
+  # client would get a bare 500 whose log line names the JSON encoder rather than
+  # the thing that actually broke.
+  defp to_message(message) when is_binary(message), do: message
+  defp to_message(message), do: inspect(message)
 end
