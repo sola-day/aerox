@@ -630,7 +630,18 @@ written during the milestone.
   lock and sequencer are per node and both have a cluster-lock seam.
   Telemetry export: Prometheus on a private port when the first release is
   cut. Reverse proxy: Traefik (the box's), not Caddy.
-- **Carried.** §10.3 network faults with Toxiproxy (needs the
-  multi-container topology), the restore drill on a clean second host, a
-  release candidate deployed to that host, relay fan-out / ingest / image
-  CDN rows of §10.1, the reference AppView parity rows from M7.
+- **Closed on 2026-09-10 (after the first retrospective).** `bulletin` end
+  to end (`test/harness/bulletin.mjs`, scenario 9) — which required two
+  fixes: `space:` scopes follow the *published* alpha grammar
+  (`authority`, `manage`, `read_self`) and tokens carry granular scopes
+  (upstream `buildTokenScope`), plus the vendored `my.bulletin.*` lexicons;
+  the restore drill (`docs/OPS.md` §3: found that `--no-owner` restores
+  lock every service role out); the §10.3 network faults with Toxiproxy
+  (`test/network/faults.sh`, `RESULTS.md`: found that neither firehose
+  consumer detected half-open links — both now have a 75 s pong deadline);
+  and concurrent AppView hydration (`Hydration.parallel/2`).
+- **Still carried (need resources this box does not have).** A release
+  candidate deployed to a clean second host from `docs/OPS.md`; the §10.4
+  migration drill against a real production snapshot (§1.3 forbids one
+  here); the reference AppView parity rows from M7 (no reference AppView
+  container); the relay fan-out / ingest / image CDN rows of §10.1.

@@ -45,5 +45,12 @@ concurrently (upstream's `Promise.all`), a scheduled AppView optimisation,
 not a Rustler swap. Sequencer coalescing (10 ms) bounds a single hot repo
 at ~100 commits/s by construction.
 
+Follow-up (2026-09-10): independent hydration stages now run concurrently
+(`Aerox.AppView.Hydration.parallel/2`): one timeline hydration went from
+35 ms / 21 sequential queries to 22 ms measured in-process; the proxied
+`getTimeline` single request stays ~85 ms end to end through Traefik and
+the dev server. Re-measure under load with `bench/baseline.sh` on the next
+bench-mode run.
+
 Not yet measured (need a multi-host topology): relay fan-out to 1 000
 subscribers, ingest events/s by partition, image CDN at the libvips bound.

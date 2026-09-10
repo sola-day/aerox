@@ -371,13 +371,17 @@ defmodule Aerox.AppView.Hydration do
     state = %{state | posts: state.posts |> Map.merge(new) |> Map.merge(missing)}
     posts = Map.values(new)
 
+    post_uris = Enum.map(posts, & &1.uri)
+    creators = Enum.map(posts, & &1.creator)
+
     state =
-      state
-      |> hydrate_post_aggs(Enum.map(posts, & &1.uri))
-      |> hydrate_post_viewers(Enum.map(posts, & &1.uri))
-      |> hydrate_actors(Enum.map(posts, & &1.creator))
-      |> hydrate_labels(Enum.map(posts, & &1.uri))
-      |> hydrate_gates(posts)
+      parallel(state, [
+        &hydrate_post_aggs(&1, post_uris),
+        &hydrate_post_viewers(&1, post_uris),
+        &hydrate_actors(&1, creators),
+        &hydrate_labels(&1, post_uris),
+        &hydrate_gates(&1, posts)
+      ])
 
     # replies: parent and root posts, for reply refs, thread boundaries and 3p blocks
     reply_uris =
@@ -393,20 +397,19 @@ defmodule Aerox.AppView.Hydration do
     embed_uris =
       if depth < 2, do: Enum.flat_map(posts, &embedded_uris(&1.record["embed"])), else: []
 
+    of = fn uris, collection -> Enum.filter(uris, &(collection_of(&1) == collection)) end
+    nested_posts = of.(reply_uris ++ embed_uris, "app.bsky.feed.post")
+    feed_gens = of.(embed_uris, "app.bsky.feed.generator")
+    lists = of.(embed_uris, "app.bsky.graph.list")
+    labeler_dids = embed_uris |> of.("app.bsky.labeler.service") |> Enum.map(&did_of/1)
+
     state =
-      state
-      |> hydrate_posts(
-        Enum.filter(reply_uris ++ embed_uris, &(collection_of(&1) == "app.bsky.feed.post")),
-        depth: depth + 1
-      )
-      |> hydrate_feed_gens(
-        Enum.filter(embed_uris, &(collection_of(&1) == "app.bsky.feed.generator"))
-      )
-      |> hydrate_lists(Enum.filter(embed_uris, &(collection_of(&1) == "app.bsky.graph.list")))
-      |> hydrate_labelers(
-        Enum.filter(embed_uris, &(collection_of(&1) == "app.bsky.labeler.service"))
-        |> Enum.map(&did_of/1)
-      )
+      parallel(state, [
+        &hydrate_posts(&1, nested_posts, depth: depth + 1),
+        &hydrate_feed_gens(&1, feed_gens),
+        &hydrate_lists(&1, lists),
+        &hydrate_labelers(&1, labeler_dids)
+      ])
 
     hydrate_post_blocks(state, posts)
   end
@@ -918,19 +921,51 @@ defmodule Aerox.AppView.Hydration do
         reposters ++
         (state.posts |> Map.values() |> Enum.reject(&is_nil/1) |> Enum.map(& &1.creator))
 
-    state |> hydrate_profile_viewers(dids) |> hydrate_labels(dids)
+    parallel(state, [&hydrate_profile_viewers(&1, dids), &hydrate_labels(&1, dids)])
+  end
+
+  # ------------------------------------------------------------ parallel
+
+  @doc false
+  # Runs independent hydration stages concurrently (upstream's `Promise.all`
+  # in the hydrator; bench/RESULTS.md: a timeline was 21 *sequential* round
+  # trips). Every stage only adds entries under its own state keys, so the
+  # results merge key by key; identical entries hydrated twice are identical.
+  # Tasks inherit `$callers`, so the test sandbox and Logger metadata follow.
+  def parallel(state, stages) do
+    stages
+    |> Task.async_stream(fn stage -> stage.(state) end,
+      max_concurrency: length(stages),
+      ordered: false,
+      timeout: 30_000
+    )
+    |> Enum.reduce(state, fn {:ok, result}, acc -> merge_states(acc, result) end)
+  end
+
+  defp merge_states(acc, result) do
+    Map.merge(acc, result, fn
+      :ctx, ctx, _ -> ctx
+      _key, a, b when is_map(a) and is_map(b) -> Map.merge(a, b)
+      _key, _a, b -> b
+    end)
   end
 
   @doc "Profiles: actors, aggregates, viewer state, labels, known followers."
   def hydrate_profiles(state, dids, opts \\ []) do
-    state =
-      state
-      |> hydrate_actors(dids)
-      |> hydrate_profile_viewers(dids)
-      |> hydrate_labels(dids ++ Enum.map(dids, &"at://#{&1}/app.bsky.actor.profile/self"))
+    detailed? = Keyword.get(opts, :detailed, false)
+    label_subjects = dids ++ Enum.map(dids, &"at://#{&1}/app.bsky.actor.profile/self")
 
-    if Keyword.get(opts, :detailed, false),
-      do: state |> hydrate_profile_aggs(dids) |> hydrate_known_followers(dids),
-      else: state
+    parallel(
+      state,
+      [
+        &hydrate_actors(&1, dids),
+        &hydrate_profile_viewers(&1, dids),
+        &hydrate_labels(&1, label_subjects)
+      ] ++
+        if(detailed?,
+          do: [&hydrate_profile_aggs(&1, dids), &hydrate_known_followers(&1, dids)],
+          else: []
+        )
+    )
   end
 end
