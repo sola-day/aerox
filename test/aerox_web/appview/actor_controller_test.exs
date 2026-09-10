@@ -133,6 +133,20 @@ defmodule AeroxWeb.AppView.ActorControllerTest do
     assert Enum.all?(body["profiles"], &Map.has_key?(&1, "followersCount"))
   end
 
+  test "getProfiles reads an array parameter sent as a repeated key", ctx do
+    %{conn: conn, alice: alice, bob: bob} = ctx
+
+    # This is the form `@atproto/api` puts on the wire — `actors=…&actors=…`,
+    # not `actors[]=`. Plug keeps only the last value of a repeated key, so
+    # reading conn.query_params alone answers with one profile and no error.
+    body =
+      conn
+      |> get("/xrpc/app.bsky.actor.getProfiles?actors=#{bob.did}&actors=#{alice.did}")
+      |> valid_json!("app.bsky.actor.getProfiles")
+
+    assert Enum.map(body["profiles"], & &1["did"]) == [bob.did, alice.did]
+  end
+
   test "getSuggestions is empty by design (DESIGN §15.4)", %{conn: conn} do
     assert conn
            |> get("/xrpc/app.bsky.actor.getSuggestions")

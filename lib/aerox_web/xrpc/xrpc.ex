@@ -12,7 +12,7 @@ defmodule AeroxWeb.XRPC do
   @doc "Query params validated against the lexicon's `parameters` (types coerced from strings, defaults filled)."
   @spec params!(Plug.Conn.t(), String.t()) :: map
   def params!(conn, nsid) do
-    raw = coerce_params(conn.query_params, nsid)
+    raw = coerce_params(conn.query_params, repeated(conn), nsid)
 
     case Lexicon.validate_params(Lexicon.default_registry(), nsid, raw) do
       {:ok, params} -> params
@@ -20,9 +20,21 @@ defmodule AeroxWeb.XRPC do
     end
   end
 
+  # An array parameter is sent as the key repeated — `actors=a&actors=b` — which
+  # is what `@atproto/api` emits and what upstream's `qs` parses into a list.
+  # `Plug.Conn.Query` keeps only the last value of a repeated key (it wants
+  # `actors[]=`), so reading `conn.query_params` alone silently turns every
+  # multi-valued request into a single-valued one: `getProfiles` for three
+  # actors answers with one profile and no error anywhere.
+  defp repeated(%Plug.Conn{query_string: query_string}) do
+    query_string
+    |> URI.query_decoder()
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+  end
+
   # Query strings are all strings; the lexicon says which are integers,
   # booleans or arrays.
-  defp coerce_params(query, nsid) do
+  defp coerce_params(query, repeated, nsid) do
     case Aerox.ATProto.Lexicon.Registry.get_def(Lexicon.default_registry(), nsid) do
       {:ok, %{"parameters" => %{"properties" => props}}} ->
         Map.new(query, fn {k, v} ->
@@ -34,10 +46,10 @@ defmodule AeroxWeb.XRPC do
               {k, to_bool(v)}
 
             %{"type" => "array", "items" => %{"type" => "integer"}} ->
-              {k, v |> List.wrap() |> Enum.map(&to_int/1)}
+              {k, k |> values(v, repeated) |> Enum.map(&to_int/1)}
 
             %{"type" => "array"} ->
-              {k, List.wrap(v)}
+              {k, values(k, v, repeated)}
 
             _ ->
               {k, v}
@@ -48,6 +60,11 @@ defmodule AeroxWeb.XRPC do
         query
     end
   end
+
+  # `actors[]=a&actors[]=b` already arrives as a list; `actors=a&actors=b` has
+  # to be recovered from the raw query string.
+  defp values(_key, value, _repeated) when is_list(value), do: value
+  defp values(key, value, repeated), do: Map.get(repeated, key) || List.wrap(value)
 
   defp to_int(v) when is_binary(v) do
     case Integer.parse(v) do

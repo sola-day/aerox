@@ -107,7 +107,10 @@ defmodule Aerox.AppView.Views do
           compact(%{
             "labeler" => if(actor.is_labeler, do: true),
             "chat" =>
-              if(actor.allow_incoming_chats, do: %{"allowIncoming" => actor.allow_incoming_chats})
+              if(actor.allow_incoming_chats, do: %{"allowIncoming" => actor.allow_incoming_chats}),
+            "activitySubscription" => %{
+              "allowSubscriptions" => actor.allow_activity_subscriptions
+            }
           })
 
         compact(%{
@@ -191,7 +194,10 @@ defmodule Aerox.AppView.Views do
                 "chat" =>
                   if(actor.allow_incoming_chats,
                     do: %{"allowIncoming" => actor.allow_incoming_chats}
-                  )
+                  ),
+                "activitySubscription" => %{
+                  "allowSubscriptions" => actor.allow_activity_subscriptions
+                }
               }),
             "pinnedPost" => pinned_post(profile),
             "website" => website(profile)
@@ -334,8 +340,12 @@ defmodule Aerox.AppView.Views do
       labels = labels_for(uri, state) ++ self_labels(uri, post.cid, record)
       threadgate_uri = Hydration.gate_uri(uri, "app.bsky.feed.threadgate")
 
+      # No `$type`: `#postView` only ever appears where the lexicon already says
+      # what it is (a typed array, or a field of `#threadViewPost`), and
+      # upstream leaves it out there. The union members that genuinely need
+      # discriminating — `#notFoundPost`, `#blockedPost`, `#threadViewPost` —
+      # carry theirs.
       compact(%{
-        "$type" => "app.bsky.feed.defs#postView",
         "uri" => uri,
         "cid" => post.cid,
         "author" => author,
@@ -480,7 +490,6 @@ defmodule Aerox.AppView.Views do
       reply = if post_info && not post_info.violates_thread_gate, do: reply_ref(post_uri, state)
 
       compact(%{
-        "$type" => "app.bsky.feed.defs#feedViewPost",
         "post" => post,
         "reason" => reason,
         "reply" => reply
@@ -534,15 +543,30 @@ defmodule Aerox.AppView.Views do
             end
           end
 
-        compact(%{"root" => root, "parent" => parent, "grandparentAuthor" => grandparent})
+        # `#replyRef.root` and `.parent` are a union of `#postView`,
+        # `#notFoundPost` and `#blockedPost`, and a union member has to say what
+        # it is. Everywhere else a post view sits in a slot the lexicon has
+        # already typed, and upstream leaves `$type` out there.
+        compact(%{
+          "root" => tag_post_view(root),
+          "parent" => tag_post_view(parent),
+          "grandparentAuthor" => grandparent
+        })
 
       _ ->
         nil
     end
   end
 
-  defp post_view?(%{"$type" => "app.bsky.feed.defs#postView"}), do: true
+  # A `#replyRef` slot holds a post view, a `#notFoundPost` or a `#blockedPost`.
+  # The latter two say so in `$type`; a post view is the one without.
+  defp post_view?(%{"$type" => _}), do: false
+  defp post_view?(%{"uri" => _, "author" => _}), do: true
   defp post_view?(_), do: false
+
+  defp tag_post_view(view) do
+    if post_view?(view), do: Map.put(view, "$type", "app.bsky.feed.defs#postView"), else: view
+  end
 
   def maybe_post(uri, state) do
     case post(uri, state) do

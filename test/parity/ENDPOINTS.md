@@ -15,6 +15,26 @@ Status: `flow` = exercised by the HTTP flow tests against our own stack;
 `parity` = diffed against the reference stack (§7.1 items 1–2, from M7);
 `pending` = routed and covered by unit tests only.
 
+**Parity run of 2026-09-10** (`test/harness/parity.mjs`, aerox release candidate
+on the second host against upstream's PDS + `ref-appview` on the dev box):
+**21 of 21 endpoints identical** after normalisation. What the first run found,
+all of it now fixed:
+
+| What | Endpoints it broke |
+|---|---|
+| Repeated query parameters (`actors=a&actors=b`) collapsed to the last value, so every array-valued call answered about one item | `getProfiles`, `getRelationships`, `getPosts`, `getFeedGenerators` |
+| `associated.activitySubscription` was never emitted (upstream resolves `app.bsky.notification.declaration`, defaulting to `followers`) | 13 |
+| `$type` on `#postView`/`#feedViewPost` in positions the lexicon has already typed; upstream emits it only where the value sits in a union (`#replyRef`) | 9 |
+| `viewer.knownFollowers` emitted as `{count: 0, followers: []}` where upstream omits it | 2 |
+| `creator.viewer` missing from list, feed-generator and labeler views — the creator's actor was hydrated without the viewer's relationship to them | 2 |
+
+One endpoint, `listNotifications`, differs *intermittently and on the reference
+side*: a reply nested two deep should notify both the parent's and the root's
+author (upstream's own `REPLY_NOTIF_DEPTH` is 5), and the reference AppView
+produced that second notification in two runs out of four of the identical
+scenario — an indexing race between the reply and its parent. aerox produces it
+every time.
+
 | Method | Verb | Service | Status | Deviation |
 |---|---|---|---|---|
 | `_health` | GET | pds | flow | not a lexicon method; upstream's PDS answers here and docs/OPS.md §4 monitors it |
@@ -129,36 +149,36 @@ Status: `flow` = exercised by the HTTP flow tests against our own stack;
 | `admin.setHostAccountLimit` | POST | relay | pending |  |
 | `admin.banDomain` | POST | relay | pending |  |
 | `admin.setHostStatus` | POST | relay | pending |  |
-| `app.bsky.actor.getProfile` | GET | appview | pending |  |
-| `app.bsky.actor.getProfiles` | GET | appview | pending |  |
-| `app.bsky.actor.getSuggestions` | GET | appview | pending | empty by design (DESIGN §15.4) |
-| `app.bsky.actor.searchActors` | GET | appview | pending |  |
+| `app.bsky.actor.getProfile` | GET | appview | parity |  |
+| `app.bsky.actor.getProfiles` | GET | appview | parity |  |
+| `app.bsky.actor.getSuggestions` | GET | appview | parity | empty by design (DESIGN §15.4) |
+| `app.bsky.actor.searchActors` | GET | appview | parity |  |
 | `app.bsky.actor.searchActorsTypeahead` | GET | appview | pending |  |
-| `app.bsky.feed.getTimeline` | GET | appview | pending |  |
-| `app.bsky.feed.getAuthorFeed` | GET | appview | pending |  |
-| `app.bsky.feed.getPostThread` | GET | appview | pending |  |
-| `app.bsky.feed.getPosts` | GET | appview | pending |  |
-| `app.bsky.feed.getLikes` | GET | appview | pending |  |
-| `app.bsky.feed.getRepostedBy` | GET | appview | pending |  |
-| `app.bsky.feed.getQuotes` | GET | appview | pending |  |
-| `app.bsky.feed.getActorLikes` | GET | appview | pending |  |
+| `app.bsky.feed.getTimeline` | GET | appview | parity |  |
+| `app.bsky.feed.getAuthorFeed` | GET | appview | parity |  |
+| `app.bsky.feed.getPostThread` | GET | appview | parity |  |
+| `app.bsky.feed.getPosts` | GET | appview | parity |  |
+| `app.bsky.feed.getLikes` | GET | appview | parity |  |
+| `app.bsky.feed.getRepostedBy` | GET | appview | parity |  |
+| `app.bsky.feed.getQuotes` | GET | appview | parity |  |
+| `app.bsky.feed.getActorLikes` | GET | appview | parity |  |
 | `app.bsky.feed.getFeed` | GET | appview | pending |  |
 | `app.bsky.feed.getFeedGenerator` | GET | appview | pending |  |
-| `app.bsky.feed.getFeedGenerators` | GET | appview | pending |  |
+| `app.bsky.feed.getFeedGenerators` | GET | appview | parity |  |
 | `app.bsky.feed.getActorFeeds` | GET | appview | pending |  |
 | `app.bsky.feed.getListFeed` | GET | appview | pending |  |
 | `app.bsky.feed.searchPosts` | GET | appview | pending |  |
 | `app.bsky.feed.describeFeedGenerator` | GET | appview | pending | feedgen-side method; 501 here |
-| `app.bsky.graph.getFollows` | GET | appview | pending |  |
-| `app.bsky.graph.getFollowers` | GET | appview | pending |  |
-| `app.bsky.graph.getKnownFollowers` | GET | appview | pending |  |
+| `app.bsky.graph.getFollows` | GET | appview | parity |  |
+| `app.bsky.graph.getFollowers` | GET | appview | parity |  |
+| `app.bsky.graph.getKnownFollowers` | GET | appview | parity |  |
 | `app.bsky.graph.getBlocks` | GET | appview | pending |  |
-| `app.bsky.graph.getMutes` | GET | appview | pending |  |
-| `app.bsky.graph.getList` | GET | appview | pending |  |
-| `app.bsky.graph.getLists` | GET | appview | pending |  |
+| `app.bsky.graph.getMutes` | GET | appview | parity |  |
+| `app.bsky.graph.getList` | GET | appview | parity |  |
+| `app.bsky.graph.getLists` | GET | appview | parity |  |
 | `app.bsky.graph.getListMutes` | GET | appview | pending |  |
 | `app.bsky.graph.getListBlocks` | GET | appview | pending |  |
-| `app.bsky.graph.getRelationships` | GET | appview | pending |  |
+| `app.bsky.graph.getRelationships` | GET | appview | parity |  |
 | `app.bsky.graph.getStarterPack` | GET | appview | pending |  |
 | `app.bsky.graph.getStarterPacks` | GET | appview | pending |  |
 | `app.bsky.graph.getActorStarterPacks` | GET | appview | pending |  |
@@ -168,7 +188,7 @@ Status: `flow` = exercised by the HTTP flow tests against our own stack;
 | `app.bsky.graph.unmuteActorList` | POST | appview | pending |  |
 | `app.bsky.graph.muteThread` | POST | appview | pending |  |
 | `app.bsky.graph.unmuteThread` | POST | appview | pending |  |
-| `app.bsky.notification.listNotifications` | GET | appview | pending |  |
+| `app.bsky.notification.listNotifications` | GET | appview | parity |  |
 | `app.bsky.notification.getUnreadCount` | GET | appview | pending |  |
 | `app.bsky.notification.updateSeen` | POST | appview | pending |  |
 | `app.bsky.labeler.getServices` | GET | appview | pending |  |

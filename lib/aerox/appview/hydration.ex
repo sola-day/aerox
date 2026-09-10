@@ -72,9 +72,14 @@ defmodule Aerox.AppView.Hydration do
     profile_uris = Enum.map(dids, &"at://#{&1}/app.bsky.actor.profile/self")
     chat_uris = Enum.map(dids, &"at://#{&1}/chat.bsky.actor.declaration/self")
     labeler_uris = Enum.map(dids, &"at://#{&1}/app.bsky.labeler.service/self")
+    notif_uris = Enum.map(dids, &"at://#{&1}/app.bsky.notification.declaration/self")
 
     records =
-      Repo.all(from(r in S.Record, where: r.uri in ^(profile_uris ++ chat_uris ++ labeler_uris)))
+      Repo.all(
+        from(r in S.Record,
+          where: r.uri in ^(profile_uris ++ chat_uris ++ labeler_uris ++ notif_uris)
+        )
+      )
       |> Map.new(&{&1.uri, &1})
 
     statuses = Repo.all(from(s in S.ActorStatus, where: s.did in ^dids)) |> Map.new(&{&1.did, &1})
@@ -109,6 +114,10 @@ defmodule Aerox.AppView.Hydration do
            created_at: profile_row && profile_row.created_at,
            is_labeler: Map.has_key?(records, "at://#{did}/app.bsky.labeler.service/self"),
            allow_incoming_chats: chat && chat.json["allowIncoming"],
+           allow_activity_subscriptions:
+             allow_activity_subscriptions(
+               records["at://#{did}/app.bsky.notification.declaration/self"]
+             ),
            status: statuses[did],
            verifications: verifications[did] || []
          }}
@@ -119,6 +128,16 @@ defmodule Aerox.AppView.Hydration do
     issuers = new |> Map.values() |> Enum.flat_map(& &1.verifications) |> Enum.map(& &1.creator)
     if issuers == [], do: state, else: hydrate_actors(state, issuers)
   end
+
+  # `app.bsky.notification.declaration`, with the lexicon's default. Upstream
+  # resolves this in the data plane so that every actor view carries a value,
+  # and falls back to "followers" for anything it does not recognise.
+  @activity_subscriptions ~w(followers mutuals none)
+  defp allow_activity_subscriptions(%{json: %{"allowSubscriptions" => v}})
+       when v in @activity_subscriptions,
+       do: v
+
+  defp allow_activity_subscriptions(_), do: "followers"
 
   @doc "Follower/follows/posts counts."
   def hydrate_profile_aggs(state, dids) do
@@ -314,10 +333,14 @@ defmodule Aerox.AppView.Hydration do
         )
         |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
 
+      # Only actors that actually have known followers get an entry: upstream
+      # leaves `viewer.knownFollowers` out entirely when there are none, and a
+      # `{count: 0, followers: []}` in its place is a difference in every actor
+      # view a viewer ever asks for.
       new =
-        for did <- dids,
-            into: %{},
-            do: {did, %{count: length(rows[did] || []), followers: Enum.take(rows[did] || [], 5)}}
+        for did <- dids, followers = rows[did], followers != nil, into: %{} do
+          {did, %{count: length(followers), followers: Enum.take(followers, 5)}}
+        end
 
       state = %{state | known_followers: Map.merge(state.known_followers, new)}
       hydrate_actors(state, new |> Map.values() |> Enum.flat_map(& &1.followers))
@@ -699,7 +722,11 @@ defmodule Aerox.AppView.Hydration do
           list_aggs: Map.merge(state.list_aggs, counts)
       }
 
-      state = hydrate_actors(state, Enum.map(Map.values(new), & &1.row.creator))
+      creators = Enum.map(Map.values(new), & &1.row.creator)
+      # The creator is rendered as a full `#profileView`, which carries the
+      # viewer's relationship to them; hydrating the actor without the viewer
+      # state silently drops `creator.viewer` from every list view.
+      state = state |> hydrate_actors(creators) |> hydrate_profile_viewers(creators)
       hydrate_list_viewers(state, Map.keys(new))
     end
   end
@@ -806,7 +833,8 @@ defmodule Aerox.AppView.Hydration do
           feed_gen_aggs: Map.merge(state.feed_gen_aggs, aggs)
       }
 
-      hydrate_actors(state, Enum.map(Map.values(new), & &1.row.creator))
+      creators = Enum.map(Map.values(new), & &1.row.creator)
+      state |> hydrate_actors(creators) |> hydrate_profile_viewers(creators)
     end
   end
 
@@ -850,7 +878,7 @@ defmodule Aerox.AppView.Hydration do
         end)
 
       state = %{state | labelers: Map.merge(state.labelers, new)}
-      hydrate_actors(state, Map.keys(new))
+      state |> hydrate_actors(Map.keys(new)) |> hydrate_profile_viewers(Map.keys(new))
     end
   end
 

@@ -80,6 +80,25 @@ http:
       service: aerox-ref-appview
       tls: {}
 
+    # Handles on the reference PDS are `<name>.ref-pds.aerox.sola.town`, one
+    # label deeper than the `*.aerox.sola.town` certificate reaches, so without
+    # this the reference AppView cannot fetch `/.well-known/atproto-did` for any
+    # of them and stores every one as `handle.invalid` — which then looks like a
+    # difference in every endpoint that returns an actor. DNS needs nothing:
+    # `*.sola.town` synthesises at any depth.
+    aerox-ref-pds-handles:
+      rule: "HostRegexp(`^[a-zA-Z0-9-]+\\.ref-pds\\.aerox\\.sola\\.town$`)"
+      entryPoints:
+        - websecure
+      priority: 2
+      service: aerox-ref-pds
+      tls:
+        certResolver: letsencrypt-dns
+        domains:
+          - main: "ref-pds.aerox.sola.town"
+            sans:
+              - "*.ref-pds.aerox.sola.town"
+
     # ouranos (DEV_PLAN §1.2), the Next.js dev/standalone server on the bridge
     # gateway at :3000, pointed at pds.aerox.sola.town.
     aerox-ouranos:

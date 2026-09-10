@@ -11,7 +11,7 @@
 // @atproto/api, the client library a real application uses, and the diff is
 // symmetric. What is stripped before diffing is listed in NORMALISERS and
 // nothing else — every remaining difference is a real one.
-import { AtpAgent, RichText } from '@atproto/api'
+import { AtpAgent } from '@atproto/api'
 
 const AEROX = process.env.AEROX_PDS_URL ?? 'https://pds.aerox.sola.town'
 const REF = process.env.REF_PDS_URL ?? 'https://ref-pds.aerox.sola.town'
@@ -19,14 +19,22 @@ const AEROX_INVITE = process.env.AEROX_INVITE_CODE
 const SETTLE_MS = Number(process.env.PARITY_SETTLE_MS ?? 15000)
 const STAMP = Date.now().toString(36)
 
-// One fixed instant for every record, so two stacks that encode the same record
-// the same way produce the same CID. A CID mismatch on a record whose bytes do
-// not mention a DID is therefore a real encoding difference, not scheduling.
+// Fixed instants, so two stacks that encode the same record the same way produce
+// the same CID: a CID mismatch on a record whose bytes mention no DID is then a
+// real encoding difference rather than scheduling. They also have to be
+// *distinct and increasing*, because a feed is ordered by the record's own
+// timestamp and a pile of records sharing one instant leaves the order to
+// whichever server indexed what first — which is not a difference in anything.
 const T0 = '2026-01-02T03:04:05.000Z'
+let tick = 0
+const at = () => new Date(Date.parse(T0) + 1000 * tick++).toISOString()
 
 const log = (...a) => console.log(...a)
 
 async function seed(service, label, inviteCode) {
+  // The same sequence of instants for both stacks.
+  tick = 0
+
   const describe = await new AtpAgent({ service }).com.atproto.server.describeServer()
   const domain = describe.data.availableUserDomains[0]
   const actors = {}
@@ -52,7 +60,7 @@ async function seed(service, label, inviteCode) {
     await a.agent.upsertProfile(() => ({
       displayName: `${name[0].toUpperCase()}${name.slice(1)} Parity`,
       description: `parity fixture for ${name}`,
-      createdAt: T0,
+      createdAt: at(),
     }))
   }
 
@@ -61,26 +69,44 @@ async function seed(service, label, inviteCode) {
   const follow = (from, to) =>
     from.agent.app.bsky.graph.follow.create(
       { repo: from.did },
-      { subject: to.did, createdAt: T0 },
+      { subject: to.did, createdAt: at() },
     )
   await follow(alice, bob)
   await follow(bob, alice)
   await follow(carol, alice)
   await bob.agent.mute(carol.did)
 
-  // posts: plain, one with facets (a link and a mention), a reply, a quote,
-  // a repost and likes.
-  const rt = new RichText({
-    text: `parity root post with a link https://example.com and a mention @${bob.handle}`,
+  // Posts: plain, one with facets (a link and a mention), a reply, a quote, a
+  // repost and likes.
+  //
+  // The facets are built by hand rather than by `RichText.detectFacets`, and
+  // the mention's text is a fixed word rather than the handle: handles differ
+  // between the two stacks, so a handle in the text would make the *text* and
+  // every facet byte range downstream of it differ, and every endpoint that
+  // returns this post would read as a difference in aerox.
+  const text = 'parity root post, a link https://example.com and a mention @mention'
+  const linkStart = text.indexOf('https://example.com')
+  const mentionStart = text.indexOf('@mention')
+  const root = await alice.agent.post({
+    text,
+    createdAt: at(),
+    facets: [
+      {
+        index: { byteStart: linkStart, byteEnd: linkStart + 'https://example.com'.length },
+        features: [{ $type: 'app.bsky.richtext.facet#link', uri: 'https://example.com' }],
+      },
+      {
+        index: { byteStart: mentionStart, byteEnd: mentionStart + '@mention'.length },
+        features: [{ $type: 'app.bsky.richtext.facet#mention', did: bob.did }],
+      },
+    ],
   })
-  await rt.detectFacets(alice.agent)
-  const root = await alice.agent.post({ text: rt.text, facets: rt.facets, createdAt: T0 })
 
-  const plain = await alice.agent.post({ text: 'parity plain post', createdAt: T0 })
+  const plain = await alice.agent.post({ text: 'parity plain post', createdAt: at() })
 
   const reply = await bob.agent.post({
     text: 'parity reply',
-    createdAt: T0,
+    createdAt: at(),
     reply: {
       root: { uri: root.uri, cid: root.cid },
       parent: { uri: root.uri, cid: root.cid },
@@ -89,7 +115,7 @@ async function seed(service, label, inviteCode) {
 
   const nested = await carol.agent.post({
     text: 'parity nested reply',
-    createdAt: T0,
+    createdAt: at(),
     reply: {
       root: { uri: root.uri, cid: root.cid },
       parent: { uri: reply.uri, cid: reply.cid },
@@ -98,16 +124,20 @@ async function seed(service, label, inviteCode) {
 
   const quote = await bob.agent.post({
     text: 'parity quote',
-    createdAt: T0,
+    createdAt: at(),
     embed: {
       $type: 'app.bsky.embed.record',
       record: { uri: root.uri, cid: root.cid },
     },
   })
 
-  await bob.agent.like(root.uri, root.cid)
-  await carol.agent.like(root.uri, root.cid)
-  await bob.agent.repost(root.uri, root.cid)
+  // `agent.like`/`agent.repost` stamp their own `createdAt`, which then shows up
+  // as a difference in every view that returns the record. Write them directly
+  // at the fixed instant instead.
+  const subject = { uri: root.uri, cid: root.cid }
+  await bob.agent.app.bsky.feed.like.create({ repo: bob.did }, { subject, createdAt: at() })
+  await carol.agent.app.bsky.feed.like.create({ repo: carol.did }, { subject, createdAt: at() })
+  await bob.agent.app.bsky.feed.repost.create({ repo: bob.did }, { subject, createdAt: at() })
 
   // a list with one member
   const list = await alice.agent.app.bsky.graph.list.create(
@@ -116,12 +146,12 @@ async function seed(service, label, inviteCode) {
       name: 'parity list',
       purpose: 'app.bsky.graph.defs#curatelist',
       description: 'a list for the parity diff',
-      createdAt: T0,
+      createdAt: at(),
     },
   )
   await alice.agent.app.bsky.graph.listitem.create(
     { repo: alice.did },
-    { list: list.uri, subject: bob.did, createdAt: T0 },
+    { list: list.uri, subject: bob.did, createdAt: at() },
   )
 
   // a threadgate on the plain post: replies from followed users only
@@ -130,7 +160,7 @@ async function seed(service, label, inviteCode) {
     {
       post: plain.uri,
       allow: [{ $type: 'app.bsky.feed.threadgate#followingRule' }],
-      createdAt: T0,
+      createdAt: at(),
     },
   )
 
@@ -179,6 +209,7 @@ const DROP_KEYS = new Set([
   'labels', // no labeler is attached to the reference stack
   'cid', // a record that embeds a URI embeds a DID, so its bytes differ
   'sortAt',
+  'seenAt', // the server's clock at the moment of the call
 ])
 
 // Record keys are TIDs minted at write time, so the same record has a different
@@ -255,6 +286,44 @@ const CALLS = [
   ['app.bsky.feed.getFeed (no generator)', (s) => s.actors.bob.agent.app.bsky.feed.getFeedGenerators({ feeds: [] })],
 ]
 
+// A whole-body dump answers "are they the same?" and nothing else. What a
+// parity run has to produce is *which field* differs, because that is the bug
+// report: one missing key repeated in every actor view reads as twenty broken
+// endpoints until you see the path.
+function diffPaths(a, b, path = '$', out = []) {
+  if (out.length > 400) return out
+  const ta = a === null ? 'null' : Array.isArray(a) ? 'array' : typeof a
+  const tb = b === null ? 'null' : Array.isArray(b) ? 'array' : typeof b
+  if (ta !== tb) {
+    out.push({ path, ours: preview(a), theirs: preview(b) })
+    return out
+  }
+  if (ta === 'array') {
+    if (a.length !== b.length) out.push({ path: `${path}.length`, ours: a.length, theirs: b.length })
+    for (let i = 0; i < Math.min(a.length, b.length); i++) diffPaths(a[i], b[i], `${path}[${i}]`, out)
+    return out
+  }
+  if (ta === 'object') {
+    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if (!(k in a)) out.push({ path: `${path}.${k}`, ours: '(absent)', theirs: preview(b[k]) })
+      else if (!(k in b)) out.push({ path: `${path}.${k}`, ours: preview(a[k]), theirs: '(absent)' })
+      else diffPaths(a[k], b[k], `${path}.${k}`, out)
+    }
+    return out
+  }
+  if (a !== b) out.push({ path, ours: preview(a), theirs: preview(b) })
+  return out
+}
+
+const preview = (v) => {
+  const s = typeof v === 'string' ? v : JSON.stringify(v)
+  return s === undefined ? String(v) : s.length > 80 ? s.slice(0, 77) + '…' : s
+}
+
+// Collapse `$.feed[3].post.author.associated` and its siblings into one row:
+// the same missing field under every array index is one difference, not five.
+const shape = (path) => path.replace(/\[\d+\]/g, '[]')
+
 const sortJson = (v) => {
   if (Array.isArray(v)) return v.map(sortJson)
   if (v && typeof v === 'object') {
@@ -296,17 +365,49 @@ async function main() {
     } catch (err) {
       b = { __error: err.error ?? err.message }
     }
-    const left = JSON.stringify(sortJson(a))
-    const right = JSON.stringify(sortJson(b))
-    rows.push({ name, equal: left === right, ours: left, theirs: right })
-    log(`${left === right ? 'MATCH  ' : 'DIFFER '} ${name}`)
+    const left = sortJson(a)
+    const right = sortJson(b)
+    const equal = JSON.stringify(left) === JSON.stringify(right)
+    const diffs = equal ? [] : diffPaths(left, right)
+    rows.push({ name, equal, diffs })
+    log(`${equal ? 'MATCH  ' : 'DIFFER '} ${name}${equal ? '' : ` (${diffs.length})`}`)
+
+    // PARITY_DUMP=<endpoint>: print both normalised bodies. A structural diff
+    // aligns by index, so when the two sides hold the same items in a different
+    // order — or one holds an item the other does not — every row after the
+    // first is noise and only the raw pair says what actually happened.
+    if (process.env.PARITY_DUMP && name.includes(process.env.PARITY_DUMP)) {
+      log(`\n--- ${name} (aerox) ---\n${JSON.stringify(left, null, 1)}`)
+      log(`\n--- ${name} (ref) ---\n${JSON.stringify(right, null, 1)}`)
+    }
   }
 
   const differing = rows.filter((r) => !r.equal)
   if (differing.length) {
-    log('\n--- differences ---')
+    log('\n--- differences by endpoint ---')
     for (const r of differing) {
-      log(`\n### ${r.name}\naerox: ${r.ours}\nref  : ${r.theirs}`)
+      log(`\n### ${r.name}`)
+      const seen = new Set()
+      for (const d of r.diffs) {
+        const key = shape(d.path)
+        if (seen.has(key)) continue
+        seen.add(key)
+        log(`  ${key}\n    aerox: ${d.ours}\n    ref  : ${d.theirs}`)
+      }
+    }
+
+    // The same field missing everywhere is one bug. Rank by how many endpoints
+    // it touches, so the fix list is ordered by what it buys.
+    const byShape = new Map()
+    for (const r of differing) {
+      for (const key of new Set(r.diffs.map((d) => shape(d.path)))) {
+        const leaf = key.split('.').slice(-2).join('.')
+        byShape.set(leaf, (byShape.get(leaf) ?? new Set()).add(r.name))
+      }
+    }
+    log('\n--- fields ranked by how many endpoints they break ---')
+    for (const [leaf, endpoints] of [...byShape].sort((x, y) => y[1].size - x[1].size).slice(0, 20)) {
+      log(`  ${String(endpoints.size).padStart(2)}  ${leaf}`)
     }
   }
   log(`\n${rows.length - differing.length}/${rows.length} endpoints match`)
