@@ -89,6 +89,35 @@ services:
       - aerox
     restart: unless-stopped
 
+  # A second reference PDS registered with the reference PLC (did-method-plc)
+  # instead of ours: the whole-bsky identity stack that aero's self-custody flow
+  # (docs/SELF_CUSTODY.md §9) is tested against. Throwaway dev secrets. Nothing
+  # crawls it; app.bsky.* goes to the reference AppView like ref-pds.
+  ref-pds2:
+    image: ghcr.io/bluesky-social/pds:0.4
+    environment:
+      PDS_HOSTNAME: ref-pds2.aerox.sola.town
+      PDS_PORT: "3000"
+      PDS_DATA_DIRECTORY: /pds
+      PDS_BLOBSTORE_DISK_LOCATION: /pds/blocks
+      PDS_DID_PLC_URL: https://ref-plc.aerox.sola.town
+      PDS_JWT_SECRET: REDACTED-ref-pds2-jwt-secret
+      PDS_ADMIN_PASSWORD: REDACTED-ref-pds2-admin-password
+      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: REDACTED-ref-pds2-rotation-key
+      PDS_SERVICE_HANDLE_DOMAINS: .ref-pds2.aerox.sola.town
+      PDS_INVITE_REQUIRED: "false"
+      PDS_BSKY_APP_VIEW_URL: https://ref-appview.aerox.sola.town
+      PDS_BSKY_APP_VIEW_DID: ${REF_APPVIEW_DID:-did:web:ref-appview.aerox.sola.town}
+      PDS_DEV_MODE: "true"
+      LOG_ENABLED: "true"
+    volumes:
+      - ref-pds2-data:/pds
+    ports:
+      - "172.18.0.1:2585:3000"
+    networks:
+      - aerox
+    restart: unless-stopped
+
   # The bsky AppView of VERIFICATION §7.1, built from the reading-room checkout
   # at 62f944dd6 (upstream @atproto/bsky at 6a6fbc155 plus the standalone
   # entrypoint that runs the dataplane, a mock bsync, the AppView and the repo
@@ -133,6 +162,7 @@ services:
 volumes:
   ref-relay-data:
   ref-pds-data:
+  ref-pds2-data:
   ref-appview-data:
 
 networks:

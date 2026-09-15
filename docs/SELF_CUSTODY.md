@@ -4,8 +4,8 @@ How an account on aerox — or on Bluesky's reference PDS — moves control of i
 `did:plc` identity to keys the user holds, **using only what the protocol already
 provides**, driven from the aero client. No lexicon, PLC or PDS protocol changes.
 
-Status: design, 2026-09-15. Extends DESIGN §14.2 item 4 ("users may add their own
-recovery key"). Sources checked: `bsky/atproto` @ `62f944dd6`
+Status: **implemented and verified on both stacks, 2026-09-15** (§11). Extends
+DESIGN §14.2 item 4 ("users may add their own recovery key"). Sources checked: `bsky/atproto` @ `62f944dd6`
 (`packages/pds/src/api/com/atproto/identity/*`, `account-manager/account-manager.ts`,
 `config/secrets.ts`), `bsky/did-method-plc` (`packages/lib/src/{client,operations,data}.ts`,
 `packages/server/src/constraints.ts`), `bsky/bluesky-pds/installer.sh`, and aerox
@@ -208,9 +208,9 @@ guards against lock-out:
 | `signPlcOperation` with new `rotationKeys` | ✓ | ✓ | — |
 | `submitPlcOperation` checks | ✓ | ✓, same five checks | — |
 | Browser `GET` of PLC `/log/audit` | ✓ (`cors()`) | ✓ (`b7f2a4d`) | — |
-| Browser `POST <plc>/<did>` (CORS preflight) | ✓ (`OPTIONS` → 204) | ✗ (`OPTIONS` → 404) | **required**: answer `OPTIONS` on the PLC routes |
-| PLC 72 h nullification, key priority | ✓ | ✓ (DESIGN §14.2 item 7) | verify via the interop test (§9) |
-| PLC rate limits 10/30/100 | ✓ | to verify | match `did-method-plc` if different |
+| Browser `POST <plc>/<did>` (CORS preflight) | ✓ (`OPTIONS` → 204) | ✓ since `bba52df` (was 404) | done |
+| PLC 72 h nullification, key priority | ✓ | ✓, exercised by the interop test (§11) | — |
+| PLC rate limits 10/30/100 | ✓ | ✓ same limits (`Aerox.PLC.Directory`) | — |
 | `updateHandle` at L2 | fails (instance key not accepted) → grant → act → revoke | same | — (deliberately not "fixed" server-side, to keep one client flow) |
 
 ## 8. aerox server-side work
@@ -266,3 +266,51 @@ depend on it:
 5. The interop Playwright scenario against aerox and the reference stack, and a
    PARITY.md note.
 6. The optional aerox hardening (§8.2–8.4).
+
+## 11. Implementation and verification
+
+**Where the code lives.**
+
+| Piece | Location |
+|---|---|
+| Operation building, encoding, CID, signing, signer attribution, pre-flight (§6), directory client, directory discovery (§5.0) | `aero-app/src/lib/plc.ts` |
+| Key generation and import, encrypted backup file, IndexedDB copy, self-test (§4) | `aero-app/src/lib/custodyKeys.ts` |
+| Custody level derived from the PLC log | `aero-app/src/lib/custody.ts` |
+| UI and every flow in §5 | `aero-app/src/pages/settings/RotationKeys.tsx` (Settings → Rotation keys) |
+| PLC CORS for `GET` and preflight (§8.1) | aerox `b7f2a4d`, `bba52df` |
+| Reference stack for the interop test: `ref-pds2` (`ghcr.io/bluesky-social/pds:0.4`) registered with `ref-plc` (`did-method-plc` @ `1e301e5e`) | `tools/interop/compose.yaml`, Traefik router `aerox-ref-pds2` |
+
+**Tests.**
+
+1. **Golden vectors** (`cd aero-app && npm test`, 17 tests). `plc.ts` is run over
+   every audit log in `test/golden/plc`, which are real `did-method-plc` logs:
+   - every CID matches and every signer is found;
+   - the malformed-signature fixtures are rejected: DER, high-S K-256 and P-256,
+     base64 padding, padding bits, newline;
+   - a synthetic L0 → L1 → L2 chain passes pre-flight, while the lock-out, moved-PDS,
+     forged-signature and stale-`prev` cases are refused.
+2. **Browser end to end** (`node test/custody.mjs aerox|ref`). The identical script
+   passes against both stacks:
+   1. create an account and sign in to aero with that PDS;
+   2. **L0**;
+   3. generate a key, download the encrypted backup, re-open and verify it;
+   4. email token → `signPlcOperation` → `submitPlcOperation` → **L1**;
+   5. a user-signed op POSTed to PLC → **L2**. A probe confirms that
+      `submitPlcOperation` now refuses the document ("rotation key");
+   6. handle change by grant → `updateHandle` → revoke. The PLC document, the PDS
+      handle and the remaining `[userKey]` are all checked;
+   7. user-signed op → **L1** again;
+   8. the PDS signs an unwanted `updateHandle`; after a reload the key is unlocked
+      from its device copy and "Undo from here" nullifies the op. The audit log shows
+      it `nullified` and the handle restored;
+   9. the PDS handle is realigned with the DID document;
+   10. the DID is tombstoned with the user key.
+
+   Email tokens come from the aerox dev mailbox, and from the reference PDS's
+   `email_token` table (test only; that PDS has no SMTP).
+
+**Found while implementing.**
+- After a nullified handle change, the DID document is restored but the PDS keeps
+  the rogue handle: nullification is a PLC-level event the PDS never hears about.
+  The page detects the mismatch (`alsoKnownAs[0]` ≠ session handle) and offers to
+  realign: `updateHandle` at L0/L1, or grant → act → revoke at L2.

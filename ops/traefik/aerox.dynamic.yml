@@ -80,6 +80,15 @@ http:
       service: aerox-ref-appview
       tls: {}
 
+    # The second reference PDS (tools/interop/compose.yaml ref-pds2), registered
+    # with the reference PLC; aero's self-custody interop test signs in to it.
+    aerox-ref-pds2:
+      rule: "Host(`ref-pds2.aerox.sola.town`)"
+      entryPoints:
+        - websecure
+      service: aerox-ref-pds2
+      tls: {}
+
     # Handles on the reference PDS are `<name>.ref-pds.aerox.sola.town`, one
     # label deeper than the `*.aerox.sola.town` certificate reaches, so without
     # this the reference AppView cannot fetch `/.well-known/atproto-did` for any
@@ -151,6 +160,10 @@ http:
           - "2001:bc8:1201:601:2247:47ff:fe7f:8f92/128"
 
   services:
+    aerox-ref-pds2:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.1:2585"
     aero-app:
       loadBalancer:
         servers:
