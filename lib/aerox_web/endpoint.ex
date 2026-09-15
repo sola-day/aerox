@@ -53,5 +53,6 @@ defmodule AeroxWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+  plug AeroxWeb.Plugs.StreamMethods
   plug AeroxWeb.Dispatch
 end

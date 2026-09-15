@@ -164,11 +164,49 @@ defmodule AeroxWeb.Sockets.Firehose.Plug do
       )
       |> Plug.Conn.halt()
     else
-      # Relays hold idle firehose connections for hours; the idle timeout is a
-      # day, and any client ping (indigo and our consumer send them) resets it.
-      WebSockAdapter.upgrade(conn, AeroxWeb.Sockets.Firehose, %{cursor: cursor, source: source},
-        timeout: 24 * 3600 * 1000
-      )
+      with :ok <- upgradable(conn) do
+        # Relays hold idle firehose connections for hours; the idle timeout is a
+        # day, and any client ping (indigo and our consumer send them) resets it.
+        WebSockAdapter.upgrade(conn, AeroxWeb.Sockets.Firehose, %{cursor: cursor, source: source},
+          timeout: 24 * 3600 * 1000
+        )
+      end
     end
+  end
+
+  @doc """
+  Event Stream spec, "Connection": a request that does not ask for a WebSocket
+  is `426 Upgrade Required`; one that asks but is malformed is `400`. Both are
+  XRPC JSON errors. `WebSockAdapter.upgrade/4` would otherwise raise, which
+  Phoenix renders as a 500.
+  """
+  def upgradable(conn) do
+    wants_websocket? =
+      conn.method == "CONNECT" or
+        conn
+        |> Plug.Conn.get_req_header("upgrade")
+        |> Enum.any?(&(&1 |> String.downcase() |> String.contains?("websocket")))
+
+    if wants_websocket? do
+      case WebSockAdapter.UpgradeValidation.validate_upgrade(conn) do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          xrpc_error(conn, 400, "InvalidRequest", "Invalid WebSocket upgrade: #{reason}")
+      end
+    else
+      conn
+      |> Plug.Conn.put_resp_header("upgrade", "websocket")
+      |> Plug.Conn.put_resp_header("connection", "Upgrade")
+      |> xrpc_error(426, "InvalidRequest", "This is an event stream: upgrade to a WebSocket")
+    end
+  end
+
+  defp xrpc_error(conn, status, error, message) do
+    conn
+    |> Plug.Conn.put_resp_content_type("application/json")
+    |> Plug.Conn.send_resp(status, Jason.encode!(%{"error" => error, "message" => message}))
+    |> Plug.Conn.halt()
   end
 end
