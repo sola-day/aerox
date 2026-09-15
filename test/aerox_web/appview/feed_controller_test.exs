@@ -169,6 +169,38 @@ defmodule AeroxWeb.AppView.FeedControllerTest do
   defp feed_uris(body),
     do: Enum.map(body["feed"], &{&1["post"]["uri"], get_in(&1, ["reason", "uri"])})
 
+  # ---------------------------------------------------- Atproto-Repo-Rev
+
+  test "Atproto-Repo-Rev: the viewer's last indexed rev, on successes and errors", ctx do
+    %{conn: conn, alice: alice} = ctx
+    commit = write!(alice.did, [make_post(alice.did, "rev me", 1)])
+    rev = commit.rev
+
+    resp =
+      conn
+      |> auth(alice.did, "app.bsky.feed.getTimeline")
+      |> get("/xrpc/app.bsky.feed.getTimeline")
+
+    assert resp.status == 200
+    assert get_resp_header(resp, "atproto-repo-rev") == [rev]
+
+    # an error for an authenticated viewer carries it too (upstream sets it in the catch)
+    resp =
+      conn
+      |> auth(alice.did, "app.bsky.feed.getPostThread")
+      |> get(
+        "/xrpc/app.bsky.feed.getPostThread?uri=at://#{alice.did}/app.bsky.feed.post/3zzzzzzzzzzzz"
+      )
+
+    assert resp.status == 400
+    assert get_resp_header(resp, "atproto-repo-rev") == [rev]
+
+    # anonymous callers have no repository to report on
+    resp = get(conn, "/xrpc/app.bsky.actor.getProfile?actor=#{alice.did}")
+    assert resp.status == 200
+    assert get_resp_header(resp, "atproto-repo-rev") == []
+  end
+
   # -------------------------------------------------------------- timeline
 
   test "getTimeline: own posts, followed posts and reposts, reply rules, cursor paging", ctx do

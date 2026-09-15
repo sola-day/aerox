@@ -14,6 +14,7 @@ defmodule AeroxWeb.AppViewRouter do
     plug AeroxWeb.Plugs.RateLimit, :global_ip
     plug AeroxWeb.Plugs.ServiceEnabled, :appview
     plug AeroxWeb.AppView.Auth
+    plug AeroxWeb.AppView.RepoRev
   end
 
   pipeline :img do
