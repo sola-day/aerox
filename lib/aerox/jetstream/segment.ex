@@ -58,7 +58,7 @@ defmodule Aerox.Jetstream.Segment do
   """
   @spec seal([map], keyword) :: {binary, map}
   def seal(blocks, opts \\ []) do
-    {infos, _} =
+    {pairs, footer_offset} =
       Enum.map_reduce(blocks, @header_bytes, fn b, offset ->
         info =
           Map.merge(
@@ -71,34 +71,17 @@ defmodule Aerox.Jetstream.Segment do
             b[:bounds] || bounds(b.events)
           )
 
-        {info, offset + 8 + byte_size(b.frame)}
+        {{info, summarize(b.events)}, offset + 8 + byte_size(b.frame)}
       end)
 
-    footer_offset =
-      case List.last(infos) do
-        nil -> @header_bytes
-        last -> last.offset + 8 + last.compressed_size
-      end
-
-    {footer, header} = footer(Enum.zip(infos, Enum.map(blocks, & &1.events)), footer_offset)
-    header = Map.merge(header, Keyword.get(opts, :bounds, %{}))
-    header_bin = encode_header(header, 0)
-    checksum = checksum(header_bin, footer)
-    header = Map.put(header, :checksum, checksum)
-
-    file =
-      IO.iodata_to_binary([
-        encode_header(header, checksum),
-        Enum.map(blocks, &framed(&1.frame)),
-        footer
-      ])
-
-    {file, header}
+    {footer, header_bin, header} = build_footer(pairs, footer_offset, Keyword.get(opts, :bounds))
+    {IO.iodata_to_binary([header_bin, Enum.map(blocks, &framed(&1.frame)), footer]), header}
   end
 
-  defp bounds([]), do: %{min_seq: 0, max_seq: 0, min_witnessed_at: 0, max_witnessed_at: 0}
+  @doc "A block's index entry bounds from its rows."
+  def bounds([]), do: %{min_seq: 0, max_seq: 0, min_witnessed_at: 0, max_witnessed_at: 0}
 
-  defp bounds(events) do
+  def bounds(events) do
     %{
       min_seq: events |> Enum.map(& &1.seq) |> Enum.min(),
       max_seq: events |> Enum.map(& &1.seq) |> Enum.max(),
@@ -107,68 +90,75 @@ defmodule Aerox.Jetstream.Segment do
     }
   end
 
-  # buildFooter: block index, segment bloom, per-block blooms, collection index
-  defp footer(blocks_with_events, footer_offset) do
-    walk =
-      Enum.reduce(
-        blocks_with_events,
-        %{
-          dids: MapSet.new(),
-          block_dids: [],
-          table: [],
-          ids: %{},
-          counts: %{},
-          block_cols: [],
-          total: 0,
-          seen: false,
-          min_seq: 0,
-          max_seq: 0,
-          min_w: 0,
-          max_w: 0
-        },
-        fn {info, events}, w ->
-          {block_dids, block_ids, w} =
-            Enum.reduce(events, {MapSet.new(), MapSet.new(), w}, fn e, {bd, bids, w} ->
-              w = track_bounds(w, e)
+  @doc """
+  What sealing needs to know about one block without its rows: the distinct
+  DIDs, and the collection names (real ones and marker sentinels) in the order
+  they first appear, with each real collection's row count. Summaries in block
+  order intern names exactly as upstream's event-order walk does.
+  """
+  def summarize(events) do
+    Enum.reduce(events, %{dids: MapSet.new(), names: [], counts: %{}}, fn e, acc ->
+      acc = if e.did != "", do: %{acc | dids: MapSet.put(acc.dids, e.did)}, else: acc
 
-              {bd, w} =
-                if e.did != "",
-                  do: {MapSet.put(bd, e.did), %{w | dids: MapSet.put(w.dids, e.did)}},
-                  else: {bd, w}
-
-              {bids, w} =
-                if e.collection != "", do: intern(w, bids, e.collection, true), else: {bids, w}
-
-              {bids, w} = if s = Event.sentinel(e), do: intern(w, bids, s, false), else: {bids, w}
-              {bd, bids, w}
-            end)
-
-          %{
-            w
-            | block_dids: [block_dids | w.block_dids],
-              block_cols: [block_ids |> Enum.sort() | w.block_cols],
-              total: w.total + info.event_count
-          }
+      acc =
+        if e.collection != "" do
+          acc
+          |> note_name(e.collection)
+          |> Map.update!(:counts, &Map.update(&1, e.collection, 1, fn n -> n + 1 end))
+        else
+          acc
         end
-      )
 
-    infos = Enum.map(blocks_with_events, &elem(&1, 0))
-    block_dids = Enum.reverse(walk.block_dids)
-    block_cols = Enum.reverse(walk.block_cols)
-    table = Enum.reverse(walk.table)
+      case Event.sentinel(e) do
+        nil -> acc
+        s -> note_name(acc, s)
+      end
+    end)
+    |> Map.update!(:names, &Enum.reverse/1)
+  end
+
+  defp note_name(acc, name) do
+    if name in acc.names, do: acc, else: %{acc | names: [name | acc.names]}
+  end
+
+  @doc """
+  The footer and the finished header for blocks given as `{info, summary}`
+  pairs (`info` as in the block index). `bounds` overrides the header's seq and
+  witnessed-at bounds; by default they span the non-empty blocks.
+  """
+  def build_footer(pairs, footer_offset, bounds \\ nil) do
+    infos = Enum.map(pairs, &elem(&1, 0))
+    summaries = Enum.map(pairs, &elem(&1, 1))
+
+    {table, ids, counts} =
+      Enum.reduce(summaries, {[], %{}, %{}}, fn sum, acc ->
+        Enum.reduce(sum.names, acc, fn name, {t, ids, c} ->
+          if Map.has_key?(ids, name),
+            do: {t, ids, c},
+            else: {[name | t], Map.put(ids, name, map_size(ids)), c}
+        end)
+        |> then(fn {t, ids, c} -> {t, ids, Map.merge(c, sum.counts, fn _, a, b -> a + b end)} end)
+      end)
+
+    table = Enum.reverse(table)
+
+    block_cols =
+      Enum.map(summaries, fn sum -> sum.names |> Enum.map(&Map.fetch!(ids, &1)) |> Enum.sort() end)
+
+    all_dids = Enum.reduce(summaries, MapSet.new(), &MapSet.union(&2, &1.dids))
 
     index = encode_block_index(infos)
 
     seg_bloom =
-      walk.dids
-      |> Enum.reduce(Gloom.new(MapSet.size(walk.dids), @fp), &Gloom.add(&2, &1))
+      all_dids
+      |> Enum.reduce(Gloom.new(MapSet.size(all_dids), @fp), &Gloom.add(&2, &1))
       |> Gloom.marshal()
 
-    capacity = block_dids |> Enum.map(&MapSet.size/1) |> Enum.max(fn -> 1 end) |> max(1)
+    capacity = summaries |> Enum.map(&MapSet.size(&1.dids)) |> Enum.max(fn -> 1 end) |> max(1)
 
     block_blooms =
-      Enum.map(block_dids, fn dids ->
-        dids |> Enum.reduce(Gloom.new(capacity, @fp), &Gloom.add(&2, &1)) |> Gloom.marshal()
+      Enum.map(summaries, fn sum ->
+        sum.dids |> Enum.reduce(Gloom.new(capacity, @fp), &Gloom.add(&2, &1)) |> Gloom.marshal()
       end)
 
     bloom_size =
@@ -177,71 +167,52 @@ defmodule Aerox.Jetstream.Segment do
         [] -> 0
       end
 
-    blooms_region =
+    region =
       IO.iodata_to_binary([
         <<length(block_blooms)::little-32, bloom_size::little-32>> | block_blooms
       ])
 
     collection_index =
-      encode_collection_index(table, Enum.map(table, &Map.get(walk.counts, &1, 0)), block_cols)
+      encode_collection_index(table, Enum.map(table, &Map.get(counts, &1, 0)), block_cols)
 
-    index_offset = footer_offset
-    did_bloom_offset = index_offset + byte_size(index)
+    did_bloom_offset = footer_offset + byte_size(index)
     block_bloom_offset = did_bloom_offset + byte_size(seg_bloom)
-    collection_offset = block_bloom_offset + byte_size(blooms_region)
+    collection_offset = block_bloom_offset + byte_size(region)
 
-    header = %{
-      version: @version,
-      block_count: length(infos),
-      event_count: walk.total,
-      unique_did_count: MapSet.size(walk.dids),
-      min_seq: walk.min_seq,
-      max_seq: walk.max_seq,
-      min_witnessed_at: walk.min_w,
-      max_witnessed_at: walk.max_w,
-      footer_offset: footer_offset,
-      did_bloom_offset: did_bloom_offset,
-      block_did_bloom_offset: block_bloom_offset,
-      collection_index_offset: collection_offset,
-      block_index_offset: index_offset
-    }
+    nonempty = Enum.filter(infos, &(&1.event_count > 0))
 
-    {IO.iodata_to_binary([index, seg_bloom, blooms_region, collection_index]), header}
-  end
+    bounds =
+      bounds ||
+        case nonempty do
+          [] ->
+            %{min_seq: 0, max_seq: 0, min_witnessed_at: 0, max_witnessed_at: 0}
 
-  defp track_bounds(%{seen: false} = w, e),
-    do: %{
-      w
-      | seen: true,
-        min_seq: e.seq,
-        max_seq: e.seq,
-        min_w: e.witnessed_at,
-        max_w: e.witnessed_at
-    }
+          _ ->
+            %{
+              min_seq: nonempty |> Enum.map(& &1.min_seq) |> Enum.min(),
+              max_seq: nonempty |> Enum.map(& &1.max_seq) |> Enum.max(),
+              min_witnessed_at: nonempty |> Enum.map(& &1.min_witnessed_at) |> Enum.min(),
+              max_witnessed_at: nonempty |> Enum.map(& &1.max_witnessed_at) |> Enum.max()
+            }
+        end
 
-  defp track_bounds(w, e) do
-    %{
-      w
-      | min_seq: min(w.min_seq, e.seq),
-        max_seq: max(w.max_seq, e.seq),
-        min_w: min(w.min_w, e.witnessed_at),
-        max_w: max(w.max_w, e.witnessed_at)
-    }
-  end
+    header =
+      Map.merge(bounds, %{
+        version: @version,
+        block_count: length(infos),
+        event_count: infos |> Enum.map(& &1.event_count) |> Enum.sum(),
+        unique_did_count: MapSet.size(all_dids),
+        footer_offset: footer_offset,
+        did_bloom_offset: did_bloom_offset,
+        block_did_bloom_offset: block_bloom_offset,
+        collection_index_offset: collection_offset,
+        block_index_offset: footer_offset
+      })
 
-  defp intern(w, bids, name, count?) do
-    {id, w} =
-      case Map.fetch(w.ids, name) do
-        {:ok, id} ->
-          {id, w}
-
-        :error ->
-          id = map_size(w.ids)
-          {id, %{w | ids: Map.put(w.ids, name, id), table: [name | w.table]}}
-      end
-
-    w = if count?, do: %{w | counts: Map.update(w.counts, name, 1, &(&1 + 1))}, else: w
-    {MapSet.put(bids, id), w}
+    footer = IO.iodata_to_binary([index, seg_bloom, region, collection_index])
+    checksum = checksum(encode_header(header, 0), footer)
+    header = Map.put(header, :checksum, checksum)
+    {footer, encode_header(header, checksum), header}
   end
 
   defp encode_block_index(infos) do

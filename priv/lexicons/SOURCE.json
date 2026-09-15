@@ -2045,6 +2045,54 @@
       "path": "lexicons/my/bulletin.removal.json",
       "repo": "bulletin",
       "sha256": "489e8b911a21df6a1c5452e2e3c46a458f556ffa536508eb534db463be13bbd0"
+    },
+    "network/bsky/jetstream/getBlock.json": {
+      "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+      "path": "lexicons/network/bsky/jetstream/getBlock.json",
+      "repo": "jetstream",
+      "sha256": "72bda5100b6b959157a6515067ad883585d2159e874b55dcf2f45edf23bdaafc"
+    },
+    "network/bsky/jetstream/getImportStatus.json": {
+      "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+      "path": "lexicons/network/bsky/jetstream/getImportStatus.json",
+      "repo": "jetstream",
+      "sha256": "3d48e987584a7466db2c54bbaa2082a21c20939925a5d9a691a48a4e3b5d2522"
+    },
+    "network/bsky/jetstream/getSegment.json": {
+      "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+      "path": "lexicons/network/bsky/jetstream/getSegment.json",
+      "repo": "jetstream",
+      "sha256": "43ff7c964f0a474940335df6bd5e0067f875cc9731d9f0b75f9559a0150e3c29"
+    },
+    "network/bsky/jetstream/getZstdDictionary.json": {
+      "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+      "path": "lexicons/network/bsky/jetstream/getZstdDictionary.json",
+      "repo": "jetstream",
+      "sha256": "a86a1eb52818afa3bed243b42825fe9e704cd718766d116bc0078563f3e538a2"
+    },
+    "network/bsky/jetstream/importTimestamps.json": {
+      "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+      "path": "lexicons/network/bsky/jetstream/importTimestamps.json",
+      "repo": "jetstream",
+      "sha256": "ff2c7f40bcd782da68dcfce46a5ea57b2ee895e7ce2e99f3ce5143818ec5e45f"
+    },
+    "network/bsky/jetstream/listSegments.json": {
+      "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+      "path": "lexicons/network/bsky/jetstream/listSegments.json",
+      "repo": "jetstream",
+      "sha256": "31a88c48101e991b0c729949e7a3d5f327f01bb37c87d80046819ad313965050"
+    },
+    "network/bsky/jetstream/planSnapshot.json": {
+      "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+      "path": "lexicons/network/bsky/jetstream/planSnapshot.json",
+      "repo": "jetstream",
+      "sha256": "f06e119e688ae68a8d12e332e88a0a5b21e85fb2ede9f28531d8f48e21b41846"
+    },
+    "network/bsky/jetstream/subscribeEvents.json": {
+      "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+      "path": "lexicons/network/bsky/jetstream/subscribeEvents.json",
+      "repo": "jetstream",
+      "sha256": "fcc7532518a896771d69c71462f57e94d454f96bc6d63e951d10285d9f8f37be"
     }
   }
 }

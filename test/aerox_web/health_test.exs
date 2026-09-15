@@ -13,7 +13,8 @@ defmodule AeroxWeb.HealthTest do
 
   test "every service answers /xrpc/_health", %{conn: conn} do
     for {host, expected} <- [
-          {Aerox.PDS.Config.hostname(), %{"version" => to_string(Application.spec(:aerox, :vsn))}},
+          {Aerox.PDS.Config.hostname(),
+           %{"version" => to_string(Application.spec(:aerox, :vsn))}},
           {Aerox.Relay.Config.hostname(), %{"status" => "ok"}},
           {Aerox.AppView.Config.hostname(), %{"status" => "ok"}},
           {Aerox.Labeler.Config.hostname(), %{"status" => "ok"}}

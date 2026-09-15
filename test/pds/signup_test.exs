@@ -103,6 +103,7 @@ defmodule Aerox.PDS.SignupTest do
     assert [^did] = Signup.reap_orphans()
     assert nil == Accounts.get_account(did, include_deactivated: true)
   end
+
   defmodule DeadSigner do
     @moduledoc "A signer whose host is down, as `Signer.Remote` reports it."
     @behaviour Aerox.Crypto.Signer
@@ -150,11 +151,14 @@ defmodule Aerox.PDS.SignupTest do
     # string: the error renderer JSON-encodes it, so a struct here turns the
     # named 502 into an unnamed 500 whose log line blames the JSON encoder.
     assert is_binary(message)
-    assert Jason.encode!(AeroxWeb.XRPC.Error.body(%AeroxWeb.XRPC.Error{
-             status: 502,
-             name: "UpstreamFailure",
-             message: message
-           }))
+
+    assert Jason.encode!(
+             AeroxWeb.XRPC.Error.body(%AeroxWeb.XRPC.Error{
+               status: 502,
+               name: "UpstreamFailure",
+               message: message
+             })
+           )
 
     assert Accounts.get_account("deadsigner#{n}.test", include_deactivated: true) == nil
   end
@@ -194,5 +198,4 @@ defmodule Aerox.PDS.SignupTest do
 
   def internal_error,
     do: AeroxWeb.XRPC.Error.internal(%Req.TransportError{reason: :timeout})
-
 end

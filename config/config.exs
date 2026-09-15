@@ -12,7 +12,8 @@ config :aerox,
     Aerox.PLC.Repo,
     Aerox.Relay.Repo,
     Aerox.AppView.Repo,
-    Aerox.Labeler.Repo
+    Aerox.Labeler.Repo,
+    Aerox.Jetstream.Repo
   ],
   generators: [timestamp_type: :utc_datetime]
 
@@ -22,7 +23,8 @@ for {repo, schema} <- [
       {Aerox.PLC.Repo, "plc"},
       {Aerox.Relay.Repo, "relay"},
       {Aerox.AppView.Repo, "appview"},
-      {Aerox.Labeler.Repo, "labeler"}
+      {Aerox.Labeler.Repo, "labeler"},
+      {Aerox.Jetstream.Repo, "jetstream"}
     ] do
   config :aerox, repo,
     priv: "priv/#{schema}_repo",
@@ -31,7 +33,7 @@ for {repo, schema} <- [
 end
 
 # Which services this node runs (DESIGN §2). Dev and test run everything.
-config :aerox, :services, [:pds, :plc, :relay, :appview, :labeler]
+config :aerox, :services, [:pds, :plc, :relay, :appview, :labeler, :jetstream]
 
 # Two Oban instances, one per database (DESIGN §21.6, §4.6). Queues are added
 # by the milestone that first enqueues to them.

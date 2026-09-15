@@ -4,9 +4,9 @@ defmodule Aerox.Services do
   supervision tree and per request by `AeroxWeb.Plugs.ServiceEnabled`.
   """
 
-  @all [:pds, :plc, :relay, :appview, :labeler]
+  @all [:pds, :plc, :relay, :appview, :labeler, :jetstream]
 
-  @type service :: :pds | :plc | :relay | :appview | :labeler
+  @type service :: :pds | :plc | :relay | :appview | :labeler | :jetstream
 
   @spec all() :: [service]
   def all, do: @all

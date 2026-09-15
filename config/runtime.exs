@@ -49,7 +49,8 @@ if config_env() == :prod do
         {Aerox.PLC.Repo, "PLC_DATABASE_URL"},
         {Aerox.Relay.Repo, "RELAY_DATABASE_URL"},
         {Aerox.AppView.Repo, "APPVIEW_DATABASE_URL"},
-        {Aerox.Labeler.Repo, "LABELER_DATABASE_URL"}
+        {Aerox.Labeler.Repo, "LABELER_DATABASE_URL"},
+        {Aerox.Jetstream.Repo, "JETSTREAM_DATABASE_URL"}
       ] do
     if url = System.get_env(var) do
       config :aerox, repo,
@@ -170,6 +171,13 @@ if config_env() == :prod do
     did: labeler_did,
     signing_key_hex: System.get_env("LABELER_SIGNING_KEY_HEX"),
     admin_password: need.("LABELER_ADMIN_PASSWORD")
+
+  config :aerox, Aerox.Jetstream,
+    hostname: service_host.("JETSTREAM"),
+    public_url: "https://" <> service_host.("JETSTREAM"),
+    relay_url: System.get_env("RELAY_WS_URL") || "wss://" <> service_host.("RELAY"),
+    data_dir: System.get_env("JETSTREAM_DATA_DIR") || "/var/lib/aerox/jetstream",
+    import_token: System.get_env("JETSTREAM_IMPORT_TOKEN")
 
   config :aerox, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 

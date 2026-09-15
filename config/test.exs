@@ -12,7 +12,8 @@ for {repo, role, database} <- [
       {Aerox.PLC.Repo, "aerox_plc", "aerox_core_test"},
       {Aerox.Relay.Repo, "aerox_relay", "aerox_core_test"},
       {Aerox.AppView.Repo, "aerox_appview", "aerox_core_test"},
-      {Aerox.Labeler.Repo, "aerox_labeler", "aerox_core_test"}
+      {Aerox.Labeler.Repo, "aerox_labeler", "aerox_core_test"},
+      {Aerox.Jetstream.Repo, "aerox_jetstream", "aerox_core_test"}
     ] do
   config :aerox, repo,
     username: role,
@@ -136,3 +137,13 @@ config :aerox, Aerox.Labeler.Sequencer, unboxed: true
 # Spaces (DESIGN §12): permissioned data behind a feature flag; routes answer
 # 501 MethodNotImplemented when disabled.
 config :aerox, Aerox.PDS.Space, enabled: true, trust_preassigned_auth: true
+
+# Jetstream: no relay connection, background workers started by the tests that
+# need them, a private data directory.
+config :aerox, Aerox.Jetstream,
+  hostname: "jetstream.aerox.sola.town",
+  public_url: "https://jetstream.aerox.sola.town",
+  relay_url: "wss://relay.aerox.sola.town",
+  data_dir: "tmp/jetstream-test",
+  workers: false,
+  import_token: "jetstream-import-token"

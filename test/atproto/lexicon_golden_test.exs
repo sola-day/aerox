@@ -97,7 +97,7 @@ defmodule Aerox.ATProto.LexiconGoldenTest do
   describe "the vendored registry" do
     test "loads every priv/lexicons document and every ref resolves" do
       reg = Lexicon.default_registry()
-      assert map_size(reg.docs) == 345
+      assert map_size(reg.docs) == 353
       assert Registry.dangling_refs(reg) == []
       assert Registry.known?(reg, "com.atproto.repo.strongRef")
       assert Registry.known?(reg, "com.atproto.label.defs#label")

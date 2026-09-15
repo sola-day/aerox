@@ -14,7 +14,8 @@ for {repo, role, database} <- [
       {Aerox.PLC.Repo, "aerox_plc", "aerox_core"},
       {Aerox.Relay.Repo, "aerox_relay", "aerox_core"},
       {Aerox.AppView.Repo, "aerox_appview", "aerox_core"},
-      {Aerox.Labeler.Repo, "aerox_labeler", "aerox_core"}
+      {Aerox.Labeler.Repo, "aerox_labeler", "aerox_core"},
+      {Aerox.Jetstream.Repo, "aerox_jetstream", "aerox_core"}
     ] do
   config :aerox, repo,
     username: role,
@@ -205,3 +206,14 @@ config :aerox, Aerox.AppView,
 # Spaces (DESIGN §12): permissioned data behind a feature flag; routes answer
 # 501 MethodNotImplemented when disabled.
 config :aerox, Aerox.PDS.Space, enabled: true
+
+# Jetstream (docs/PARITY.md): a JSON firehose and full-network archive over our
+# own Relay, in jetstream's wire and segment formats.
+config :aerox, Aerox.Jetstream,
+  hostname: "jetstream.aerox.sola.town",
+  public_url: "https://jetstream.aerox.sola.town",
+  relay_url: System.get_env("AEROX_RELAY_WS_URL", "wss://relay.aerox.sola.town"),
+  data_dir: System.get_env("AEROX_JETSTREAM_DIR", "tmp/jetstream"),
+  # small segments so a dev archive seals and compacts within minutes
+  segment_bytes: 4 * 1024 * 1024,
+  import_token: System.get_env("AEROX_JETSTREAM_IMPORT_TOKEN")

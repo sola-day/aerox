@@ -15,7 +15,8 @@ defmodule Aerox.Application do
       Aerox.ImageServer,
       Aerox.Identity,
       Aerox.Auth,
-      Aerox.Labeler
+      Aerox.Labeler,
+      Aerox.Jetstream
     ]
 
   use Application
@@ -137,6 +138,23 @@ defmodule Aerox.Application do
          else: []
 
     [Aerox.Labeler.Repo, identity_cache(Aerox.Labeler.Identity, Aerox.Labeler.Repo)] ++ extra
+  end
+
+  # Jetstream: its repo, the segment manifest, then (unless disabled) the writer
+  # that owns the log and the relay ingest feeding it.
+  defp children_for(:jetstream) do
+    [
+      %{
+        id: Aerox.Jetstream.Supervisor,
+        type: :supervisor,
+        start:
+          {Supervisor, :start_link,
+           [
+             Aerox.Jetstream.Supervisor.children(),
+             [strategy: :rest_for_one, name: Aerox.Jetstream.Supervisor]
+           ]}
+      }
+    ]
   end
 
   defp identity_cache(name, repo) do

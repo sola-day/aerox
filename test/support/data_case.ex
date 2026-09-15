@@ -12,7 +12,8 @@ defmodule Aerox.DataCase do
     Aerox.PLC.Repo,
     Aerox.Relay.Repo,
     Aerox.AppView.Repo,
-    Aerox.Labeler.Repo
+    Aerox.Labeler.Repo,
+    Aerox.Jetstream.Repo
   ]
 
   using opts do

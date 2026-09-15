@@ -102,7 +102,9 @@ defmodule Aerox.Relay.CollectionsTest do
         %{
           "$type" => "app.bsky.actor.profile",
           "displayName" => "x"
-        }, rkey: "self")
+        },
+        rkey: "self"
+      )
 
     {:ok, _} = Aerox.PDS.Records.process_writes(did, [w])
 
