@@ -39,6 +39,43 @@ defmodule AeroxWeb.PDS.IdentityController do
     end
   end
 
+  # com.atproto.identity.resolveDid / resolveIdentity / refreshIdentity
+  # (AeroxWeb.IdentityResolution). Handles of this PDS's own accounts
+  # resolve from the account table, as resolveHandle does.
+  def resolve_did(conn, _) do
+    params = params!(conn, "com.atproto.identity.resolveDid")
+
+    with {:ok, doc} <- AeroxWeb.IdentityResolution.did_doc(Aerox.PDS.Identity, params["did"]),
+         do: respond(conn, %{"didDoc" => doc})
+  end
+
+  def resolve_identity(conn, _) do
+    params = params!(conn, "com.atproto.identity.resolveIdentity")
+    identity(conn, params["identifier"], [])
+  end
+
+  def refresh_identity(conn, _) do
+    input = input!(conn, "com.atproto.identity.refreshIdentity")
+    identity(conn, input["identifier"], force: true)
+  end
+
+  defp identity(conn, identifier, opts) do
+    local = fn handle ->
+      case Accounts.get_account(handle) do
+        %{did: did} -> did
+        nil -> nil
+      end
+    end
+
+    with {:ok, info} <-
+           AeroxWeb.IdentityResolution.identity(
+             Aerox.PDS.Identity,
+             identifier,
+             [local_handle: local] ++ opts
+           ),
+         do: respond(conn, info)
+  end
+
   def update_handle(conn, _) do
     authorize_oauth!(conn, :identity, %{attr: "handle"})
     %{did: did} = require_auth!(conn)
@@ -174,8 +211,12 @@ defmodule AeroxWeb.PDS.IdentityController do
          {:ok, signed} <- PlcOps.sign(unsigned, did, "sign_plc_operation", did) do
       respond(conn, %{"operation" => signed})
     else
-      {:ok, nil} -> {:error, Error.invalid_request("DID not found at the directory")}
-      :tombstoned -> {:error, Error.invalid_request("Did is tombstoned")}
+      {:ok, nil} ->
+        {:error, Error.invalid_request("DID not found at the directory")}
+
+      :tombstoned ->
+        {:error, Error.invalid_request("Did is tombstoned")}
+
       {:error, reason} ->
         Logger.error("signPlcOperation: signer failed did=#{did} reason=#{inspect(reason)}")
         {:error, Error.upstream_failure("The signing service is unavailable")}

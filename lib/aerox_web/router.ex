@@ -124,6 +124,9 @@ defmodule AeroxWeb.Router do
 
     # com.atproto.identity
     get "/com.atproto.identity.resolveHandle", IdentityController, :resolve_handle
+    get "/com.atproto.identity.resolveDid", IdentityController, :resolve_did
+    get "/com.atproto.identity.resolveIdentity", IdentityController, :resolve_identity
+    post "/com.atproto.identity.refreshIdentity", IdentityController, :refresh_identity
     post "/com.atproto.identity.updateHandle", IdentityController, :update_handle
 
     get "/com.atproto.identity.getRecommendedDidCredentials",

@@ -65,6 +65,9 @@ every time.
 | `com.atproto.server.createInviteCode` | POST | pds | pending |  |
 | `com.atproto.server.getAccountInviteCodes` | GET | pds | pending |  |
 | `com.atproto.identity.resolveHandle` | GET | pds | pending |  |
+| `com.atproto.identity.resolveDid` | GET | pds | flow | indigo `bluepages` semantics and error names |
+| `com.atproto.identity.resolveIdentity` | GET | pds | flow | handle verified both ways, else `handle.invalid` (DID input) or `HandleMismatch` (handle input) |
+| `com.atproto.identity.refreshIdentity` | POST | pds | flow | resolution with the cache bypassed; unauthenticated |
 | `com.atproto.identity.updateHandle` | POST | pds | pending |  |
 | `com.atproto.identity.getRecommendedDidCredentials` | GET | pds | pending |  |
 | `com.atproto.identity.requestPlcOperationSignature` | POST | pds | pending |  |
@@ -149,6 +152,10 @@ every time.
 | `admin.setHostAccountLimit` | POST | relay | pending |  |
 | `admin.banDomain` | POST | relay | pending |  |
 | `admin.setHostStatus` | POST | relay | pending |  |
+| `com.atproto.identity.resolveHandle` | GET | appview | flow |  |
+| `com.atproto.identity.resolveDid` | GET | appview | flow | as on the PDS |
+| `com.atproto.identity.resolveIdentity` | GET | appview | flow | as on the PDS |
+| `com.atproto.identity.refreshIdentity` | POST | appview | flow | also re-indexes the actor's handle |
 | `app.bsky.actor.getProfile` | GET | appview | parity |  |
 | `app.bsky.actor.getProfiles` | GET | appview | parity |  |
 | `app.bsky.actor.getSuggestions` | GET | appview | parity | empty by design (DESIGN §15.4) |

@@ -42,6 +42,11 @@ defmodule AeroxWeb.AppViewRouter do
     options "/*path", MetaController, :not_implemented
     get "/_health", MetaController, :health
 
+    get "/com.atproto.identity.resolveHandle", IdentityController, :resolve_handle
+    get "/com.atproto.identity.resolveDid", IdentityController, :resolve_did
+    get "/com.atproto.identity.resolveIdentity", IdentityController, :resolve_identity
+    post "/com.atproto.identity.refreshIdentity", IdentityController, :refresh_identity
+
     # actor
     get "/app.bsky.actor.getProfile", ActorController, :get_profile
     get "/app.bsky.actor.getProfiles", ActorController, :get_profiles
