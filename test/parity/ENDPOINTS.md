@@ -45,6 +45,7 @@ every time.
 | `com.atproto.server.createAccount` | POST | pds | flow | no `plcOp` input (DESIGN §18.3: signup mints the DID here); a brought `did` with a service JWT from it is an inbound migration, created deactivated |
 | `com.atproto.server.reserveSigningKey` | POST | pds | flow | public; keyed by DID when given |
 | `com.atproto.server.createInviteCodes` | POST | pds | flow | admin |
+| `com.atproto.lexicon.resolveLexicon` | GET | pds | flow | DNS `_lexicon` → DID → verified `sync.getRecord` proof; cached 5 min, last good kept; vendored lexicons have no record and are `LexiconNotFound` |
 | `com.atproto.temp.checkSignupQueue` | GET | pds | flow | no queue: always `activated` |
 | `com.atproto.temp.checkHandleAvailability` | GET | pds | flow | suggestions from email, birth year, digits |
 | `com.atproto.temp.dereferenceScope` | GET | pds | flow | `ref:<cid>` claims for token scopes over 1 KiB |

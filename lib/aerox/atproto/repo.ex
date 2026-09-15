@@ -398,6 +398,29 @@ defmodule Aerox.ATProto.Repo do
     end
   end
 
+  @doc """
+  Verifies a record proof — the CAR `com.atproto.sync.getRecord` returns: the
+  signed commit, the MST path, the record — for `at://did/collection/rkey`
+  against the account's signing key (upstream lexicon-resolver
+  `verifyRecordProof`). Returns the commit, the record's CID and its value.
+  """
+  @spec verify_record_proof(binary, String.t(), String.t(), String.t(), String.t()) ::
+          {:ok, %{commit: commit, cid: CID.t(), record: map}} | {:error, term}
+  def verify_record_proof(car, did, collection, rkey, signing_key) when is_binary(signing_key) do
+    with {:ok, root, blocks} <- CAR.decode_with_root(car),
+         bs = Memory.new(blocks),
+         {:ok, repo} <- load(bs, root),
+         :ok <- if(repo.commit["did"] == did, do: :ok, else: {:error, :did_mismatch}),
+         :ok <- check_sig(repo.commit, signing_key),
+         {:ok, %CID{} = cid} <- record_cid(bs, repo, collection, rkey),
+         {:ok, record} <- Blockstore.get_value(bs, cid) do
+      {:ok, %{commit: repo.commit, cid: cid, record: record}}
+    else
+      {:ok, nil} -> {:error, :record_not_found}
+      {:error, _} = e -> e
+    end
+  end
+
   @doc "The blocks proving one record: commit, the MST path, and the record (`com.atproto.sync.getRecord`)."
   @spec record_proof_blocks(Blockstore.t(), CID.t(), String.t(), String.t()) ::
           {:ok, [Blockstore.block()]} | {:error, term}

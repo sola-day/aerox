@@ -28,7 +28,12 @@ defmodule Aerox.PDS.OAuth.Tokens do
     now = DateTime.utc_now()
     expires = DateTime.add(now, @token_max_age, :second)
     # the token carries granular permissions only (Scopes.build_token_scope)
-    scope = Aerox.Auth.Scopes.build_token_scope(params["scope"], did)
+    scope =
+      Aerox.Auth.Scopes.build_token_scope(
+        params["scope"],
+        did,
+        &Aerox.PDS.Lexicons.permission_set/1
+      )
 
     Repo.insert!(%OAuthToken{
       did: did,
@@ -107,7 +112,11 @@ defmodule Aerox.PDS.OAuth.Tokens do
          new_id,
          row.did,
          row.parameters,
-         Aerox.Auth.Scopes.build_token_scope(row.scope, row.did),
+         Aerox.Auth.Scopes.build_token_scope(
+           row.scope,
+           row.did,
+           &Aerox.PDS.Lexicons.permission_set/1
+         ),
          now,
          expires,
          new_refresh,

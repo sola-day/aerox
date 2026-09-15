@@ -574,6 +574,24 @@ defmodule AeroxWeb.PDS.ServerController do
 
   # ------------------------------------------------------------ invite codes
 
+  # Lexicon spec, "Lexicon Publication and Resolution" (Aerox.PDS.Lexicons)
+  def resolve_lexicon(conn, _) do
+    params = params!(conn, "com.atproto.lexicon.resolveLexicon")
+
+    case Aerox.PDS.Lexicons.get(params["nsid"]) do
+      {:ok, %{uri: uri, cid: cid, doc: doc}} when is_binary(uri) ->
+        respond(conn, %{
+          "uri" => uri,
+          "cid" => cid,
+          "schema" => Map.put(doc, "$type", "com.atproto.lexicon.schema")
+        })
+
+      _ ->
+        {:error,
+         Error.invalid_request("No lexicon was resolved for #{params["nsid"]}", "LexiconNotFound")}
+    end
+  end
+
   # ---------------------------------------------------------- com.atproto.temp
 
   def request_phone_verification(conn, _) do

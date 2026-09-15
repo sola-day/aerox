@@ -785,6 +785,16 @@ obtained later (by `resolveLexicon`, or by adding `app.bsky.*` files) are merged
 an extended registry outside the kernel and passed in. The kernel never knows where a
 doc came from.
 
+**Resolution at run time** (Lexicon spec, "Lexicon Publication and Resolution"):
+`Aerox.Identity.LexiconResolver` follows `_lexicon.<authority>` DNS → DID → the
+authority's PDS `sync.getRecord` proof, verified against the DID's signing key
+(`Repo.verify_record_proof/5`, in the kernel), → a checked
+`com.atproto.lexicon.schema` record. `Aerox.PDS.Lexicons` puts the vendored registry
+first and caches the rest in `lexicon` (refreshed after five minutes, last good document
+kept on failure). Its first consumer is OAuth: an `include:` scope's permission set is
+looked up there at PAR (an unresolvable one fails the request), on the consent page
+(its title and detail), and when the token scope is built.
+
 **The PDS's three-state `validate` falls straight out of a registry lookup:**
 `known?(registry, nsid)` false and `validate != true` → admit and tag unknown.
 

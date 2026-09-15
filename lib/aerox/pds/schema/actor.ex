@@ -138,3 +138,18 @@ defmodule Aerox.PDS.Schema.OAuthScopeRef do
     field :created_at, :utc_datetime_usec
   end
 end
+
+defmodule Aerox.PDS.Schema.Lexicon do
+  @moduledoc "A resolved lexicon document and its resolution history (`Aerox.PDS.Lexicons`)."
+  use Ecto.Schema
+
+  @primary_key {:nsid, :string, autogenerate: false}
+  schema "lexicon" do
+    field :uri, :string
+    field :cid, :string
+    field :record, :map
+    field :last_succeeded_at, :utc_datetime_usec
+    field :updated_at, :utc_datetime_usec
+    field :created_at, :utc_datetime_usec
+  end
+end

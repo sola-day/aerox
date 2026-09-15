@@ -170,10 +170,28 @@ defmodule Aerox.PDS.OAuth.Requests do
 
       true ->
         case Enum.find(scopes, &is_nil(Aerox.Auth.Scopes.parse(&1))) do
-          nil -> :ok
+          nil -> check_permission_sets(scopes)
           bad -> {:error, {:invalid_scope, "Invalid scope \"#{bad}\""}}
         end
     end
+  end
+
+  # Permission spec: an `include:` names a permission set the authorization
+  # server resolves (vendored, or through DNS and the authority's repo); one
+  # that does not resolve to a permission set fails the request, as upstream
+  # `LexiconManager` does, rather than granting nothing silently.
+  defp check_permission_sets(scopes) do
+    unresolved =
+      Enum.find(scopes, fn s ->
+        case Aerox.Auth.Scopes.parse(s) do
+          {:include, %{nsid: nsid}} -> Aerox.PDS.Lexicons.permission_set(nsid) == nil
+          _ -> false
+        end
+      end)
+
+    if unresolved,
+      do: {:error, {:invalid_scope, "Could not resolve permission set for \"#{unresolved}\""}},
+      else: :ok
   end
 
   # public clients (not trusted) always get a consent prompt

@@ -562,4 +562,55 @@ defmodule AeroxWeb.OAuthFlowTest do
     assert call.("/xrpc/com.atproto.repo.createRecord", n, record.("app.bsky.feed.like"))
            |> json_response(403)
   end
+
+  test "include: scopes must resolve to a permission set; the consent page shows its title", %{
+    conn: conn
+  } do
+    redirect_uri = "http://127.0.0.1:4321/cb"
+
+    par = fn scope ->
+      client_id =
+        "http://localhost?" <> URI.encode_query(redirect_uri: redirect_uri, scope: scope)
+
+      {_verifier, challenge} = pkce()
+
+      {resp, _} =
+        dpop_post(
+          conn,
+          "/oauth/par",
+          %{
+            "client_id" => client_id,
+            "response_type" => "code",
+            "redirect_uri" => redirect_uri,
+            "scope" => scope,
+            "code_challenge" => challenge,
+            "code_challenge_method" => "S256"
+          },
+          key()
+        )
+
+      {client_id, resp}
+    end
+
+    # nothing publishes com.example.nowhere: the request fails instead of granting nothing
+    # (PAR reports scope errors as invalid_request, as upstream)
+    {_, refused} = par.("atproto include:com.example.nowhere.authThing")
+
+    assert %{"error" => "invalid_request", "error_description" => description} =
+             json_response(refused, 400)
+
+    assert description =~ "Could not resolve permission set"
+
+    {client_id, accepted} =
+      par.("atproto include:app.bsky.authCreatePosts?aud=did:web:api.bsky.app%23bsky_appview")
+
+    %{"request_uri" => request_uri} = json_response(accepted, 201)
+
+    page =
+      conn
+      |> put_private(:plug_skip_csrf_protection, true)
+      |> get(~p"/oauth/authorize?#{[client_id: client_id, request_uri: request_uri]}")
+
+    assert html_response(page, 200) =~ "Create Bluesky Posts"
+  end
 end
