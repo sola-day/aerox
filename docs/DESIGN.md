@@ -1586,9 +1586,20 @@ section is its work list.
   overwriting good handles with NULL). We do not repeat it.
 - `#identity` → re-resolve handle and DID document (§20) and update `actor`;
   `#account` → status (active / deactivated / takendown / deleted) on `actor`;
-  `#sync` → mark the repo for backfill.
+  `#sync` → a reset if it names a commit other than the one held (below).
+- **Record-level sync state** (Sync spec, "Reliable Repository Synchronization";
+  `Aerox.AppView.RepoSync`). `actor_sync` holds each repo's last applied `rev`,
+  commit CID and `data` root, and a status. A commit is applied only when its
+  `since` and `prevData` follow on from that state; otherwise the repo becomes
+  `desynchronized`, its events are dropped and a backfill is requested. While the
+  backfill runs (`in_progress`) events queue in `actor_sync_pending` and replay in
+  order afterwards. Events at or below the last `rev`, with a future `rev`, or for
+  an account whose upstream status is not active are ignored; an account with no
+  resolvable signing key is ignored too. State transitions take a per-DID lock
+  shared by the live path and the backfill job.
 - **Backfill** per repo: `getRepo` from the owning PDS, walk the CAR with the kernel,
-  index every record as if it had arrived live. Triggered on first sight of a DID, on
+  and reconcile it with the index record by record — only in the CAR: indexed;
+  different CID: re-indexed; only in the index: deleted. Triggered on first sight of a DID, on
   `#sync`, and by an admin task (this is the `indexRepo + indexHandle +
   updateActorStatus` sequence that had to be run by hand last time, made one command).
 - **`tap` evaluated and not adopted as a dependency.** indigo's `tap` (with the

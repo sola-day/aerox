@@ -1,19 +1,28 @@
 defmodule Aerox.AppView.Backfill do
   @moduledoc """
-  Repo backfill (DESIGN §15.1): `getRepo` from the owning PDS, verified by
-  the kernel (`verify_repo_car`), every record indexed as if live. Runs as
-  an Oban job on the core instance (queue `:backfill`); `request/1` is
-  idempotent per DID while a job is queued. Live indexing and backfill of
-  one repo never run at once: the job takes the DID's Registry key.
+  Repo re-synchronisation (DESIGN §15.1; Sync spec, "Record-Level
+  Synchronization"): `getRepo` from the owning PDS, verified by the kernel
+  (`verify_repo_car`), then compared record by record with what the index holds
+  for the DID — a record only in the CAR is indexed, one whose CID differs is
+  re-indexed, one only in the index is deleted. Events that arrived meanwhile
+  are replayed (`Aerox.AppView.RepoSync.finish_backfill/3`).
+
+  Runs as an Oban job on the core instance (queue `:backfill`); `request/1` is
+  idempotent per DID while a job is queued or running. A repo whose queued
+  events break the chain again is retried shortly; a failed fetch leaves it
+  `desynchronized`, and the next event for it asks again.
   """
   use Oban.Worker,
     queue: :backfill,
     max_attempts: 5,
     unique: [period: 300, states: [:available, :scheduled, :executing]]
 
+  import Ecto.Query
   require Logger
-  alias Aerox.ATProto.{CID, Repo}
-  alias Aerox.AppView.Indexing
+  alias Aerox.ATProto.{Blockstore, CID, Repo}
+  alias Aerox.AppView.{Indexing, RepoSync}
+  alias Aerox.AppView.Ingest.Indexer
+  alias Aerox.AppView.Schema.Record
   alias Aerox.Identity.HTTP
 
   def request(did) do
@@ -23,37 +32,65 @@ defmodule Aerox.AppView.Backfill do
 
   @impl true
   def perform(%Oban.Job{args: %{"did" => did}}) do
+    :ok = RepoSync.begin_backfill(did)
+
     with {:ok, doc} <- Aerox.Identity.resolve_did(Aerox.AppView.Identity, did, force: true),
          pds when is_binary(pds) <- Aerox.ATProto.Identity.pds_endpoint(doc) || {:error, :no_pds},
          {:ok, car} <- fetch_repo(pds, did),
-         {:ok, %{records: ops, commit: commit, cid: cid, blockstore: bs}} <-
+         {:ok, %{records: records, commit: commit, cid: cid, blockstore: bs}} <-
            Repo.verify_repo_car(car, did: did, signing_key: signing_key(doc)) do
       indexed_at = DateTime.utc_now()
       Indexing.ensure_actor(did, indexed_at)
       Indexing.index_handle(did, indexed_at, Aerox.ATProto.Identity.handle(doc))
+      reconcile(did, records, bs, indexed_at)
 
-      Enum.each(ops, fn %{path: path, cid: rcid} ->
-        with {:ok, record} <- Aerox.ATProto.Blockstore.get_value(bs, rcid) do
-          _ =
-            Indexing.index_record("at://#{did}/#{path}", CID.to_string(rcid), record, indexed_at,
-              action: :update
-            )
-        end
-      end)
+      car_state = %{
+        rev: commit["rev"],
+        commit_cid: CID.to_string(cid),
+        data_cid: CID.to_string(commit["data"])
+      }
 
-      Indexing.set_commit_last_seen(did, CID.to_string(cid), commit["rev"])
-      :ok
+      case RepoSync.finish_backfill(did, car_state, &Indexer.replay_commit/1) do
+        :ok -> :ok
+        :resync -> {:snooze, 1}
+      end
     else
       {:error, {:http, 404}} ->
         Logger.info("appview: backfill #{did}: repo not found")
+        RepoSync.fail_backfill(did)
         :ok
 
       {:error, reason} ->
+        RepoSync.fail_backfill(did)
         {:error, reason}
 
       other ->
+        RepoSync.fail_backfill(did)
         {:error, other}
     end
+  end
+
+  # The CAR is the truth; the index is brought to it.
+  defp reconcile(did, records, bs, indexed_at) do
+    indexed =
+      from(r in Record, where: r.did == ^did, select: {r.uri, r.cid})
+      |> Aerox.AppView.Repo.all()
+      |> Map.new()
+
+    in_car =
+      Map.new(records, fn %{path: path, cid: rcid} -> {"at://#{did}/#{path}", rcid} end)
+
+    for {uri, rcid} <- in_car, indexed[uri] != CID.to_string(rcid) do
+      with {:ok, record} <- Blockstore.get_value(bs, rcid) do
+        _ = Indexing.index_record(uri, CID.to_string(rcid), record, indexed_at, action: :update)
+      end
+    end
+
+    for {uri, _} <- indexed, not Map.has_key?(in_car, uri) do
+      Indexing.delete_record(uri)
+    end
+
+    :ok
   end
 
   defp fetch_repo(pds, did) do

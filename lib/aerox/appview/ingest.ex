@@ -12,6 +12,7 @@ defmodule Aerox.AppView.Ingest do
 
   def start_link(opts) do
     url = Keyword.get(opts, :url) || Aerox.AppView.Config.relay_url()
+
     concurrency =
       Keyword.get(opts, :concurrency) || Aerox.AppView.Config.ingest_concurrency()
 

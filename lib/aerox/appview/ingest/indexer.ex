@@ -1,35 +1,27 @@
 defmodule Aerox.AppView.Ingest.Indexer do
   @moduledoc """
-  Turns a verified firehose event into index writes (DESIGN §15.1):
-  `#commit` → kernel verification (`Aerox.ATProto.Repo.verify_commit_message`)
-  → one `index_record`/`delete_record` per op → `actor_sync`; `#identity` →
-  re-resolve the handle; `#account` → status; `#sync` → mark for backfill.
-  Invalid commits are logged and skipped, never indexed.
+  Turns a firehose event into index writes (DESIGN §15.1): `#commit` → kernel
+  verification (`Aerox.ATProto.Repo.verify_commit_message`, signature
+  included) → `Aerox.AppView.RepoSync`, which decides whether the commit
+  follows on from the repo's stored state, and if so one
+  `index_record`/`delete_record` per op; `#sync` → verified and handed to
+  `RepoSync` (a reset means a backfill); `#identity` → re-resolve the handle;
+  `#account` → status. Invalid events are logged and skipped, never indexed.
   """
   require Logger
-  alias Aerox.ATProto.{Blockstore, Bytes, CID, Repo, Syntax}
-  alias Aerox.AppView.{Indexing, Backfill}
-  alias Aerox.AppView.Schema.ActorSync
+  alias Aerox.ATProto.{Blockstore, Bytes, CAR, CID, Repo, Syntax}
+  alias Aerox.ATProto.Blockstore.Memory
+  alias Aerox.AppView.{Indexing, RepoSync}
 
   @type result :: :ok | {:skip, term}
 
   @spec process(String.t(), map) :: result
   def process("#commit", %{"repo" => did, "rev" => rev, "blocks" => %Bytes{}} = body) do
-    indexed_at = time(body["time"])
-
-    case Repo.verify_commit_message(body, signing_key: signing_key(did)) do
-      {:ok, %{repo: repo, blockstore: bs, ops: ops}} ->
-        Indexing.ensure_actor(did, indexed_at)
-        first_sight = is_nil(Aerox.AppView.Repo.get(ActorSync, did))
-
-        # `tooBig` is deprecated and ignored (Sync spec): the commit verified,
-        # so its blocks are complete whatever the flag says
-        Enum.each(ops, &apply_op(did, &1, bs, indexed_at))
-
-        Indexing.set_commit_last_seen(did, CID.to_string(repo.cid), rev)
-        # DESIGN §15.1: a repo seen for the first time is backfilled
-        if first_sight, do: Backfill.request(did)
-        :ok
+    case verify_commit(did, body) do
+      {:ok, verified} ->
+        RepoSync.on_commit(did, body, state_of(verified.repo), fn ->
+          apply_commit(did, body, verified)
+        end)
 
       {:error, reason} ->
         Logger.warning("appview: invalid commit did=#{did} rev=#{rev} reason=#{inspect(reason)}")
@@ -38,6 +30,25 @@ defmodule Aerox.AppView.Ingest.Indexer do
   end
 
   def process("#commit", _), do: {:skip, :invalid_commit_event}
+
+  def process("#sync", %{"did" => did, "rev" => rev, "blocks" => %Bytes{data: car}} = body) do
+    with {:ok, root, blocks} <- CAR.decode_with_root(car),
+         {:ok, repo} <- Repo.load(Memory.new(blocks), root),
+         :ok <- if(repo.commit["did"] == did, do: :ok, else: {:error, :did_mismatch}),
+         :ok <- if(repo.commit["rev"] == rev, do: :ok, else: {:error, :rev_mismatch}),
+         :ok <- verify_signature(did, repo.commit) do
+      RepoSync.on_sync(did, body, state_of(repo))
+    else
+      {:error, reason} ->
+        Logger.warning("appview: invalid sync did=#{did} rev=#{rev} reason=#{inspect(reason)}")
+        {:skip, reason}
+
+      other ->
+        {:skip, other}
+    end
+  end
+
+  def process("#sync", _), do: {:skip, :invalid_sync_event}
 
   def process("#identity", %{"did" => did} = body) do
     Aerox.Identity.invalidate(Aerox.AppView.Identity, did)
@@ -52,12 +63,63 @@ defmodule Aerox.AppView.Ingest.Indexer do
     :ok
   end
 
-  def process("#sync", %{"did" => did}) do
-    Backfill.request(did)
-    :ok
+  def process(type, _body), do: {:skip, {:unhandled, type}}
+
+  @doc """
+  Verifies and applies a `#commit` that was queued while its repo was being
+  backfilled; returns the state it leaves the repo in
+  (`RepoSync.finish_backfill/3`).
+  """
+  @spec replay_commit(map) :: {:ok, RepoSync.state()} | {:error, term}
+  def replay_commit(%{"repo" => did} = body) do
+    with {:ok, verified} <- verify_commit(did, body) do
+      apply_commit(did, body, verified)
+      {:ok, state_of(verified.repo)}
+    end
   end
 
-  def process(type, _body), do: {:skip, {:unhandled, type}}
+  @doc "The sync state a loaded repo commit stands for."
+  def state_of(repo) do
+    %{
+      rev: repo.commit["rev"],
+      commit_cid: CID.to_string(repo.cid),
+      data_cid: CID.to_string(repo.commit["data"])
+    }
+  end
+
+  defp apply_commit(did, body, %{blockstore: bs, ops: ops}) do
+    indexed_at = time(body["time"])
+    Indexing.ensure_actor(did, indexed_at)
+    Enum.each(ops, &apply_op(did, &1, bs, indexed_at))
+  end
+
+  # Sync spec, validation checklist: an account without a working identity
+  # (no signing key) is ignored; a signature that fails against the cached key
+  # is retried once against a freshly resolved one, in case the key rotated.
+  defp verify_commit(did, body) do
+    with {:ok, key} <- signing_key(did, []) do
+      case Repo.verify_commit_message(body, signing_key: key) do
+        {:error, :invalid_signature} ->
+          with {:ok, fresh} <- signing_key(did, force: true),
+               do: Repo.verify_commit_message(body, signing_key: fresh)
+
+        other ->
+          other
+      end
+    end
+  end
+
+  defp verify_signature(did, commit) do
+    with {:ok, key} <- signing_key(did, []) do
+      if Repo.verify_commit_sig(commit, key) do
+        :ok
+      else
+        with {:ok, fresh} <- signing_key(did, force: true) do
+          if Repo.verify_commit_sig(commit, fresh), do: :ok, else: {:error, :invalid_signature}
+        end
+      end
+    end
+  end
 
   defp apply_op(did, %{action: action, path: path, cid: cid}, bs, indexed_at)
        when action in [:create, :update] do
@@ -79,10 +141,10 @@ defmodule Aerox.AppView.Ingest.Indexer do
     Indexing.delete_record("at://#{did}/#{path}")
   end
 
-  defp signing_key(did) do
-    case Aerox.Identity.resolve_signing_key(Aerox.AppView.Identity, did, []) do
-      {:ok, key} -> key
-      _ -> nil
+  defp signing_key(did, opts) do
+    case Aerox.Identity.resolve_signing_key(Aerox.AppView.Identity, did, opts) do
+      {:ok, key} -> {:ok, key}
+      {:error, reason} -> {:error, {:no_identity, reason}}
     end
   end
 

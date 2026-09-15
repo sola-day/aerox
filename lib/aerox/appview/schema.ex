@@ -21,6 +21,23 @@ defmodule Aerox.AppView.Schema.ActorSync do
   schema "actor_sync" do
     field :commit_cid, :string
     field :repo_rev, :string
+    field :data_cid, :string
+    field :status, :string, default: "synchronized"
+    field :updated_at, :utc_datetime_usec
+  end
+end
+
+defmodule Aerox.AppView.Schema.ActorSyncPending do
+  @moduledoc false
+  use Ecto.Schema
+
+  schema "actor_sync_pending" do
+    field :did, :string
+    field :seq, :integer
+    field :type, :string
+    field :rev, :string
+    field :body, :binary
+    field :inserted_at, :utc_datetime_usec
   end
 end
 

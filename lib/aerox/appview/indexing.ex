@@ -237,16 +237,6 @@ defmodule Aerox.AppView.Indexing do
     :ok
   end
 
-  @doc "Record the last seen commit for a repo (upstream `setCommitLastSeen`)."
-  def set_commit_last_seen(did, commit_cid, rev) do
-    Repo.insert_all(ActorSync, [%{did: did, commit_cid: commit_cid, repo_rev: rev}],
-      on_conflict: {:replace, [:commit_cid, :repo_rev]},
-      conflict_target: :did
-    )
-
-    :ok
-  end
-
   @doc "Upstream `indexHandle`: re-resolve the DID and store its verified handle (or nil)."
   def index_handle(did, indexed_at, handle \\ nil) do
     resolved =
@@ -294,6 +284,7 @@ defmodule Aerox.AppView.Indexing do
     Enum.each(uris, &delete_record(&1, cascading: true))
     Repo.delete_all(from(n in Notification, where: n.did == ^did or n.author == ^did))
     Repo.delete_all(from(a in ActorSync, where: a.did == ^did))
+    Repo.delete_all(from(p in Aerox.AppView.Schema.ActorSyncPending, where: p.did == ^did))
     :ok
   end
 

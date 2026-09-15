@@ -115,6 +115,7 @@ defmodule Aerox.Application do
              [
                Aerox.AppView.Repo,
                identity_cache(Aerox.AppView.Identity, Aerox.AppView.Repo),
+               Aerox.AppView.RepoSync,
                # DESIGN §16: the image CDN runs inside the AppView service
                Aerox.ImageServer,
                {Oban, Application.fetch_env!(:aerox, Oban.Core)}
