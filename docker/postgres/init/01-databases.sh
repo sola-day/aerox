@@ -31,7 +31,9 @@ create_db() {
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$db" -c "CREATE EXTENSION IF NOT EXISTS pg_trgm"
 }
 
-for suffix in "" "_test"; do
+# EXTRA_DB_SUFFIXES adds more pairs, e.g. "_lab" for the second dev server of
+# VERIFICATION §7.3 (AEROX_DB_SUFFIX=_lab).
+for suffix in "" "_test" ${EXTRA_DB_SUFFIXES:-}; do
   pds="aerox_pds$suffix"; core="aerox_core$suffix"
   create_db "$pds"; create_db "$core"
 

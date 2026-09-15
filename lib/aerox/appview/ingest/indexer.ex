@@ -25,7 +25,7 @@ defmodule Aerox.AppView.Ingest.Indexer do
 
       {:error, reason} ->
         Logger.warning("appview: invalid commit did=#{did} rev=#{rev} reason=#{inspect(reason)}")
-        {:skip, reason}
+        RepoSync.on_invalid_commit(did, body, reason)
     end
   end
 

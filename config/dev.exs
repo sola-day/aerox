@@ -123,18 +123,24 @@ config :phoenix_live_view,
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 
+# AEROX_DEV_DOMAIN moves every service hostname and the handle domain of this
+# dev server: a second instance on `lab.aerox.sola.town` joins the multi-
+# implementation lab network on generic.dev (VERIFICATION §7.3) while the
+# primary stays on `aerox.sola.town`.
+dev_domain = System.get_env("AEROX_DEV_DOMAIN", "aerox.sola.town")
+
 # PDS (DESIGN §18, §14.2): dev keys only. Handles live under the dev domain.
 config :aerox, Aerox.PDS,
   # DEV_PLAN §1.2: the PDS is pds.<dev-domain>; the apex also routes here.
-  public_url: System.get_env("AEROX_PDS_PUBLIC_URL", "https://pds.aerox.sola.town"),
-  handle_domains: [".aerox.sola.town"],
+  public_url: System.get_env("AEROX_PDS_PUBLIC_URL", "https://pds.#{dev_domain}"),
+  handle_domains: ["." <> dev_domain],
   # OAuth issuer key (P-256) and DPoP nonce secret: dev/test throwaways
   oauth_key_hex:
     System.get_env(
       "AEROX_OAUTH_KEY_HEX",
       "REDACTED-dev-oauth-key-rotated-2026-09-16"
     ),
-  plc_url: System.get_env("AEROX_PLC_URL", "https://plc.aerox.sola.town"),
+  plc_url: System.get_env("AEROX_PLC_URL", "https://plc.#{dev_domain}"),
   contact_email: "lisbon@appendonly.org"
 
 config :aerox, Aerox.PDS.PlcOps, http: [allow_private: true]
@@ -153,14 +159,14 @@ config :aerox, Aerox.Blob.Store,
   root: System.get_env("AEROX_BLOB_ROOT", "blobs")
 
 # DESIGN §20.1: every service resolves did:plc through our own directory.
-config :aerox, :plc_url, System.get_env("AEROX_PLC_URL", "https://plc.aerox.sola.town")
+config :aerox, :plc_url, System.get_env("AEROX_PLC_URL", "https://plc.#{dev_domain}")
 
 # Relay (DESIGN §19): dev accepts plain-http hosts (the docker reference PDS).
 config :aerox, Aerox.Relay,
-  hostname: "relay.aerox.sola.town",
-  public_url: "https://relay.aerox.sola.town",
+  hostname: "relay.#{dev_domain}",
+  public_url: "https://relay.#{dev_domain}",
   allow_insecure_hosts: true,
-  trusted_domains: ["aerox.sola.town"],
+  trusted_domains: String.split(System.get_env("AEROX_RELAY_TRUSTED_DOMAINS", dev_domain), ",", trim: true),
   admin_password: System.get_env("AEROX_RELAY_ADMIN_PASSWORD", "REDACTED-relay-admin-password")
 
 # Image CDN (DESIGN §16): a small local cache, swept every minute.
@@ -176,9 +182,9 @@ config :aerox, Aerox.AppView,
       "AEROX_APPVIEW_SIGNING_KEY_HEX",
       "REDACTED-dev-appview-key-rotated-2026-09-16"
     ),
-  hostname: "appview.aerox.sola.town",
-  public_url: "https://appview.aerox.sola.town",
-  relay_url: System.get_env("AEROX_RELAY_WS_URL", "wss://relay.aerox.sola.town"),
+  hostname: "appview.#{dev_domain}",
+  public_url: "https://appview.#{dev_domain}",
+  relay_url: System.get_env("AEROX_RELAY_WS_URL", "wss://relay.#{dev_domain}"),
   image_cache_dir: System.get_env("AEROX_IMAGE_CACHE", "tmp/image-cache")
 
 # The PDS proxies app.bsky.* to our AppView and report intake to our labeler
@@ -186,22 +192,22 @@ config :aerox, Aerox.AppView,
 labeler_did = System.get_env("AEROX_LABELER_DID")
 
 config :aerox, Aerox.PDS,
-  appview: [url: "https://appview.aerox.sola.town", did: "did:web:appview.aerox.sola.town"],
-  mod_service: [url: "https://labeler.aerox.sola.town", did: labeler_did],
+  appview: [url: "https://appview.#{dev_domain}", did: "did:web:appview.#{dev_domain}"],
+  mod_service: [url: "https://labeler.#{dev_domain}", did: labeler_did],
   mod_service_did: labeler_did
 
 # Labeler (DESIGN §17): hostname; `did` and the signing key are persisted by
 # `mix aerox.labeler.setup` (labeler.setting) and only need the env on another node.
 config :aerox, Aerox.Labeler,
-  hostname: "labeler.aerox.sola.town",
-  public_url: "https://labeler.aerox.sola.town",
+  hostname: "labeler.#{dev_domain}",
+  public_url: "https://labeler.#{dev_domain}",
   did: labeler_did,
   signing_key_hex: System.get_env("AEROX_LABELER_SIGNING_KEY_HEX"),
   admin_password: System.get_env("AEROX_LABELER_ADMIN_PASSWORD", "REDACTED-labeler-admin-password")
 
 # The AppView subscribes to our labeler's labels and applies them by default (DESIGN §15.6).
 config :aerox, Aerox.AppView,
-  labelers: [%{did: labeler_did, url: "wss://labeler.aerox.sola.town"}]
+  labelers: if(labeler_did, do: [%{did: labeler_did, url: "wss://labeler.#{dev_domain}"}], else: [])
 
 # Spaces (DESIGN §12): permissioned data behind a feature flag; routes answer
 # 501 MethodNotImplemented when disabled.
@@ -210,9 +216,9 @@ config :aerox, Aerox.PDS.Space, enabled: true
 # Jetstream (docs/PARITY.md): a JSON firehose and full-network archive over our
 # own Relay, in jetstream's wire and segment formats.
 config :aerox, Aerox.Jetstream,
-  hostname: "jetstream.aerox.sola.town",
-  public_url: "https://jetstream.aerox.sola.town",
-  relay_url: System.get_env("AEROX_RELAY_WS_URL", "wss://relay.aerox.sola.town"),
+  hostname: "jetstream.#{dev_domain}",
+  public_url: "https://jetstream.#{dev_domain}",
+  relay_url: System.get_env("AEROX_RELAY_WS_URL", "wss://relay.#{dev_domain}"),
   data_dir: System.get_env("AEROX_JETSTREAM_DIR", "tmp/jetstream"),
   # tiny blocks and segments: a dev instance's trickle of events still seals,
   # plans in block mode and compacts within minutes

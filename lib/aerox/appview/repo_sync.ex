@@ -93,6 +93,42 @@ defmodule Aerox.AppView.RepoSync do
   end
 
   @doc """
+  A `#commit` that failed verification (a missing block, a bad signature, an
+  op list that does not invert). Its ops are never applied, but the PDS did
+  move the repo on, so whatever the event was meant to carry is now missing
+  from the index: the repo is desynchronised and backfilled from the PDS's own
+  CAR, which is verified on its own terms. Without this a broken last commit
+  stays missing until the account happens to write again. During a backfill
+  the failure is queued as a marker, so the replay resyncs unless the CAR
+  already covers its rev.
+  """
+  @spec on_invalid_commit(String.t(), map, term) :: {:skip, term}
+  def on_invalid_commit(did, %{"rev" => rev} = body, reason) do
+    with :ok <- not_future(rev),
+         :ok <- active(did) do
+      with_lock(did, fn ->
+        row = get(did)
+
+        cond do
+          row && row.repo_rev != nil && rev <= row.repo_rev ->
+            {:skip, {:old_rev, rev, row.repo_rev}}
+
+          row && row.status == "in_progress" ->
+            enqueue(did, "#invalid", rev, body)
+            {:skip, {:invalid_commit, reason}}
+
+          row && row.status == "desynchronized" ->
+            Backfill.request(did)
+            {:skip, {:invalid_commit, reason}}
+
+          true ->
+            desynchronize(did, row, {:invalid_commit, reason})
+        end
+      end)
+    end
+  end
+
+  @doc """
   A verified `#sync`: the repo's current commit, asserted. Matching the stored
   state it is a no-op; a newer revision (or the same revision with another
   commit) resets the repo, which means a backfill.

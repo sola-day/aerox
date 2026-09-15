@@ -108,6 +108,22 @@ http:
             sans:
               - "*.ref-pds.aerox.sola.town"
 
+    # The lab-network instance (tools/interop/lab-devserver.sh, VERIFICATION
+    # §7.3): a second dev server on :4002 whose services and handles live under
+    # lab.aerox.sola.town. Its own wildcard certificate, like ref-pds above.
+    aerox-lab:
+      rule: "Host(`lab.aerox.sola.town`) || HostRegexp(`^[a-zA-Z0-9-]+\\.lab\\.aerox\\.sola\\.town$`)"
+      entryPoints:
+        - websecure
+      priority: 2
+      service: aerox-lab
+      tls:
+        certResolver: letsencrypt-dns
+        domains:
+          - main: "lab.aerox.sola.town"
+            sans:
+              - "*.lab.aerox.sola.town"
+
     # ouranos (DEV_PLAN §1.2), the Next.js dev/standalone server on the bridge
     # gateway at :3000, pointed at pds.aerox.sola.town.
     aerox-ouranos:
@@ -160,6 +176,10 @@ http:
           - "2001:bc8:1201:601:2247:47ff:fe7f:8f92/128"
 
   services:
+    aerox-lab:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.1:4002"
     aerox-ref-pds2:
       loadBalancer:
         servers:

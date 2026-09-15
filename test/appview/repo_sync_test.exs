@@ -140,6 +140,57 @@ defmodule Aerox.AppView.RepoSyncTest do
              0
   end
 
+  # the commit block alone: the MST path and the record are missing, as in the
+  # pegasus frames of VERIFICATION §7.4
+  defp strip_blocks({"#commit", body}) do
+    {:ok, root, blocks} = Aerox.ATProto.CAR.decode_with_root(body["blocks"].data)
+    kept = Enum.filter(blocks, fn {cid, _} -> cid == body["commit"] end)
+    {"#commit", %{body | "blocks" => Aerox.ATProto.Bytes.new(Aerox.ATProto.CAR.encode(root, kept))}}
+  end
+
+  test "an unverifiable last commit desynchronises the repo, and the backfill recovers it" do
+    %{did: did} = fresh_account("rs-broken")
+    p1 = post(did, "the image post pegasus sent without its blocks")
+    {commit, events} = pds_write(did, [p1])
+
+    assert [{:skip, {:desynchronized, {:invalid_commit, _}}}] =
+             events |> Enum.map(&strip_blocks/1) |> deliver()
+
+    refute indexed?(p1.uri)
+    assert RepoSync.get(did).status == "desynchronized"
+    assert_enqueued(worker: Backfill, args: %{"did" => did})
+
+    # no further write is needed for the record to arrive
+    assert :ok = perform_job(Backfill, %{"did" => did})
+    assert indexed?(p1.uri)
+    assert %{status: "synchronized", repo_rev: rev} = RepoSync.get(did)
+    assert rev == commit.rev
+
+    # a replayed broken copy of a commit already held is just old
+    assert [{:skip, {:old_rev, _, _}}] = events |> Enum.map(&strip_blocks/1) |> deliver()
+  end
+
+  test "an unverifiable commit during a backfill resyncs unless the CAR already covers it" do
+    %{did: did} = fresh_account("rs-broken-queue")
+    before = RepoSync.get(did)
+    old_state = %{rev: before.repo_rev, commit_cid: before.commit_cid, data_cid: before.data_cid}
+
+    :ok = RepoSync.begin_backfill(did)
+    {_, events} = pds_write(did, [post(did, "broken while backfilling")])
+    assert [{:skip, {:invalid_commit, _}}] = events |> Enum.map(&strip_blocks/1) |> deliver()
+    assert :resync = RepoSync.finish_backfill(did, old_state, &Indexer.replay_commit/1)
+    assert RepoSync.get(did).status == "desynchronized"
+
+    # the backfill's CAR is fetched after the broken commit: the marker is covered
+    :ok = RepoSync.begin_backfill(did)
+    p2 = post(did, "broken, but the CAR has it")
+    {c2, events} = pds_write(did, [p2])
+    assert [{:skip, {:invalid_commit, _}}] = events |> Enum.map(&strip_blocks/1) |> deliver()
+    assert :ok = perform_job(Backfill, %{"did" => did})
+    assert %{status: "synchronized", repo_rev: rev} = RepoSync.get(did)
+    assert rev == c2.rev and indexed?(p2.uri)
+  end
+
   test "#sync: a confirmation is a no-op, a newer commit resets the repo" do
     before = PdsSeq.current() || 0
     %{did: did} = signup("rs-sync")
