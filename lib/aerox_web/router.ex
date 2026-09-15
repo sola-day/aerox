@@ -96,6 +96,9 @@ defmodule AeroxWeb.Router do
     # com.atproto.server
     get "/com.atproto.server.describeServer", ServerController, :describe_server
     post "/com.atproto.server.createAccount", ServerController, :create_account
+    post "/com.atproto.server.reserveSigningKey", ServerController, :reserve_signing_key
+    post "/com.atproto.server.createInviteCodes", ServerController, :create_invite_codes
+    get "/com.atproto.temp.checkSignupQueue", ServerController, :check_signup_queue
     post "/com.atproto.server.createSession", ServerController, :create_session
     post "/com.atproto.server.refreshSession", ServerController, :refresh_session
     post "/com.atproto.server.deleteSession", ServerController, :delete_session

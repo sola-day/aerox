@@ -42,7 +42,10 @@ every time.
 | `_health` | GET | appview | flow |  |
 | `_health` | GET | labeler | flow |  |
 | `com.atproto.server.describeServer` | GET | pds | flow |  |
-| `com.atproto.server.createAccount` | POST | pds | flow | no `plcOp` input (DESIGN §18.3: signup mints the DID here) |
+| `com.atproto.server.createAccount` | POST | pds | flow | no `plcOp` input (DESIGN §18.3: signup mints the DID here); a brought `did` with a service JWT from it is an inbound migration, created deactivated |
+| `com.atproto.server.reserveSigningKey` | POST | pds | flow | public; keyed by DID when given |
+| `com.atproto.server.createInviteCodes` | POST | pds | flow | admin |
+| `com.atproto.temp.checkSignupQueue` | GET | pds | flow | no queue: always `activated` |
 | `com.atproto.server.createSession` | POST | pds | flow |  |
 | `com.atproto.server.refreshSession` | POST | pds | flow |  |
 | `com.atproto.server.deleteSession` | POST | pds | pending |  |
@@ -102,7 +105,7 @@ every time.
 | `com.atproto.admin.updateAccountPassword` | POST | pds | pending |  |
 | `com.atproto.admin.deleteAccount` | POST | pds | pending |  |
 | `com.atproto.admin.sendEmail` | POST | pds | pending |  |
-| `com.atproto.admin.getInviteCodes` | GET | pds | pending | returns an empty list; invite codes are per-account only (DESIGN §18.3) |
+| `com.atproto.admin.getInviteCodes` | GET | pds | flow | upstream keysets: `recent` (`createdAt::code`) and `usage` (`uses::code`), newest/most used first |
 | `com.atproto.admin.disableInviteCodes` | POST | pds | pending |  |
 | `com.atproto.admin.disableAccountInvites` | POST | pds | pending |  |
 | `com.atproto.admin.enableAccountInvites` | POST | pds | pending |  |

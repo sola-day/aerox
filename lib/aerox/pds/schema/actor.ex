@@ -92,3 +92,15 @@ defmodule Aerox.PDS.Schema.EmailToken do
     field :requested_at, :utc_datetime_usec
   end
 end
+
+defmodule Aerox.PDS.Schema.ReservedSigningKey do
+  @moduledoc "A signing key reserved ahead of account creation (upstream `reserveKeypair`)."
+  use Ecto.Schema
+
+  @primary_key {:key_did, :string, autogenerate: false}
+  schema "reserved_signing_key" do
+    field :did, :string
+    field :private_key, :binary
+    field :created_at, :utc_datetime_usec
+  end
+end

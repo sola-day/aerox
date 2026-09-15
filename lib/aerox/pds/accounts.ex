@@ -131,7 +131,8 @@ defmodule Aerox.PDS.Accounts do
     deactivated = Map.get(params, :deactivated, false)
 
     with :ok <- ensure_invite_available(params[:invite_code]),
-         {:ok, _} <- insert_actor(did, handle, key, now, deactivated),
+         {:ok, _} <-
+           insert_actor(did, handle, key, now, deactivated, Map.get(params, :reap, true)),
          :ok <- maybe_insert_account(did, params[:email], params[:password]),
          :ok <- record_invite_use(params[:invite_code], did, now) do
       if params[:refresh_id] do
@@ -146,14 +147,14 @@ defmodule Aerox.PDS.Accounts do
     end
   end
 
-  defp insert_actor(did, handle, key, now, deactivated) do
+  defp insert_actor(did, handle, key, now, deactivated, reap) do
     actor = %Actor{
       did: did,
       handle: handle,
       signing_key: key,
       created_at: now,
       deactivated_at: if(deactivated, do: now),
-      delete_after: if(deactivated, do: DateTime.add(now, 3 * 24 * 3600))
+      delete_after: if(deactivated and reap, do: DateTime.add(now, 3 * 24 * 3600))
     }
 
     case Repo.insert(actor, on_conflict: :nothing, conflict_target: :did) do
@@ -541,6 +542,106 @@ defmodule Aerox.PDS.Accounts do
   end
 
   @spec account_invite_codes(String.t()) :: [map]
+  @doc """
+  Every invite code, newest first (`sort: "recent"`, keyset `createdAt::code`)
+  or most used first (`"usage"`, keyset `uses::code`), as upstream
+  (the time is in microseconds, the precision it is stored at)
+  `admin.getInviteCodes`. Returns the codes (in `account_invite_codes/1`'s
+  shape) and the next cursor.
+  """
+  @spec list_invite_codes(String.t(), pos_integer, String.t() | nil) ::
+          {:ok, [map], String.t() | nil} | {:error, :malformed_cursor | :unknown_sort}
+  def list_invite_codes(sort, limit, cursor) do
+    uses_q = from(u in InviteCodeUse, group_by: u.code, select: %{code: u.code, n: count()})
+
+    base =
+      from(i in InviteCode,
+        left_join: u in subquery(uses_q),
+        on: u.code == i.code,
+        select: %{row: i, uses: coalesce(u.n, 0)}
+      )
+
+    with {:ok, query} <- invite_keyset(base, sort, cursor) do
+      rows = query |> limit(^limit) |> Repo.all()
+
+      next =
+        case List.last(rows) do
+          nil -> nil
+          %{row: i, uses: n} when sort == "usage" -> "#{n}::#{i.code}"
+          %{row: i} -> "#{DateTime.to_unix(i.created_at, :microsecond)}::#{i.code}"
+        end
+
+      uses =
+        Repo.all(from(u in InviteCodeUse, where: u.code in ^Enum.map(rows, & &1.row.code)))
+        |> Enum.group_by(& &1.code)
+
+      codes =
+        Enum.map(rows, fn %{row: c} ->
+          %{
+            code: c.code,
+            available: c.available_uses,
+            disabled: c.disabled,
+            for_account: c.for_account,
+            created_by: c.created_by,
+            created_at: c.created_at,
+            uses: Enum.map(uses[c.code] || [], &%{used_by: &1.used_by, used_at: &1.used_at})
+          }
+        end)
+
+      {:ok, codes, next}
+    end
+  end
+
+  defp invite_keyset(base, sort, cursor) do
+    with {:ok, parsed} <- parse_invite_cursor(cursor) do
+      case {sort, parsed} do
+        {"recent", nil} ->
+          {:ok, order_by(base, [i], desc: i.created_at, desc: i.code)}
+
+        {"recent", {primary, code}} ->
+          with {us, ""} <- Integer.parse(primary),
+               {:ok, at} <- DateTime.from_unix(us, :microsecond) do
+            {:ok,
+             base
+             |> where([i], i.created_at < ^at or (i.created_at == ^at and i.code < ^code))
+             |> order_by([i], desc: i.created_at, desc: i.code)}
+          else
+            _ -> {:error, :malformed_cursor}
+          end
+
+        {"usage", nil} ->
+          {:ok, order_by(base, [i, u], desc: coalesce(u.n, 0), desc: i.code)}
+
+        {"usage", {primary, code}} ->
+          case Integer.parse(primary) do
+            {n, ""} ->
+              {:ok,
+               base
+               |> where(
+                 [i, u],
+                 coalesce(u.n, 0) < ^n or (coalesce(u.n, 0) == ^n and i.code < ^code)
+               )
+               |> order_by([i, u], desc: coalesce(u.n, 0), desc: i.code)}
+
+            _ ->
+              {:error, :malformed_cursor}
+          end
+
+        _ ->
+          {:error, :unknown_sort}
+      end
+    end
+  end
+
+  defp parse_invite_cursor(nil), do: {:ok, nil}
+
+  defp parse_invite_cursor(cursor) do
+    case String.split(cursor, "::") do
+      [primary, code] when primary != "" and code != "" -> {:ok, {primary, code}}
+      _ -> {:error, :malformed_cursor}
+    end
+  end
+
   def account_invite_codes(did) do
     codes =
       Repo.all(from(i in InviteCode, where: i.for_account == ^did, order_by: [asc: i.created_at]))

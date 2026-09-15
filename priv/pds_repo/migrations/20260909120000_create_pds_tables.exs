@@ -24,7 +24,9 @@ defmodule Aerox.PDS.Repo.Migrations.CreatePdsTables do
     create index(:actor, [:created_at, :did])
 
     create table(:account, primary_key: false) do
-      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all), primary_key: true
+      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all),
+        primary_key: true
+
       add :email, :text, null: false
       add :password_scrypt, :text, null: false
       add :email_confirmed_at, :utc_datetime_usec
@@ -44,7 +46,9 @@ defmodule Aerox.PDS.Repo.Migrations.CreatePdsTables do
     create index(:refresh_token, [:did])
 
     create table(:app_password, primary_key: false) do
-      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all), primary_key: true
+      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all),
+        primary_key: true
+
       add :name, :text, primary_key: true
       add :password_scrypt, :text, null: false
       add :created_at, :utc_datetime_usec, null: false
@@ -70,7 +74,10 @@ defmodule Aerox.PDS.Repo.Migrations.CreatePdsTables do
 
     create table(:email_token, primary_key: false) do
       add :purpose, :text, primary_key: true
-      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all), primary_key: true
+
+      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all),
+        primary_key: true
+
       add :token, :text, null: false
       add :requested_at, :utc_datetime_usec, null: false
     end
@@ -79,14 +86,18 @@ defmodule Aerox.PDS.Repo.Migrations.CreatePdsTables do
 
     # ---- per-account repo (upstream store.sqlite) -----------------------
     create table(:repo_root, primary_key: false) do
-      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all), primary_key: true
+      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all),
+        primary_key: true
+
       add :cid, :text, null: false
       add :rev, :text, null: false
       add :indexed_at, :utc_datetime_usec, null: false
     end
 
     create table(:repo_block, primary_key: false) do
-      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all), primary_key: true
+      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all),
+        primary_key: true
+
       add :cid, :text, primary_key: true
       add :rev, :text, null: false
       add :size, :integer, null: false
@@ -96,7 +107,9 @@ defmodule Aerox.PDS.Repo.Migrations.CreatePdsTables do
     create index(:repo_block, [:did, :rev])
 
     create table(:record, primary_key: false) do
-      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all), primary_key: true
+      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all),
+        primary_key: true
+
       add :collection, :text, primary_key: true
       add :rkey, :text, primary_key: true
       add :uri, :text, null: false
@@ -111,7 +124,9 @@ defmodule Aerox.PDS.Repo.Migrations.CreatePdsTables do
     create index(:record, [:did, :rev])
 
     create table(:backlink, primary_key: false) do
-      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all), primary_key: true
+      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all),
+        primary_key: true
+
       add :uri, :text, primary_key: true
       add :path, :text, primary_key: true
       add :link_to, :text, null: false
@@ -120,7 +135,9 @@ defmodule Aerox.PDS.Repo.Migrations.CreatePdsTables do
     create index(:backlink, [:did, :path, :link_to])
 
     create table(:blob, primary_key: false) do
-      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all), primary_key: true
+      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all),
+        primary_key: true
+
       add :cid, :text, primary_key: true
       add :mime_type, :text, null: false
       add :size, :bigint, null: false
@@ -130,7 +147,9 @@ defmodule Aerox.PDS.Repo.Migrations.CreatePdsTables do
     end
 
     create table(:record_blob, primary_key: false) do
-      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all), primary_key: true
+      add :did, references(:actor, column: :did, type: :text, on_delete: :delete_all),
+        primary_key: true
+
       add :blob_cid, :text, primary_key: true
       add :record_uri, :text, primary_key: true
     end

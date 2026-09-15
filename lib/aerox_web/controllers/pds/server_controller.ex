@@ -17,7 +17,8 @@ defmodule AeroxWeb.PDS.ServerController do
   alias Aerox.PDS.{Accounts, Config, Mailer, PlcOps, Records, Sequencer, Sessions, Signup}
   alias AeroxWeb.XRPC.Error
 
-  def health(conn, _), do: respond(conn, %{"version" => to_string(Application.spec(:aerox, :vsn))})
+  def health(conn, _),
+    do: respond(conn, %{"version" => to_string(Application.spec(:aerox, :vsn))})
 
   def describe_server(conn, _) do
     body =
@@ -51,7 +52,13 @@ defmodule AeroxWeb.PDS.ServerController do
         password: input["password"],
         invite_code: input["inviteCode"],
         recovery_key: input["recoveryKey"],
-        did: input["did"]
+        did: input["did"],
+        # account migration: a service JWT from the DID being brought
+        requester:
+          case conn.assigns[:auth] do
+            %{type: :service, did: did} -> did
+            _ -> nil
+          end
       }
       |> Map.reject(fn {_, v} -> is_nil(v) end)
 
@@ -74,7 +81,12 @@ defmodule AeroxWeb.PDS.ServerController do
       {:error, {name, msg}} ->
         {:error,
          %Error{
-           status: if(name == "UpstreamFailure", do: 502, else: 400),
+           status:
+             case name do
+               "UpstreamFailure" -> 502
+               "AuthenticationRequired" -> 401
+               _ -> 400
+             end,
            name: name,
            message: msg
          }}
@@ -553,6 +565,40 @@ defmodule AeroxWeb.PDS.ServerController do
   end
 
   # ------------------------------------------------------------ invite codes
+
+  # upstream: admin only; `forAccounts` defaults to the admin pseudo-account
+  def create_invite_codes(conn, _) do
+    require_auth!(conn, kinds: [:admin])
+    input = input!(conn, "com.atproto.server.createInviteCodes")
+    count = input["codeCount"] || 1
+
+    if count < 1 or count > 1000 or input["useCount"] < 1,
+      do: raise(Error.invalid_request("codeCount and useCount must be positive"))
+
+    codes =
+      for account <- input["forAccounts"] || ["admin"] do
+        %{
+          "account" => account,
+          "codes" => Accounts.create_invite_codes(account, count, input["useCount"])
+        }
+      end
+
+    respond(conn, %{"codes" => codes})
+  end
+
+  # Public (upstream): a key for a DID document to name before the account exists.
+  def reserve_signing_key(conn, _) do
+    input = input!(conn, "com.atproto.server.reserveSigningKey")
+    respond(conn, %{"signingKey" => Aerox.PDS.ReservedKeys.reserve(input["did"])})
+  end
+
+  # There is no signup queue here: every account is activated at creation
+  # (upstream without an entryway answers the same).
+  def check_signup_queue(conn, _) do
+    require_auth!(conn)
+    _ = params!(conn, "com.atproto.temp.checkSignupQueue")
+    respond(conn, %{"activated" => true})
+  end
 
   def create_invite_code(conn, _) do
     require_auth!(conn, kinds: [:admin])

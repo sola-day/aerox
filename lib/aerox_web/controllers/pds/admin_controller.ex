@@ -245,7 +245,39 @@ defmodule AeroxWeb.PDS.AdminController do
 
   def get_invite_codes(conn, _) do
     admin!(conn)
-    respond(conn, %{"codes" => []})
+    params = params!(conn, "com.atproto.admin.getInviteCodes")
+
+    case Aerox.PDS.Accounts.list_invite_codes(
+           params["sort"] || "recent",
+           params["limit"] || 100,
+           params["cursor"]
+         ) do
+      {:ok, codes, cursor} ->
+        body = %{"codes" => Enum.map(codes, &invite_json/1)}
+        respond(conn, if(cursor, do: Map.put(body, "cursor", cursor), else: body))
+
+      {:error, :malformed_cursor} ->
+        {:error, AeroxWeb.XRPC.Error.invalid_request("Malformed cursor")}
+
+      {:error, :unknown_sort} ->
+        {:error, AeroxWeb.XRPC.Error.invalid_request("unknown sort method: #{params["sort"]}")}
+    end
+  end
+
+  defp invite_json(c) do
+    %{
+      "code" => c.code,
+      "available" => c.available,
+      "disabled" => c.disabled,
+      "forAccount" => c.for_account,
+      "createdBy" => c.created_by,
+      "createdAt" => Aerox.ATProto.Syntax.format_datetime(c.created_at),
+      "uses" =>
+        Enum.map(
+          c.uses,
+          &%{"usedBy" => &1.used_by, "usedAt" => Aerox.ATProto.Syntax.format_datetime(&1.used_at)}
+        )
+    }
   end
 
   def disable_invite_codes(conn, _) do

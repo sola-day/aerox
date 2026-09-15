@@ -10,14 +10,35 @@ defmodule Aerox.PDS.Signup do
   deactivated account that `resume/1` completes; an orphan with no PLC
   document is reaped after its `delete_after`.
 
-  `did:plc` is minted here. A brought `did:web` (§14.3) is accepted when the
-  resolved document already names this PDS and a reserved signing key.
+  `did:plc` is minted here. A DID can also be *brought*:
+
+  * **account migration** (Account spec, "PDS Account Migration"; upstream
+    `validateInputsForLocalPds`) — the request carries a service JWT from the
+    DID itself (`requester`). The account is created deactivated, with the
+    key reserved for the DID by `reserveSigningKey` if there is one, and no
+    PLC operation: the DID document is re-pointed afterwards and
+    `activateAccount` checks it. It is not reaped while it waits.
+  * a `did:web` (§14.3) whose resolved document already names this PDS, its
+    handle, and a key reserved here.
   """
 
   require Logger
   import Ecto.Query
   alias Aerox.ATProto.Crypto
-  alias Aerox.PDS.{Accounts, Config, Handle, PlcOps, Records, Repo, Sequencer, Sessions}
+  alias Aerox.ATProto.Syntax
+
+  alias Aerox.PDS.{
+    Accounts,
+    Config,
+    Handle,
+    PlcOps,
+    Records,
+    Repo,
+    ReservedKeys,
+    Sequencer,
+    Sessions
+  }
+
   alias Aerox.PDS.Schema.Actor
 
   @type params :: %{
@@ -27,6 +48,7 @@ defmodule Aerox.PDS.Signup do
           optional(:invite_code) => String.t(),
           optional(:recovery_key) => String.t(),
           optional(:did) => String.t(),
+          optional(:requester) => String.t(),
           optional(:deactivated) => boolean
         }
 
@@ -48,11 +70,12 @@ defmodule Aerox.PDS.Signup do
          :ok <- validate_email(params[:email]),
          :ok <- validate_password(params[:password]),
          :ok <- validate_invite(params[:invite_code]),
-         keypair = Crypto.generate(:k256),
-         {:ok, did, plc_op} <- mint_did(params, keypair, handle),
-         {:ok, _account} <- register_deactivated(did, handle, keypair, params),
+         {:ok, did, plc_op, keypair, mode} <- mint_did(params, handle),
+         {:ok, _account} <- register_deactivated(did, handle, keypair, params, mode),
          :ok <- publish(did, plc_op),
-         {:ok, doc} <- activate(did, handle, Map.get(params, :deactivated, false)) do
+         {:ok, doc} <-
+           activate(did, handle, mode == :migration or Map.get(params, :deactivated, false)) do
+      if mode != :new, do: ReservedKeys.clear(Crypto.did_key(keypair), did)
       tokens = Sessions.create_session(did)
 
       {:ok,
@@ -66,12 +89,29 @@ defmodule Aerox.PDS.Signup do
     end
   end
 
-  defp validate_handle(%{handle: handle}) do
+  defp validate_handle(%{handle: handle} = params) do
+    migrating? = is_binary(params[:did]) and params[:did] == params[:requester]
+
     case Handle.validate(handle) do
-      {:ok, h} -> {:ok, h}
-      {:ok, :external, _h} -> {:error, {"UnsupportedDomain", "Not a supported handle domain"}}
-      {:error, {:invalid_handle, msg}} -> {:error, {"InvalidHandle", msg}}
-      {:error, {:handle_not_available, msg}} -> {:error, {"HandleNotAvailable", msg}}
+      {:ok, h} ->
+        {:ok, h}
+
+      # a migrating account may keep a handle of its own domain (upstream
+      # `normalizeAndValidateHandle` with the DID): it must resolve to that DID
+      {:ok, :external, h} when migrating? ->
+        if Aerox.Identity.resolve_handle(Aerox.PDS.Identity, h, force: true) ==
+             {:ok, params[:did]},
+           do: {:ok, h},
+           else: {:error, {"InvalidHandle", "External handle did not resolve to DID"}}
+
+      {:ok, :external, _h} ->
+        {:error, {"UnsupportedDomain", "Not a supported handle domain"}}
+
+      {:error, {:invalid_handle, msg}} ->
+        {:error, {"InvalidHandle", msg}}
+
+      {:error, {:handle_not_available, msg}} ->
+        {:error, {"HandleNotAvailable", msg}}
     end
   end
 
@@ -111,11 +151,29 @@ defmodule Aerox.PDS.Signup do
     end
   end
 
-  # Step 0: the DID. A new did:plc is derived from the signed genesis op
-  # (not yet submitted); a brought DID is validated against its document.
-  defp mint_did(%{did: "did:web:" <> _ = did}, keypair, handle) do
+  # Step 0: the DID and its signing key. A new did:plc is derived from the
+  # signed genesis op (not yet submitted); a brought DID is either a migration
+  # (authorised by the DID itself) or a did:web validated against its document.
+  defp mint_did(%{did: did, requester: did} = _params, _handle) when is_binary(did) do
+    if Syntax.valid_did?(did) do
+      keypair = ReservedKeys.get(did) || Crypto.generate(:k256)
+      {:ok, did, nil, keypair, :migration}
+    else
+      {:error, {"InvalidRequest", "Invalid DID: #{did}"}}
+    end
+  end
+
+  defp mint_did(%{did: "did:web:" <> _ = did}, handle) do
     case Aerox.Identity.Resolver.resolve_did(did, plc_url: Config.plc_url()) do
       {:ok, doc} ->
+        doc_key =
+          case Aerox.ATProto.Identity.signing_did_key(doc) do
+            {:ok, key} -> key
+            _ -> nil
+          end
+
+        keypair = ReservedKeys.get(did) || ReservedKeys.get(doc_key)
+
         cond do
           Aerox.ATProto.Identity.pds_endpoint(doc) != Config.public_url() ->
             {:error,
@@ -124,12 +182,12 @@ defmodule Aerox.PDS.Signup do
           Aerox.ATProto.Identity.handle(doc) != handle ->
             {:error, {"IncompatibleDidDoc", "DID document handle does not match handle"}}
 
-          Aerox.ATProto.Identity.signing_did_key(doc) != {:ok, Crypto.did_key(keypair)} ->
+          keypair == nil or doc_key != Crypto.did_key(keypair) ->
             {:error,
              {"IncompatibleDidDoc", "DID document signing key does not match reserved key"}}
 
           true ->
-            {:ok, did, nil}
+            {:ok, did, nil, keypair, :brought}
         end
 
       {:error, _} ->
@@ -137,16 +195,20 @@ defmodule Aerox.PDS.Signup do
     end
   end
 
-  defp mint_did(%{did: _}, _keypair, _handle),
-    do: {:error, {"IncompatibleDidDoc", "Only did:plc and did:web accounts are supported"}}
+  defp mint_did(%{did: did}, _handle),
+    do: {:error, {"AuthenticationRequired", "Missing auth to create account with did: #{did}"}}
 
-  defp mint_did(params, keypair, handle) do
+  defp mint_did(params, handle) do
+    keypair = Crypto.generate(:k256)
+
     # Reaching the signer first: `genesis_op/3` needs the rotation key's
     # `did:key` too, and building the signer is what fetches it.
-    with {:ok, _signer} <- Config.fetch_signer() do
-      unsigned = PlcOps.genesis_op(Crypto.did_key(keypair), handle, params[:recovery_key])
-      sign_genesis(unsigned)
+    with {:ok, _signer} <- Config.fetch_signer(),
+         unsigned = PlcOps.genesis_op(Crypto.did_key(keypair), handle, params[:recovery_key]),
+         {:ok, did, op} <- sign_genesis(unsigned) do
+      {:ok, did, op, keypair, :new}
     else
+      {:error, {_, _}} = e -> e
       {:error, reason} -> signer_unavailable(reason)
     end
   end
@@ -171,7 +233,7 @@ defmodule Aerox.PDS.Signup do
   end
 
   # Step 1: everything local, deactivated, in one transaction.
-  defp register_deactivated(did, handle, keypair, params) do
+  defp register_deactivated(did, handle, keypair, params, mode) do
     Repo.transaction(fn ->
       case Accounts.register(%{
              did: did,
@@ -180,7 +242,9 @@ defmodule Aerox.PDS.Signup do
              email: params[:email],
              password: params[:password],
              invite_code: params[:invite_code],
-             deactivated: true
+             deactivated: true,
+             # a migrating account waits for its DID document, not for PLC
+             reap: mode != :migration
            }) do
         {:ok, account} ->
           {:ok, _} = Records.create_repo(did, keypair)

@@ -5,7 +5,9 @@ defmodule AeroxWeb.IdentityResolutionTest do
 
   setup do
     Aerox.RateLimit.reset()
-    %{did: did, handle: handle} = signup("idres")
+    # a fresh handle per test: the identity caches outlive the sandbox, and a
+    # handle cached for an earlier test's (rolled back) DID would not match
+    %{did: did, handle: handle} = signup("idres#{System.unique_integer([:positive])}")
     {:ok, did: did, handle: handle}
   end
 
