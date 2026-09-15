@@ -675,6 +675,62 @@ defmodule Aerox.ATProto.MST do
     end)
   end
 
+  @doc """
+  Every block of the tree in the Repository spec's *streamable* order: the root
+  node first, then each node's entries in the order the node lists them — a
+  child subtree recursively (pre-order, depth first), a record as its block —
+  so a reader can rebuild the tree in one pass without buffering. A record
+  block shared by several keys appears once, at its first key.
+
+  Lazy: nodes are read as the stream reaches them, and a node's records in one
+  `get_many`. A missing block raises `MissingBlock` while the stream is
+  consumed.
+  """
+  @spec streamable_blocks(Blockstore.t(), t) :: Enumerable.t()
+  def streamable_blocks(bs, root) do
+    Stream.resource(
+      fn -> {[{:node, root}], MapSet.new(), %{}} end,
+      &next_streamable(bs, &1),
+      fn _ -> :ok end
+    )
+  end
+
+  defp next_streamable(_bs, {[], _, _} = state), do: {:halt, state}
+
+  defp next_streamable(bs, {[{:node, node} | rest], seen, cache}) do
+    {cid, bytes, node} = serialize!(bs, node)
+
+    wanted =
+      for {:leaf, _, v} <- node.entries,
+          not MapSet.member?(seen, v) and not Map.has_key?(cache, v),
+          uniq: true,
+          do: v
+
+    found = if wanted == [], do: %{}, else: Blockstore.get_many(bs, wanted)
+
+    case Enum.find(wanted, &(not Map.has_key?(found, &1))) do
+      nil -> :ok
+      missing -> raise MissingBlock, cid: missing
+    end
+
+    items =
+      Enum.map(node.entries, fn
+        {:tree, sub} -> {:node, sub}
+        {:leaf, _, v} -> {:record, v}
+      end)
+
+    {[{cid, bytes}], {items ++ rest, seen, Map.merge(cache, found)}}
+  end
+
+  defp next_streamable(_bs, {[{:record, v} | rest], seen, cache}) do
+    if MapSet.member?(seen, v) do
+      {[], {rest, seen, cache}}
+    else
+      {bytes, cache} = Map.pop!(cache, v)
+      {[{v, bytes}], {rest, MapSet.put(seen, v), cache}}
+    end
+  end
+
   # --------------------------------------------------------------- diff
 
   defmodule Diff do

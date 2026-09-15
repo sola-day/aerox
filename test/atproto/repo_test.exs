@@ -191,6 +191,76 @@ defmodule Aerox.ATProto.RepoTest do
 
     assert {:error, :too_many_items} = Frame.decode(bytes <> <<0x01>>)
   end
+
+  test "the full-repo CAR is in streamable order: a single-pass reader never has to look ahead" do
+    kp = Crypto.generate(:k256)
+    bs = Memory.new()
+    {:ok, c0} = Repo.format_init_commit(bs, @did, kp, [], tid(0))
+    {:ok, bs} = Blockstore.put_many(bs, Map.to_list(c0.new_blocks))
+
+    # enough keys for a multi-level tree (in batches under the 200-op limit),
+    # and two keys sharing one record block
+    posts =
+      for i <- 1..400,
+          do:
+            {:create, "app.bsky.feed.post", TID.from_time(1_700_000_000_000_000 + i, 1),
+             post("p#{i}")}
+
+    batches =
+      Enum.chunk_every(posts, 200) ++
+        [
+          [
+            {:create, "app.bsky.feed.like", "3kaaaaaaaaaa2", post("same")},
+            {:create, "app.bsky.feed.like", "3kaaaaaaaaaa3", post("same")}
+          ]
+        ]
+
+    {bs, c1} =
+      batches
+      |> Enum.with_index(1)
+      |> Enum.reduce({bs, c0}, fn {writes, n}, {bs, head} ->
+        {:ok, repo} = Repo.load(bs, head.cid)
+        {:ok, c} = Repo.format_commit(bs, repo, writes, kp, tid(n))
+        {:ok, bs} = Blockstore.put_many(bs, Map.to_list(c.new_blocks))
+        {bs, c}
+      end)
+
+    {:ok, car} = Repo.export_car(bs, c1.cid)
+    {:ok, root, blocks} = CAR.decode_with_root(car)
+    assert root == c1.cid
+
+    # a streaming reader: each block must be the one it expects next
+    [{^root, commit_bytes} | rest] = blocks
+    %{"data" => data} = Aerox.ATProto.DagCBOR.decode!(commit_bytes)
+
+    {stack, seen} =
+      Enum.reduce(rest, {[data], MapSet.new()}, fn {cid, bytes}, {[expected | stack], seen} ->
+        assert cid == expected, "block out of streamable order"
+        seen = MapSet.put(seen, cid)
+
+        case Aerox.ATProto.DagCBOR.decode!(bytes) do
+          %{"e" => entries} = node when is_list(entries) ->
+            children =
+              List.wrap(node["l"]) ++
+                Enum.flat_map(entries, fn e -> [e["v"]] ++ List.wrap(e["t"]) end)
+
+            children = Enum.reject(children, &(is_nil(&1) or MapSet.member?(seen, &1)))
+            {children ++ stack, seen}
+
+          _record ->
+            {Enum.reject(stack, &(&1 == cid)), seen}
+        end
+      end)
+
+    assert stack == []
+    assert MapSet.size(seen) == length(rest)
+    {:ok, verified} = Repo.verify_repo_car(car, did: @did, signing_key: Crypto.did_key(kp))
+    assert length(verified.records) == 402
+
+    # the stream and the binary agree
+    {:ok, chunks} = Repo.stream_car(bs, c1.cid)
+    assert chunks |> Enum.to_list() |> IO.iodata_to_binary() == car
+  end
 end
 
 defmodule Aerox.ATProto.RealCarTest do

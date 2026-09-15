@@ -54,10 +54,31 @@ defmodule AeroxWeb.PDS.SyncController do
       Records.root(account.did) ||
         raise(Error.invalid_request("Could not find repo for DID: #{params["did"]}"))
 
-    case KRepo.export_car(Blockstore.new(account.did), root.cid) do
-      {:ok, bytes} -> car(conn, bytes)
+    # streamed in the spec's streamable block order, never whole in memory
+    case KRepo.stream_car(Blockstore.new(account.did), root.cid) do
+      {:ok, chunks} -> stream_car(conn, account.did, chunks)
       {:error, reason} -> {:error, Error.internal(inspect(reason))}
     end
+  end
+
+  defp stream_car(conn, did, chunks) do
+    conn =
+      conn
+      |> put_resp_content_type("application/vnd.ipld.car", nil)
+      |> send_chunked(200)
+
+    Enum.reduce_while(chunks, conn, fn chunk, conn ->
+      case chunk(conn, chunk) do
+        {:ok, conn} -> {:cont, conn}
+        {:error, _closed} -> {:halt, conn}
+      end
+    end)
+  rescue
+    # the status line has gone; all that is left is to cut the body short
+    e in Aerox.ATProto.MST.MissingBlock ->
+      require Logger
+      Logger.error("getRepo #{did}: missing block #{inspect(e.cid)}")
+      conn
   end
 
   def get_record(conn, _) do

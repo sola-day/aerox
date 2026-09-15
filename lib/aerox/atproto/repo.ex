@@ -358,16 +358,18 @@ defmodule Aerox.ATProto.Repo do
 
   # ---------------------------------------------------------------- export
 
-  @doc "Every block of the repo in CAR order: commit, MST nodes, then records (upstream `getFullRepo`)."
+  @doc """
+  Every block of the repo in the Repository spec's streamable CAR order: the
+  commit, then the MST pre-order with each record after the node that lists it
+  (`MST.streamable_blocks/2`).
+  """
   @spec full_repo_blocks(Blockstore.t(), CID.t()) :: {:ok, [Blockstore.block()]} | {:error, term}
   def full_repo_blocks(bs, commit_cid) do
-    with {:ok, commit_bytes} <- fetch(bs, commit_cid),
-         {:ok, repo} <- load(bs, commit_cid),
-         {:ok, nodes} <- MST.node_blocks(bs, repo.data),
-         {:ok, leaves} <- MST.leaves(bs, repo.data),
-         {:ok, records} <- fetch_all(bs, leaves |> Enum.map(&elem(&1, 1)) |> Enum.uniq()) do
-      {:ok, [{commit_cid, commit_bytes} | nodes ++ records]}
+    with {:ok, blocks} <- repo_block_stream(bs, commit_cid) do
+      {:ok, Enum.to_list(blocks)}
     end
+  rescue
+    e in MST.MissingBlock -> {:error, {:missing_block, e.cid}}
   end
 
   @doc "The full repo as a CAR binary."
@@ -375,6 +377,25 @@ defmodule Aerox.ATProto.Repo do
   def export_car(bs, commit_cid) do
     with {:ok, blocks} <- full_repo_blocks(bs, commit_cid),
          do: {:ok, CAR.encode(commit_cid, blocks)}
+  end
+
+  @doc """
+  The full repo as a lazy stream of CAR chunks (iodata), for `getRepo` on
+  repositories too large to build in memory. The commit is read up front, so a
+  missing repo is an error before anything is sent; a block missing further
+  in raises `MST.MissingBlock` while the stream is consumed.
+  """
+  @spec stream_car(Blockstore.t(), CID.t()) :: {:ok, Enumerable.t()} | {:error, term}
+  def stream_car(bs, commit_cid) do
+    with {:ok, blocks} <- repo_block_stream(bs, commit_cid),
+         do: {:ok, CAR.encode_stream(commit_cid, blocks)}
+  end
+
+  defp repo_block_stream(bs, commit_cid) do
+    with {:ok, commit_bytes} <- fetch(bs, commit_cid),
+         {:ok, repo} <- load(bs, commit_cid) do
+      {:ok, Stream.concat([{commit_cid, commit_bytes}], MST.streamable_blocks(bs, repo.data))}
+    end
   end
 
   @doc "The blocks proving one record: commit, the MST path, and the record (`com.atproto.sync.getRecord`)."
