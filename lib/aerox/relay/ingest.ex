@@ -166,11 +166,11 @@ defmodule Aerox.Relay.Ingest do
     end
   end
 
+  # `tooBig` is deprecated and, per the Sync spec, ignored by consumers: a commit
+  # carrying it is verified like any other, and one whose blocks really are
+  # truncated fails MST inversion below. (indigo rejects the flag outright.)
   defp do_strict(body, _repo, prev, acc) do
     cond do
-      body["tooBig"] == true ->
-        {:error, :too_big_flag}
-
       body["rebase"] == true ->
         {:error, :rebase_flag}
 

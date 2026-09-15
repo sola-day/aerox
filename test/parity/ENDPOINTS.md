@@ -80,14 +80,14 @@ every time.
 | `com.atproto.repo.uploadBlob` | POST | pds | pending |  |
 | `com.atproto.repo.listMissingBlobs` | GET | pds | pending |  |
 | `com.atproto.repo.importRepo` | POST | pds | pending |  |
-| `com.atproto.sync.getRepo` | GET | pds | flow | relay: non-archival, 404 naming the hosting PDS (DESIGN §19) |
-| `com.atproto.sync.getRecord` | GET | pds | pending | relay: non-archival (DESIGN §19) |
-| `com.atproto.sync.getBlocks` | GET | pds | pending | relay: non-archival (DESIGN §19) |
+| `com.atproto.sync.getRepo` | GET | pds | flow | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
+| `com.atproto.sync.getRecord` | GET | pds | pending | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
+| `com.atproto.sync.getBlocks` | GET | pds | pending | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
 | `com.atproto.sync.getLatestCommit` | GET | pds | flow |  |
 | `com.atproto.sync.getRepoStatus` | GET | pds | flow |  |
 | `com.atproto.sync.listRepos` | GET | pds | flow |  |
-| `com.atproto.sync.getBlob` | GET | pds | pending | relay: non-archival (DESIGN §19) |
-| `com.atproto.sync.listBlobs` | GET | pds | pending | relay: non-archival (DESIGN §19) |
+| `com.atproto.sync.getBlob` | GET | pds | pending | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
+| `com.atproto.sync.listBlobs` | GET | pds | pending | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
 | `app.bsky.actor.getPreferences` | GET | pds | flow | served by the PDS, not proxied (DESIGN §11.1) |
 | `app.bsky.actor.putPreferences` | POST | pds | flow | served by the PDS, not proxied (DESIGN §11.1) |
 | `com.atproto.admin.getAccountInfo` | GET | pds | pending |  |
@@ -136,11 +136,11 @@ every time.
 | `com.atproto.sync.listRepos` | GET | relay | flow |  |
 | `com.atproto.sync.getRepoStatus` | GET | relay | flow |  |
 | `com.atproto.sync.getLatestCommit` | GET | relay | flow |  |
-| `com.atproto.sync.getRepo` | GET | relay | flow | relay: non-archival, 404 naming the hosting PDS (DESIGN §19) |
-| `com.atproto.sync.getRecord` | GET | relay | pending | relay: non-archival (DESIGN §19) |
-| `com.atproto.sync.getBlocks` | GET | relay | pending | relay: non-archival (DESIGN §19) |
-| `com.atproto.sync.getBlob` | GET | relay | pending | relay: non-archival (DESIGN §19) |
-| `com.atproto.sync.listBlobs` | GET | relay | pending | relay: non-archival (DESIGN §19) |
+| `com.atproto.sync.getRepo` | GET | relay | flow | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
+| `com.atproto.sync.getRecord` | GET | relay | flow | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
+| `com.atproto.sync.getBlocks` | GET | relay | flow | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
+| `com.atproto.sync.getBlob` | GET | relay | flow | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
+| `com.atproto.sync.listBlobs` | GET | relay | flow | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
 | `com.atproto.sync.listReposByCollection` | GET | relay | pending | deferred: needs a collection index (DESIGN §19) |
 | `com.atproto.sync.getCheckout` | GET | relay | pending | deprecated upstream; 501 |
 | `com.atproto.sync.getHead` | GET | relay | pending | deprecated upstream; 501 |

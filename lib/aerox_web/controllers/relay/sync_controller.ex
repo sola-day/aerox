@@ -207,25 +207,38 @@ defmodule AeroxWeb.Relay.SyncController do
     respond(conn, %{"cid" => repo.commit_cid, "rev" => repo.rev})
   end
 
-  # DESIGN §19: non-archival; answer with where the repo lives.
-  def not_archival(conn, _) do
+  # DESIGN §19: non-archival. Repo content is the hosting PDS's to serve, so
+  # the repo-content methods redirect there, query intact — the Sync spec's
+  # "the upstream may instead simply use an HTTP redirect to the PDS instance",
+  # and what indigo does for getRepo. Unlike indigo, an account this relay has
+  # taken down is refused here rather than redirected.
+  def redirect_to_pds(conn, _) do
     did = conn.query_params["did"]
-    acc = did && Accounts.get(did)
+    acc = is_binary(did) && Accounts.get(did)
 
-    pds =
+    host =
       with %Account{} <- acc,
-           host when not is_nil(host) <- Hosts.get_by_id(acc.host_id) do
-        Hosts.http_url(host)
-      else
-        _ -> nil
-      end
+           %{} = host <- Hosts.get_by_id(acc.host_id),
+           do: host,
+           else: (_ -> nil)
 
-    msg =
-      if pds,
-        do: "this relay is non-archival; fetch repo content from the hosting PDS at #{pds}",
-        else: "this relay is non-archival; fetch repo content from the hosting PDS"
+    cond do
+      is_nil(host) ->
+        {:error, Error.not_found("Could not find repo for DID: #{did}", "RepoNotFound")}
 
-    {:error, %Error{status: 404, name: "RepoNotFound", message: msg}}
+      Account.status_field(acc) in ["takendown", "suspended"] ->
+        {:error, Error.forbidden("Repo has been takendown: #{did}", "RepoTakendown")}
+
+      true ->
+        location =
+          Hosts.http_url(host) <>
+            conn.request_path <>
+            if(conn.query_string == "", do: "", else: "?" <> conn.query_string)
+
+        conn
+        |> put_resp_header("location", location)
+        |> send_resp(302, "")
+    end
   end
 
   def not_implemented(_conn, _), do: {:error, Error.not_implemented()}

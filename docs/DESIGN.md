@@ -1873,8 +1873,10 @@ Decided 2026-09-09. The Relay is **non-archival** (as upstream's relays have bee
   (validates the host by fetching `describeServer`, applies new-host defaults and
   limits, then starts a consumer), `listHosts`, `getHostStatus`, `listRepos`,
   `getRepoStatus`, `getLatestCommit`. `getRepo` / `getRecord` / `getBlocks` /
-  `getBlob` / `listBlobs` are **not served** (non-archival): they answer with the
-  hosting PDS's endpoint. `listReposByCollection` needs a collection index and is
+  `getBlob` / `listBlobs` are **not served** (non-archival): they answer `302` to the
+  same method on the hosting PDS, query intact (the Sync spec's "the upstream may
+  instead simply use an HTTP redirect", and indigo's `getRepo`); an account the relay
+  has taken down is refused with `RepoTakendown` instead. `listReposByCollection` needs a collection index and is
   deferred. `getCheckout`/`getHead`/`notifyOfUpdate` are deprecated and return
   `MethodNotImplemented`.
 - Limits: per-host account limit (new hosts start low), per-host event rate, host

@@ -163,8 +163,31 @@ defmodule AeroxWeb.Relay.HttpTest do
            |> json_response(404)
            |> Map.get("error") == "RepoNotFound"
 
-    resp = conn |> get("/xrpc/com.atproto.sync.getRepo?did=#{did}") |> json_response(404)
-    assert resp["error"] == "RepoNotFound" and resp["message"] =~ "https://pds.aerox.sola.town"
+    # non-archival: repo content redirects to the hosting PDS, query intact
+    for nsid <- ~w(getRepo getRecord getBlocks getBlob listBlobs) do
+      resp = get(conn, "/xrpc/com.atproto.sync.#{nsid}?did=#{did}&since=abc")
+      assert resp.status == 302
+
+      assert get_resp_header(resp, "location") == [
+               "https://pds.aerox.sola.town/xrpc/com.atproto.sync.#{nsid}?did=#{did}&since=abc"
+             ]
+    end
+
+    assert conn
+           |> get("/xrpc/com.atproto.sync.getRepo?did=did:plc:aaaaaaaaaaaaaaaaaaaaaaaa")
+           |> json_response(404)
+           |> Map.get("error") == "RepoNotFound"
+
+    # a repo this relay has taken down is refused, not redirected
+    :ok = Accounts.update_local_status(Accounts.get(did).uid, "takendown")
+
+    assert conn
+           |> get("/xrpc/com.atproto.sync.getRepo?did=#{did}")
+           |> json_response(403)
+           |> Map.get("error") == "RepoTakendown"
+
+    :ok = Accounts.update_local_status(Accounts.get(did).uid, "active")
+
     assert conn |> get("/xrpc/com.atproto.sync.getHead?did=#{did}") |> json_response(501)
 
     # the relay firehose replays what was ingested

@@ -42,11 +42,11 @@ defmodule AeroxWeb.RelayRouter do
     get "/com.atproto.sync.getLatestCommit", SyncController, :get_latest_commit
 
     # non-archival (DESIGN §19): the hosting PDS answers these
-    get "/com.atproto.sync.getRepo", SyncController, :not_archival
-    get "/com.atproto.sync.getRecord", SyncController, :not_archival
-    get "/com.atproto.sync.getBlocks", SyncController, :not_archival
-    get "/com.atproto.sync.getBlob", SyncController, :not_archival
-    get "/com.atproto.sync.listBlobs", SyncController, :not_archival
+    get "/com.atproto.sync.getRepo", SyncController, :redirect_to_pds
+    get "/com.atproto.sync.getRecord", SyncController, :redirect_to_pds
+    get "/com.atproto.sync.getBlocks", SyncController, :redirect_to_pds
+    get "/com.atproto.sync.getBlob", SyncController, :redirect_to_pds
+    get "/com.atproto.sync.listBlobs", SyncController, :redirect_to_pds
     get "/com.atproto.sync.listReposByCollection", SyncController, :not_implemented
 
     # deprecated

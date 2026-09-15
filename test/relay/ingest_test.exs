@@ -58,6 +58,12 @@ defmodule Aerox.Relay.IngestTest do
              Enum.map(events, &elem(&1, 0))
 
     for {type, body} <- events do
+      # the deprecated `tooBig` is ignored, not refused (Sync spec)
+      body =
+        if type == "#commit" and body["rev"] == List.last(events) |> elem(1) |> Map.get("rev"),
+          do: Map.put(body, "tooBig", true),
+          else: body
+
       assert :ok = Ingest.process(host, type, body), "#{type} #{inspect(body["seq"])}"
     end
 

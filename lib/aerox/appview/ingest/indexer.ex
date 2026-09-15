@@ -22,11 +22,9 @@ defmodule Aerox.AppView.Ingest.Indexer do
         Indexing.ensure_actor(did, indexed_at)
         first_sight = is_nil(Aerox.AppView.Repo.get(ActorSync, did))
 
-        if body["tooBig"] == true do
-          Backfill.request(did)
-        else
-          Enum.each(ops, &apply_op(did, &1, bs, indexed_at))
-        end
+        # `tooBig` is deprecated and ignored (Sync spec): the commit verified,
+        # so its blocks are complete whatever the flag says
+        Enum.each(ops, &apply_op(did, &1, bs, indexed_at))
 
         Indexing.set_commit_last_seen(did, CID.to_string(repo.cid), rev)
         # DESIGN §15.1: a repo seen for the first time is backfilled
