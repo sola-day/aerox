@@ -93,10 +93,43 @@ defmodule Aerox.AppView.Backfill do
     :ok
   end
 
+  @doc """
+  The account's hosting status as its current PDS reports it
+  (`com.atproto.sync.getRepoStatus`, after a fresh DID resolution): `"active"`,
+  the reported status, or `"deleted"` for an unknown repo.
+  """
+  @spec fetch_repo_status(String.t()) :: {:ok, String.t()} | {:error, term}
+  def fetch_repo_status(did) do
+    with {:ok, doc} <- Aerox.Identity.resolve_did(Aerox.AppView.Identity, did, force: true),
+         pds when is_binary(pds) <- Aerox.ATProto.Identity.pds_endpoint(doc) || {:error, :no_pds} do
+      url = "#{pds}/xrpc/com.atproto.sync.getRepoStatus?did=#{URI.encode_www_form(did)}"
+
+      case HTTP.get(url, http_opts(timeout: 10_000, max_bytes: 1_000_000)) do
+        {:ok, 200, _, body} ->
+          case Jason.decode(body) do
+            {:ok, %{"active" => true}} -> {:ok, "active"}
+            {:ok, %{"status" => status}} when is_binary(status) -> {:ok, status}
+            {:ok, %{"active" => false}} -> {:ok, "inactive"}
+            _ -> {:error, :invalid_response}
+          end
+
+        {:ok, 404, _, _} ->
+          {:ok, "deleted"}
+
+        {:ok, status, _, _} ->
+          {:error, {:http, status}}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
+  defp http_opts(opts),
+    do: opts ++ Keyword.take(Application.get_env(:aerox, __MODULE__, []), [:plug, :allow_private])
+
   defp fetch_repo(pds, did) do
-    opts =
-      [timeout: 60_000, max_bytes: 200 * 1024 * 1024] ++
-        Keyword.take(Application.get_env(:aerox, __MODULE__, []), [:plug, :allow_private])
+    opts = http_opts(timeout: 60_000, max_bytes: 200 * 1024 * 1024)
 
     case HTTP.get("#{pds}/xrpc/com.atproto.sync.getRepo?did=#{URI.encode_www_form(did)}", opts) do
       {:ok, 200, _, car} -> {:ok, car}

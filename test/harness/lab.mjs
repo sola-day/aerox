@@ -8,6 +8,8 @@
 //   node lab.mjs crawl           each relay crawls every PDS; posts reach both AppViews
 //   node lab.mjs proxy           app.bsky.* proxied across implementations
 //   node lab.mjs social          follows, likes, replies, images; both AppViews agree
+//   node lab.mjs lifecycle       handle change, deletion, deactivation reach both AppViews
+//   node lab.mjs migrate         account migration to and from aerox, per implementation
 //   node lab.mjs all
 //
 // Accounts are remembered in ../../tmp/lab/accounts.json (gitignored).
@@ -367,6 +369,325 @@ async function social(names) {
   }
 }
 
+// ------------------------------------------------------------ migration
+
+const usedMail = new Set();
+async function aeroxMailToken(email) {
+  for (let i = 0; i < 40; i++) {
+    const {data} = await (await fetch(AEROX.mailbox)).json();
+    const mail = data.find(m => JSON.stringify(m.to).includes(email) && /PLC|dentity/.test(m.subject) && !usedMail.has(m.text_body));
+    const code = mail?.text_body.match(/\b[A-Z0-9]{5}-[A-Z0-9]{5}\b/)?.[0];
+    if (code) {
+      usedMail.add(mail.text_body);
+      return code;
+    }
+    await sleep(500);
+  }
+  throw new Error(`no PLC mail for ${email}`);
+}
+
+async function labToken(impl, did) {
+  const {execFileSync} = await import('node:child_process');
+  const script = path.join(here, '../../tools/interop/lab-token.sh');
+  for (let i = 0; i < 10; i++) {
+    const out = execFileSync('ssh', ['ubuntu@generic.dev', 'bash', '-s', '--', impl, did], {input: fs.readFileSync(script)})
+      .toString()
+      .trim();
+    if (out) return out;
+    await sleep(1000);
+  }
+  throw new Error(`no PLC token stored by ${impl} for ${did}`);
+}
+
+const plcToken = (impl, acct) => (impl === 'aerox' ? aeroxMailToken(acct.email) : labToken(impl, acct.did));
+
+// A fresh account on `from` with posts, an image, a follow and a preference,
+// moved to `to` with the standard account-migration calls, then checked from
+// every side: PLC, both PDSes' status, the records and blob on the new PDS, a
+// write there, and both AppViews following the account to its new home.
+// A tiny XRPC client that does not validate responses against the lexicons,
+// so one implementation's extra or missing field is recorded, not fatal.
+function raw(base, token) {
+  const call = async (method, nsid, {params, body, type = 'application/json', headers = {}} = {}) => {
+    const u = new URL(`/xrpc/${nsid}`, base);
+    for (const [k, v] of Object.entries(params ?? {})) if (v !== undefined) u.searchParams.set(k, v);
+    const h = {...headers};
+    if (token.value && !h.authorization) h.authorization = `Bearer ${token.value}`;
+    if (body !== undefined) h['content-type'] = type;
+    const res = await fetch(u, {method, headers: h, body: body === undefined ? undefined : type === 'application/json' ? JSON.stringify(body) : body});
+    const buf = Buffer.from(await res.arrayBuffer());
+    const ct = res.headers.get('content-type') ?? '';
+    const data = ct.includes('json') ? JSON.parse(buf.toString() || 'null') : buf;
+    if (!res.ok) {
+      const e = new Error(`${nsid}: ${res.status} ${ct.includes('json') ? JSON.stringify(data) : buf.toString().slice(0, 200)}`);
+      e.status = res.status;
+      e.data = data;
+      throw e;
+    }
+    return {data, contentType: ct};
+  };
+  return {get: (nsid, params) => call('GET', nsid, {params}), post: (nsid, body, opts) => call('POST', nsid, {body, ...opts})};
+}
+
+// A fresh account on `from` with posts, an image, a follow and a preference,
+// moved to `to` with the standard account-migration calls, then checked from
+// every side: PLC, both PDSes' status, the records and blob on the new PDS, a
+// write there, and both AppViews following the account to its new home. A
+// counterpart's departure from the reference behaviour that the migration can
+// work around is recorded as a deviation note, not a failure.
+async function migrateOne(from, to) {
+  const state = loadState();
+  const key = `migrate:${from}->${to}`;
+  const stamp = Date.now().toString(36).slice(-5);
+  const acct = {
+    handle: `mg${from.slice(0, 3)}${stamp}${PDSES[from].domain}`,
+    password: `Lab-migrate-${stamp}-pw9`,
+    email: `mg-${from}-${to}-${stamp}@example.com`,
+  };
+  const area = 'migrate';
+  const label = `${from} → ${to}`;
+  const note = (who, what) => record('deviation', what, `${label} (${who})`, true);
+  const oldTok = {}, newTok = {};
+  const old = raw(PDSES[from].url, oldTok);
+  const neu = raw(PDSES[to].url, newTok);
+  let did, newHandle, imageCid;
+  const posts = [];
+
+  const ok = await check(area, 'seed an account on the source PDS', label, async () => {
+    const agent = new AtpAgent({service: PDSES[from].url});
+    await agent.createAccount(acct);
+    did = agent.session.did;
+    oldTok.value = agent.session.accessJwt;
+    for (let i = 0; i < 3; i++) posts.push((await agent.post({text: `before migration ${i} (${label})`})).uri);
+    const {data} = await agent.uploadBlob(png(200 + stamp.charCodeAt(0)), {encoding: 'image/png'});
+    imageCid = data.blob.ref.toString();
+    posts.push((await agent.post({text: 'image before migration', embed: {$type: 'app.bsky.embed.images', images: [{image: data.blob, alt: 'm'}]}})).uri);
+    if (state.aerox?.did) await agent.follow(state.aerox.did);
+    await agent.app.bsky.actor.putPreferences({preferences: [{$type: 'app.bsky.actor.defs#adultContentPref', enabled: true}]}).catch(() => {});
+    return did;
+  });
+  if (!ok) return;
+
+  const status = async () => {
+    try {
+      return (await neu.get('com.atproto.server.checkAccountStatus')).data;
+    } catch (e) {
+      note(to, `checkAccountStatus fails: ${e.message.slice(0, 160)}`);
+      return null;
+    }
+  };
+
+  const steps = [
+    ['getServiceAuth on the source, createAccount with the DID on the target', async () => {
+      const desc = (await neu.get('com.atproto.server.describeServer')).data;
+      const auth = (await old.get('com.atproto.server.getServiceAuth', {aud: desc.did, lxm: 'com.atproto.server.createAccount'})).data;
+      newHandle = `mg${to.slice(0, 3)}${stamp}${PDSES[to].domain}`;
+      const created = (await neu.post('com.atproto.server.createAccount',
+        {did, handle: newHandle, email: acct.email, password: acct.password},
+        {headers: {authorization: `Bearer ${auth.token}`}})).data;
+      newTok.value = created.accessJwt;
+      if (created.did !== did) throw new Error(`createAccount answered did ${created.did}`);
+      if (!created.handle) note(to, 'createAccount response has no handle');
+      const st = await status();
+      if (st?.activated) note(to, 'an account created for a migration starts activated');
+      return `handle ${newHandle}`;
+    }],
+    ['getRepo from the source, importRepo on the target', async () => {
+      const car = (await old.get('com.atproto.sync.getRepo', {did})).data;
+      await neu.post('com.atproto.repo.importRepo', car, {type: 'application/vnd.ipld.car'});
+      const st = await status();
+      return `${car.length} bytes${st ? `, ${st.repoBlocks} blocks, ${st.indexedRecords} records, ${st.expectedBlobs} blobs expected` : ''}`;
+    }],
+    ['missing blobs copied from the source to the target', async () => {
+      let missing;
+      try {
+        const {data} = await neu.get('com.atproto.repo.listMissingBlobs', {limit: 500});
+        if (!Array.isArray(data?.blobs)) throw new Error(`body ${JSON.stringify(data).slice(0, 120)}`);
+        missing = data.blobs.map(b => b.cid);
+      } catch (e) {
+        note(to, `listMissingBlobs unusable (${e.message.slice(0, 120)}); copying every blob listBlobs names`);
+        missing = (await old.get('com.atproto.sync.listBlobs', {did, limit: 500})).data.cids;
+      }
+      for (const cid of missing) {
+        const blob = await old.get('com.atproto.sync.getBlob', {did, cid});
+        await neu.post('com.atproto.repo.uploadBlob', blob.data, {type: blob.contentType || 'application/octet-stream'});
+      }
+      return `${missing.length} blobs`;
+    }],
+    ['preferences carried over', async () => {
+      const {data} = await old.get('app.bsky.actor.getPreferences');
+      await neu.post('app.bsky.actor.putPreferences', {preferences: data.preferences});
+      return `${data.preferences.length} preferences`;
+    }],
+    ['getRecommendedDidCredentials, signPlcOperation on the source, submitPlcOperation on the target', async () => {
+      const creds = (await neu.get('com.atproto.identity.getRecommendedDidCredentials')).data;
+      try {
+        await old.post('com.atproto.identity.requestPlcOperationSignature');
+      } catch (e) {
+        note(from, `requestPlcOperationSignature fails (${e.message.slice(0, 120)}); reading the stored token anyway`);
+      }
+      const token = await plcToken(from, {...acct, did});
+      let signed;
+      try {
+        signed = (await old.post('com.atproto.identity.signPlcOperation', {token, ...creds})).data;
+      } catch (e) {
+        // tranquil refuses an operation that drops its own key from
+        // rotationKeys; pegasus asserts its signature verifies against the
+        // *new* rotationKeys (plc.ml sign_operation) and answers 500. PLC only
+        // requires the previous operation's keys. Keep the source's keys after
+        // the target's and try once more.
+        const current = await (await fetch(`${LAB.plc}/${did}/data`)).json();
+        note(from, `signPlcOperation refuses the target's rotation keys (${e.message.slice(0, 100)}); retried keeping the source's keys too`);
+        signed = (await old.post('com.atproto.identity.signPlcOperation', {
+          token, ...creds, rotationKeys: [...creds.rotationKeys, ...current.rotationKeys.filter(k => !creds.rotationKeys.includes(k))],
+        })).data;
+      }
+      await neu.post('com.atproto.identity.submitPlcOperation', {operation: signed.operation});
+      const doc = await (await fetch(`${LAB.plc}/${did}`)).json();
+      const svc = doc.service?.find(s => s.id === '#atproto_pds')?.serviceEndpoint.replace(/\/$/, '');
+      if (svc !== PDSES[to].url) throw new Error(`PLC still says ${svc}`);
+      return `PLC → ${svc}, alsoKnownAs ${doc.alsoKnownAs?.[0]}`;
+    }],
+    ['activateAccount on the target, deactivateAccount on the source', async () => {
+      await neu.post('com.atproto.server.activateAccount');
+      await old.post('com.atproto.server.deactivateAccount', {});
+      const st = await status();
+      if (st && (!st.activated || !st.validDid)) throw new Error(`target status ${JSON.stringify(st)}`);
+      const o = await xrpc(PDSES[from].url, 'com.atproto.sync.getRepoStatus', {did});
+      if (o.body.active !== false) note(from, `getRepoStatus after deactivateAccount: ${JSON.stringify(o.body)}`);
+      return `source ${o.body.status ?? JSON.stringify(o.body)}`;
+    }],
+    ['the target serves every record and the blob, and accepts a write', async () => {
+      for (const uri of posts) {
+        const [, , , coll, rkey] = uri.split('/');
+        const r = await xrpc(PDSES[to].url, 'com.atproto.repo.getRecord', {repo: did, collection: coll, rkey});
+        if (r.status !== 200) throw new Error(`getRecord ${uri}: ${r.status} ${JSON.stringify(r.body)}`);
+      }
+      const blob = await fetch(`${PDSES[to].url}/xrpc/com.atproto.sync.getBlob?did=${did}&cid=${imageCid}`);
+      if (blob.status !== 200) throw new Error(`getBlob ${blob.status}`);
+      const {data} = await neu.post('com.atproto.repo.createRecord', {
+        repo: did, collection: 'app.bsky.feed.post', record: {$type: 'app.bsky.feed.post', text: `after migration (${label})`, createdAt: new Date().toISOString()},
+      });
+      posts.push(data.uri);
+      return data.uri;
+    }],
+  ];
+  for (const [name, fn] of steps) {
+    if (!(await check(area, name, label, fn))) return;
+  }
+
+  for (const [viewName, view] of VIEWS) {
+    await check(area, `${viewName} follows the account to its new PDS`, label, async () =>
+      until(`${viewName} sees ${label}`, async () => {
+        const r = await xrpc(view, 'app.bsky.feed.getPosts', {uris: posts});
+        const prof = await xrpc(view, 'app.bsky.actor.getProfile', {actor: did});
+        const got = `${r.body.posts?.length ?? 0}/${posts.length} posts, handle ${prof.body.handle}`;
+        if (r.body.posts?.length === posts.length && prof.body.handle === newHandle) return got;
+        throw new Error(got);
+      }, {timeout: 120_000}),
+    );
+  }
+  state[key] = {did, handle: newHandle, password: acct.password, email: acct.email};
+  saveState(state);
+}
+
+// #identity, record deletion and #account from every implementation: a handle
+// change, a deleted post, a deactivation and reactivation must each reach both
+// AppViews.
+async function lifecycle(names) {
+  const state = loadState();
+  for (const n of names) {
+    const acct = state[n];
+    if (!acct?.post) continue;
+    const agent = await login(n, acct);
+    agent.sessionManager.pdsUrl = undefined;
+    const area = 'lifecycle';
+
+    const newHandle = acct.handle.startsWith('lc')
+      ? acct.handle.replace(/^lc[a-z0-9]{3}/, `lc${Date.now().toString(36).slice(-3)}`)
+      : `lc${Date.now().toString(36).slice(-3)}${acct.handle}`;
+    const changed = await check(area, 'updateHandle', n, async () => {
+      await agent.com.atproto.identity.updateHandle({handle: newHandle});
+      acct.handle = newHandle;
+      saveState(state);
+      return newHandle;
+    });
+    if (changed) {
+      for (const [viewName, view] of VIEWS) {
+        await check(area, `${viewName} shows the new handle`, n, async () =>
+          until(`${viewName} handle for ${n}`, async () => {
+            const r = await xrpc(view, 'app.bsky.actor.getProfile', {actor: acct.did});
+            if (r.body.handle === newHandle) return newHandle;
+            throw new Error(`handle ${r.body.handle}`);
+          }, {timeout: 120_000}),
+        );
+      }
+    }
+
+    let doomed;
+    await check(area, 'create then delete a post', n, async () => {
+      doomed = (await agent.post({text: `deleted soon (${n})`})).uri;
+      await until(`aerox appview indexes ${doomed}`, async () => {
+        const r = await xrpc(AEROX.appview, 'app.bsky.feed.getPosts', {uris: doomed});
+        return r.body.posts?.length === 1;
+      });
+      await agent.deletePost(doomed);
+      return doomed;
+    });
+    if (doomed) {
+      for (const [viewName, view] of VIEWS) {
+        await check(area, `${viewName} drops the deleted post`, n, async () =>
+          until(`${viewName} drops ${doomed}`, async () => {
+            const r = await xrpc(view, 'app.bsky.feed.getPosts', {uris: doomed});
+            return r.body.posts?.length === 0 ? 'gone' : null;
+          }, {timeout: 120_000}),
+        );
+      }
+    }
+
+    const deactivated = await check(area, 'deactivateAccount', n, async () => {
+      await agent.com.atproto.server.deactivateAccount({});
+      const r = await xrpc(PDSES[n].url, 'com.atproto.sync.getRepoStatus', {did: acct.did});
+      return JSON.stringify(r.body);
+    });
+    if (deactivated) {
+      await check(area, 'aerox relay reports the account inactive', n, async () =>
+        until(`aerox relay status for ${n}`, async () => {
+          const r = await xrpc(AEROX.relay, 'com.atproto.sync.getRepoStatus', {did: acct.did});
+          if (r.body.active === false) return r.body.status;
+          throw new Error(JSON.stringify(r.body));
+        }, {timeout: 60_000}),
+      );
+      await check(area, 'aerox appview hides the deactivated profile', n, async () =>
+        until(`aerox appview hides ${n}`, async () => {
+          const r = await xrpc(AEROX.appview, 'app.bsky.actor.getProfile', {actor: acct.did});
+          if (r.status === 400) return r.body.error;
+          throw new Error(`${r.status} ${JSON.stringify(r.body).slice(0, 120)}`);
+        }, {timeout: 60_000}),
+      );
+      await check(area, 'activateAccount brings it back on the aerox relay and appview', n, async () => {
+        await agent.com.atproto.server.activateAccount();
+        return until(`aerox sees ${n} again`, async () => {
+          const s = await xrpc(AEROX.relay, 'com.atproto.sync.getRepoStatus', {did: acct.did});
+          const p = await xrpc(AEROX.appview, 'app.bsky.actor.getProfile', {actor: acct.did});
+          if (s.body.active === true && p.status === 200) return 'active';
+          throw new Error(`relay ${JSON.stringify(s.body)} appview ${p.status}`);
+        }, {timeout: 60_000});
+      });
+    }
+  }
+}
+
+async function migrate(names) {
+  // `a->b` runs one pair (a control pair between two lab PDSes shows whether a
+  // failure is aerox's); a plain name runs both directions against aerox
+  for (const pair of names.filter(n => n.includes('->'))) await migrateOne(...pair.split('->'));
+  for (const n of names.filter(n => n !== 'aerox' && !n.includes('->'))) {
+    await migrateOne(n, 'aerox');
+    await migrateOne('aerox', n);
+  }
+}
+
 export function summary() {
   const failed = results.filter(r => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} passed`);
@@ -381,6 +702,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (cmd === 'crawl' || cmd === 'all') await crawl(names);
   if (cmd === 'proxy' || cmd === 'all') await proxy(names);
   if (cmd === 'social' || cmd === 'all') await social(names);
+  if (cmd === 'lifecycle' || cmd === 'all') await lifecycle(names);
+  if (cmd === 'migrate' || cmd === 'all') await migrate(names);
   const rs = summary();
   fs.writeFileSync(path.join(here, `../../tmp/lab/results-${cmd}.json`), JSON.stringify(rs, null, 2));
   process.exit(rs.some(r => !r.ok) ? 1 : 0);

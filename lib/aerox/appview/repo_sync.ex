@@ -39,8 +39,30 @@ defmodule Aerox.AppView.RepoSync do
 
   @type state :: %{rev: String.t(), commit_cid: String.t(), data_cid: String.t()}
 
-  @doc "The supervised lock registry; start it before anything that indexes."
-  def child_spec(_), do: Registry.child_spec(keys: :unique, name: @locks)
+  @status_checks Aerox.AppView.RepoSync.StatusChecks
+  @status_recheck_ms 60_000
+
+  @doc "The supervised lock registry and status-check table; start them before anything that indexes."
+  def child_spec(_) do
+    %{
+      id: __MODULE__,
+      type: :supervisor,
+      start:
+        {Supervisor, :start_link,
+         [
+           [
+             Registry.child_spec(keys: :unique, name: @locks),
+             %{
+               id: @status_checks,
+               start:
+                 {Agent, :start_link,
+                  [fn -> :ets.new(@status_checks, [:named_table, :public, :set]) end]}
+             }
+           ],
+           [strategy: :one_for_one]
+         ]}
+    }
+  end
 
   @doc "The repo's sync row, or nil."
   def get(did), do: Repo.get(ActorSync, did)
@@ -324,7 +346,34 @@ defmodule Aerox.AppView.RepoSync do
   defp active(did) do
     case Repo.one(from(a in Actor, where: a.did == ^did, select: a.upstream_status)) do
       status when status in [nil, "active"] -> :ok
-      status -> {:skip, {:inactive, status}}
+      status -> recheck_status(did, status)
+    end
+  end
+
+  # An event for an account we hold as inactive. The `#account` that said so
+  # may be stale: an account that migrated away from a PDS is deactivated there
+  # after its new host went live, and a new host that never announces the
+  # activation leaves that the last word — the indigo relay forwards the new
+  # host's commits without re-announcing the status it re-checked. So the
+  # account's current PDS is asked, at most once a minute per DID
+  # (VERIFICATION §7.4, aerox → rsky).
+  defp recheck_status(did, status) do
+    now = System.monotonic_time(:millisecond)
+
+    due? =
+      case :ets.lookup(@status_checks, did) do
+        [{^did, at}] -> now - at >= @status_recheck_ms
+        [] -> true
+      end
+
+    with true <- due?,
+         true <- :ets.insert(@status_checks, {did, now}),
+         {:ok, "active"} <- Backfill.fetch_repo_status(did) do
+      Logger.info("appview: #{did} is active again at its PDS (was #{status})")
+      Aerox.AppView.Indexing.update_actor_status(did, upstream_status: "active")
+      :ok
+    else
+      _ -> {:skip, {:inactive, status}}
     end
   end
 

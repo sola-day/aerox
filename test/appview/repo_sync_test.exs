@@ -191,6 +191,28 @@ defmodule Aerox.AppView.RepoSyncTest do
     assert rev == c2.rev and indexed?(p2.uri)
   end
 
+  test "a stale inactive status is re-checked at the PDS, at most once a minute" do
+    # the account moved here and was deactivated at its old host; nobody
+    # announced the activation at the new one (VERIFICATION §7.4)
+    %{did: did} = fresh_account("rs-stale-inactive")
+    :ok = Indexing.update_actor_status(did, upstream_status: "deactivated")
+
+    p1 = post(did, "the PDS says active")
+    {_, events} = pds_write(did, [p1])
+    assert deliver(events) == [:ok]
+    assert indexed?(p1.uri)
+
+    assert Aerox.AppView.Repo.one(
+             from(a in Aerox.AppView.Schema.Actor, where: a.did == ^did, select: a.upstream_status)
+           ) == "active"
+
+    # told "deactivated" again right away: no second request within the minute
+    :ok = Indexing.update_actor_status(did, upstream_status: "deactivated")
+    p2 = post(did, "throttled")
+    {_, events} = pds_write(did, [p2])
+    assert [{:skip, {:inactive, "deactivated"}}] = deliver(events)
+  end
+
   test "#sync: a confirmation is a no-op, a newer commit resets the repo" do
     before = PdsSeq.current() || 0
     %{did: did} = signup("rs-sync")
@@ -215,9 +237,11 @@ defmodule Aerox.AppView.RepoSyncTest do
 
   test "inactive accounts and future revs are ignored" do
     %{did: did} = fresh_account("rs-inactive")
-    :ok = Indexing.update_actor_status(did, upstream_status: "deactivated")
     p = post(did, "while deactivated")
     {_, events} = pds_write(did, [p])
+    :ok = Aerox.PDS.Accounts.deactivate(did)
+    :ok = Indexing.update_actor_status(did, upstream_status: "deactivated")
+    # the PDS is asked, and agrees
     assert [{:skip, {:inactive, "deactivated"}}] = deliver(events)
     refute indexed?(p.uri)
 

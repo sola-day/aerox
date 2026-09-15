@@ -75,8 +75,11 @@ defmodule Aerox.Relay.Ingest do
       true ->
         case HostChecker.fetch_account_status(Hosts.http_url(host), acc.did) do
           {:ok, status} ->
-            if status != acc.upstream_status, do: Accounts.update_upstream_status(acc.uid, status)
-            acc = %{acc | upstream_status: status}
+            acc =
+              if status != acc.upstream_status,
+                do: status_changed(acc, status),
+                else: acc
+
             if Account.active?(acc), do: {:ok, acc}, else: {:inactive, status}
 
           {:error, _} ->
@@ -84,6 +87,24 @@ defmodule Aerox.Relay.Ingest do
         end
     end
   end
+
+  # A status learned by asking the PDS rather than from an `#account` event —
+  # typically an account that migrated here while its old host's
+  # `deactivateAccount` event was the last word downstream, and whose new host
+  # does not announce the activation. Downstream consumers gate on the status
+  # they were told, so they are told: the `#account` goes out before the event
+  # that prompted the check (VERIFICATION §7.4, aerox → rsky).
+  defp status_changed(acc, status) do
+    Accounts.update_upstream_status(acc.uid, status)
+    acc = %{acc | upstream_status: status}
+    out = %{"did" => acc.did, "active" => Account.active?(acc), "time" => now_iso()}
+    out = if s = Account.status_field(acc), do: Map.put(out, "status", s), else: out
+    _ = emit(acc.did, "#account", out)
+    acc
+  end
+
+  defp now_iso,
+    do: DateTime.utc_now() |> DateTime.truncate(:millisecond) |> DateTime.to_iso8601()
 
   # ---------------------------------------------------------------- commit
 

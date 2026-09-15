@@ -197,8 +197,16 @@ defmodule Aerox.Relay.IngestTest do
     # (getRepoStatus) and, once the PDS confirms deactivation, dropped
     make_post(did, "before deactivation")
     [{"#commit", c}] = pds_events((PdsSeq.current() || 0) - 1)
+    seq_before = Sequencer.current()
     assert :ok = Ingest.process(host, "#commit", c), "the PDS still says active: accepted"
     assert Accounts.get(did).upstream_status == "active"
+
+    # and downstream, told "deactivated" a moment ago, is told first (the
+    # account that migrated to a PDS which never announces its activation)
+    assert [{"#account", acct}, {"#commit", _}] =
+             Sequencer.range(seq_before, 100) |> Enum.map(&Sequencer.to_frame/1)
+
+    assert acct["did"] == did and acct["active"] == true and not Map.has_key?(acct, "status")
 
     :ok = Aerox.PDS.Accounts.deactivate(did)
 
