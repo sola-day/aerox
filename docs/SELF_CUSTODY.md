@@ -91,7 +91,8 @@ gone, the PDS can neither sign nor submit for the account, and `updateHandle` br
   3. `https://plc.directory`.
 
   It takes the first directory that resolves the DID **and** whose document's
-  `#atproto_pds` endpoint equals the session's PDS. A manual override is available.
+  `#atproto_pds` endpoint equals the session's PDS. The list is configurable
+  (`VITE_PLC_CANDIDATES`); a per-account override in the UI is not built yet.
 - **Read the state**:
   - `GET /<did>/log/audit`, which gives the tip op, its CID and nullified ops;
   - `getRecommendedDidCredentials`, which gives the instance rotation key(s).
