@@ -99,6 +99,13 @@ defmodule AeroxWeb.Router do
     post "/com.atproto.server.reserveSigningKey", ServerController, :reserve_signing_key
     post "/com.atproto.server.createInviteCodes", ServerController, :create_invite_codes
     get "/com.atproto.temp.checkSignupQueue", ServerController, :check_signup_queue
+    get "/com.atproto.temp.checkHandleAvailability", ServerController, :check_handle_availability
+    get "/com.atproto.temp.dereferenceScope", ServerController, :dereference_scope
+
+    post "/com.atproto.temp.requestPhoneVerification",
+         ServerController,
+         :request_phone_verification
+
     post "/com.atproto.server.createSession", ServerController, :create_session
     post "/com.atproto.server.refreshSession", ServerController, :refresh_session
     post "/com.atproto.server.deleteSession", ServerController, :delete_session
@@ -172,6 +179,18 @@ defmodule AeroxWeb.Router do
     # com.atproto.admin (subset); com.atproto.moderation.createReport is proxied to the mod service (DESIGN §17.2)
     get "/com.atproto.admin.getAccountInfo", AdminController, :get_account_info
     get "/com.atproto.admin.getAccountInfos", AdminController, :get_account_infos
+    get "/com.atproto.admin.searchAccounts", AdminController, :search_accounts
+
+    post "/com.atproto.admin.updateAccountSigningKey",
+         AdminController,
+         :update_account_signing_key
+
+    post "/com.atproto.temp.addReservedHandle", AdminController, :add_reserved_handle
+
+    post "/com.atproto.temp.revokeAccountCredentials",
+         AdminController,
+         :revoke_account_credentials
+
     get "/com.atproto.admin.getSubjectStatus", AdminController, :get_subject_status
     post "/com.atproto.admin.updateSubjectStatus", AdminController, :update_subject_status
     post "/com.atproto.admin.updateAccountEmail", AdminController, :update_account_email

@@ -200,6 +200,18 @@ defmodule Aerox.Labeler.Labels do
     end
   end
 
+  @doc "Labels created after `since_ms` (epoch milliseconds; all when nil), oldest first."
+  def created_after(since_ms, limit) do
+    q = from(l in Label, order_by: [asc: l.cts, asc: l.id], limit: ^limit)
+
+    q =
+      if is_integer(since_ms),
+        do: where(q, [l], l.cts > ^DateTime.from_unix!(since_ms, :millisecond)),
+        else: q
+
+    Repo.all(q)
+  end
+
   @doc "Every current label on a subject by this labeler."
   def for_subject(uri) do
     Repo.all(from(l in Label, where: l.uri == ^uri, order_by: [asc: l.id]))

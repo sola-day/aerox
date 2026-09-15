@@ -104,3 +104,37 @@ defmodule Aerox.PDS.Schema.ReservedSigningKey do
     field :created_at, :utc_datetime_usec
   end
 end
+
+defmodule Aerox.PDS.Schema.ReservedHandle do
+  @moduledoc "A handle reserved by the operator (`com.atproto.temp.addReservedHandle`)."
+  use Ecto.Schema
+
+  @primary_key {:handle, :string, autogenerate: false}
+  schema "reserved_handle" do
+    field :created_at, :utc_datetime_usec
+  end
+end
+
+defmodule Aerox.PDS.Schema.PhoneVerification do
+  @moduledoc "An outstanding SMS code (`com.atproto.temp.requestPhoneVerification`)."
+  use Ecto.Schema
+
+  @primary_key {:phone, :string, autogenerate: false}
+  schema "phone_verification" do
+    field :code_hash, :binary
+    field :attempts, :integer, default: 0
+    field :expires_at, :utc_datetime_usec
+    field :created_at, :utc_datetime_usec
+  end
+end
+
+defmodule Aerox.PDS.Schema.OAuthScopeRef do
+  @moduledoc "A scope string referenced by `ref:<cid>` from an access token (`dereferenceScope`)."
+  use Ecto.Schema
+
+  @primary_key {:ref, :string, autogenerate: false}
+  schema "oauth_scope_ref" do
+    field :scope, :string
+    field :created_at, :utc_datetime_usec
+  end
+end

@@ -23,4 +23,12 @@ defmodule AeroxWeb.Labeler.LabelController do
         {:error, Error.invalid_request(msg)}
     end
   end
+
+  # com.atproto.temp.fetchLabels (deprecated; ozone's): labels created after
+  # `since` (epoch milliseconds), oldest first
+  def fetch_labels(conn, _) do
+    p = params!(conn, "com.atproto.temp.fetchLabels")
+    rows = Labels.created_after(p["since"], p["limit"] || 50)
+    respond(conn, %{"labels" => Enum.map(rows, &Labels.to_wire/1)})
+  end
 end

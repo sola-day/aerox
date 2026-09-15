@@ -31,6 +31,7 @@ defmodule Aerox.PDS.Signup do
     Accounts,
     Config,
     Handle,
+    PhoneVerification,
     PlcOps,
     Records,
     Repo,
@@ -49,6 +50,8 @@ defmodule Aerox.PDS.Signup do
           optional(:recovery_key) => String.t(),
           optional(:did) => String.t(),
           optional(:requester) => String.t(),
+          optional(:verification_phone) => String.t(),
+          optional(:verification_code) => String.t(),
           optional(:deactivated) => boolean
         }
 
@@ -71,6 +74,13 @@ defmodule Aerox.PDS.Signup do
          :ok <- validate_password(params[:password]),
          :ok <- validate_invite(params[:invite_code]),
          {:ok, did, plc_op, keypair, mode} <- mint_did(params, handle),
+         # a migrating account was verified where it was created
+         :ok <-
+           if(mode == :migration,
+             do: :ok,
+             else:
+               PhoneVerification.verify(params[:verification_phone], params[:verification_code])
+           ),
          {:ok, _account} <- register_deactivated(did, handle, keypair, params, mode),
          :ok <- publish(did, plc_op),
          {:ok, doc} <-

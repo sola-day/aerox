@@ -37,6 +37,7 @@ defmodule AeroxWeb.LabelerRouter do
     get "/_health", MetaController, :health
 
     get "/com.atproto.label.queryLabels", LabelController, :query_labels
+    get "/com.atproto.temp.fetchLabels", LabelController, :fetch_labels
     post "/com.atproto.moderation.createReport", ModerationController, :create_report
 
     # the admin API a frontend drives (DESIGN §17.3)

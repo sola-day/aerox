@@ -1859,9 +1859,19 @@ tombstoned for `did:plc`). Transitions:
 | Take down / restore | admin only (`updateSubjectStatus`), §17.2 |
 | Email / handle / password change | email-token gated where upstream gates them; handle change emits `#identity` and, for `did:plc`, a PLC op |
 
+**`com.atproto.temp.*`**: `checkSignupQueue` (always activated — there is no queue),
+`checkHandleAvailability` (suggestions from the email, birth year and digits),
+`addReservedHandle` (whole handles, on top of `priv/reserved_handles.txt`),
+`revokeAccountCredentials` (sessions, OAuth tokens, app passwords, and the password
+until a reset), `requestPhoneVerification` (off unless an SMS adapter — `Log` or
+`Twilio` — is configured; then `describeServer` says `phoneVerificationRequired` and
+signup needs the code), and `dereferenceScope` (an OAuth token scope over 1 KiB is
+carried in the access token as `ref:<cid>`). `fetchLabels` is the labeler's.
+
 **Admin API** (`com.atproto.admin.*`): the subset `pdsadmin` and §17 need —
 `getAccountInfo(s)`, `getSubjectStatus`, `updateSubjectStatus`, `updateAccountEmail`,
-`updateAccountHandle`, `updateAccountPassword`, `deleteAccount`, `getInviteCodes`,
+`updateAccountHandle`, `updateAccountPassword`, `updateAccountSigningKey`, `searchAccounts`,
+`deleteAccount`, `getInviteCodes`, `createInviteCodes`,
 `disableInviteCodes`, `disable/enableAccountInvites`, `sendEmail`. Authenticated as
 upstream does: HTTP Basic with the admin password for operators, service JWT from the
 moderation service DID for §17.

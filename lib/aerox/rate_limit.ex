@@ -64,7 +64,11 @@ defmodule Aerox.RateLimit do
     request_email_update: @email_token,
     request_plc_operation_signature: @email_token,
     request_account_delete: @email_token,
-    reset_password: [%{scale_ms: @five_minutes, limit: 50, key: :ip}]
+    reset_password: [%{scale_ms: @five_minutes, limit: 50, key: :ip}],
+    request_phone_verification: [
+      %{scale_ms: @hour, limit: 10, key: :ip},
+      %{scale_ms: @day, limit: 50, key: :ip}
+    ]
   }
 
   # Upstream's calcPoints for applyWrites / createRecord / putRecord / deleteRecord.

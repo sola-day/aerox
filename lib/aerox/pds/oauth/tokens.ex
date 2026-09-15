@@ -57,7 +57,7 @@ defmodule Aerox.PDS.OAuth.Tokens do
         "exp" => DateTime.to_unix(expires),
         "aud" => aud,
         "iss" => issuer,
-        "scope" => scope,
+        "scope" => Aerox.PDS.OAuth.ScopeRefs.compact(scope),
         "client_id" => client_id
       }
       |> then(
@@ -232,6 +232,13 @@ defmodule Aerox.PDS.OAuth.Tokens do
 
   # ---------------------------------------------------------- verification
 
+  defp dereference_scope(claims) do
+    case Aerox.PDS.OAuth.ScopeRefs.dereference(claims["scope"]) do
+      {:ok, scope} -> {:ok, Map.put(claims, "scope", scope)}
+      {:error, _} -> {:error, {:invalid_token, "Invalid scope reference"}}
+    end
+  end
+
   @doc """
   Resource-server side (upstream OAuthVerifier.authenticateRequest): the
   token type from the `authorization` scheme (`DPoP` or `Bearer`), the JWT
@@ -240,6 +247,7 @@ defmodule Aerox.PDS.OAuth.Tokens do
   """
   def verify_access(token, token_type, dpop, aud) do
     with {:ok, %{"typ" => "at+jwt"}, claims} <- verify_typed(token),
+         {:ok, claims} <- dereference_scope(claims),
          :ok <- check_exp(claims),
          :ok <-
            if(claims["aud"] == aud, do: :ok, else: {:error, {:invalid_token, "Invalid audience"}}),

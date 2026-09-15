@@ -6,6 +6,10 @@ defmodule AeroxWeb.PDS.ServerController do
 
   # DESIGN §18.2: per-route buckets beyond the global IP bucket.
   plug AeroxWeb.Plugs.RateLimit, :create_account when action == :create_account
+
+  plug AeroxWeb.Plugs.RateLimit,
+       :request_phone_verification when action == :request_phone_verification
+
   plug AeroxWeb.Plugs.RateLimit, :create_session when action == :create_session
 
   plug AeroxWeb.Plugs.RateLimit,
@@ -26,6 +30,7 @@ defmodule AeroxWeb.PDS.ServerController do
         "did" => Config.service_did(),
         "availableUserDomains" => Config.handle_domains(),
         "inviteCodeRequired" => Config.invites_required?(),
+        "phoneVerificationRequired" => Aerox.PDS.PhoneVerification.required?(),
         "links" =>
           %{
             "privacyPolicy" => Config.privacy_policy_url(),
@@ -53,6 +58,8 @@ defmodule AeroxWeb.PDS.ServerController do
         invite_code: input["inviteCode"],
         recovery_key: input["recoveryKey"],
         did: input["did"],
+        verification_phone: input["verificationPhone"],
+        verification_code: input["verificationCode"],
         # account migration: a service JWT from the DID being brought
         requester:
           case conn.assigns[:auth] do
@@ -85,6 +92,7 @@ defmodule AeroxWeb.PDS.ServerController do
              case name do
                "UpstreamFailure" -> 502
                "AuthenticationRequired" -> 401
+               "RateLimitExceeded" -> 429
                _ -> 400
              end,
            name: name,
@@ -565,6 +573,66 @@ defmodule AeroxWeb.PDS.ServerController do
   end
 
   # ------------------------------------------------------------ invite codes
+
+  # ---------------------------------------------------------- com.atproto.temp
+
+  def request_phone_verification(conn, _) do
+    input = input!(conn, "com.atproto.temp.requestPhoneVerification")
+
+    case Aerox.PDS.PhoneVerification.request(input["phoneNumber"]) do
+      :ok ->
+        send_resp(conn, 200, "")
+
+      {:error, {"UpstreamFailure", msg}} ->
+        {:error, Error.upstream_failure(msg)}
+
+      {:error, {"RateLimitExceeded", msg}} ->
+        {:error, %Error{status: 429, name: "RateLimitExceeded", message: msg}}
+
+      {:error, {name, msg}} ->
+        {:error, Error.invalid_request(msg, name)}
+    end
+  end
+
+  def dereference_scope(conn, _) do
+    params = params!(conn, "com.atproto.temp.dereferenceScope")
+
+    ref = params["scope"]
+
+    case Aerox.PDS.OAuth.ScopeRefs.reference?(ref) && Aerox.PDS.OAuth.ScopeRefs.dereference(ref) do
+      {:ok, scope} ->
+        respond(conn, %{"scope" => scope})
+
+      _ ->
+        {:error, Error.invalid_request("Invalid scope reference", "InvalidScopeReference")}
+    end
+  end
+
+  @doc false
+  # Upstream's lexicon: available, or unavailable with suggestions built from
+  # the handle, the email's local part, and the birth year.
+  def check_handle_availability(conn, _) do
+    params = params!(conn, "com.atproto.temp.checkHandleAvailability")
+
+    if params["email"] && not Regex.match?(~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/, params["email"]),
+      do: raise(Error.invalid_request("An invalid email was provided.", "InvalidEmail"))
+
+    handle = String.downcase(params["handle"])
+
+    result =
+      if Aerox.PDS.Handle.available?(handle) do
+        %{"$type" => "com.atproto.temp.checkHandleAvailability#resultAvailable"}
+      else
+        %{
+          "$type" => "com.atproto.temp.checkHandleAvailability#resultUnavailable",
+          "suggestions" =>
+            Aerox.PDS.Handle.suggestions(handle, params["email"], params["birthDate"])
+            |> Enum.map(fn {h, method} -> %{"handle" => h, "method" => method} end)
+        }
+      end
+
+    respond(conn, %{"handle" => handle, "result" => result})
+  end
 
   # upstream: admin only; `forAccounts` defaults to the admin pseudo-account
   def create_invite_codes(conn, _) do

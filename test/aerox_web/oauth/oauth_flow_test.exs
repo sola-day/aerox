@@ -463,4 +463,103 @@ defmodule AeroxWeb.OAuthFlowTest do
 
     assert json_response(denied, 403)["message"] =~ "repo:app.bsky.feed.post?action=delete"
   end
+
+  test "a scope too long for a token travels as ref:<cid>, dereferenced by the PDS and dereferenceScope",
+       %{conn: conn, did: did} do
+    redirect_uri = "http://127.0.0.1:4321/cb"
+
+    scope =
+      Enum.join(
+        ["atproto", "repo:app.bsky.feed.post?action=create"] ++
+          for(n <- 1..60, do: "repo:com.example.collection#{n}?action=create"),
+        " "
+      )
+
+    assert byte_size(scope) > 1024
+    client_id = "http://localhost?" <> URI.encode_query(redirect_uri: redirect_uri, scope: scope)
+    jwk = key()
+    {verifier, challenge} = pkce()
+
+    {par, _} =
+      dpop_post(
+        conn,
+        "/oauth/par",
+        %{
+          "client_id" => client_id,
+          "response_type" => "code",
+          "redirect_uri" => redirect_uri,
+          "scope" => scope,
+          "state" => "long",
+          "code_challenge" => challenge,
+          "code_challenge_method" => "S256"
+        },
+        jwk
+      )
+
+    %{"request_uri" => request_uri} = json_response(par, 201)
+
+    {query, ^did} =
+      consent(conn, client_id, request_uri, "oauth-user.aerox.sola.town", "correct-horse")
+
+    {tok, _} =
+      dpop_post(
+        conn,
+        "/oauth/token",
+        %{
+          "client_id" => client_id,
+          "grant_type" => "authorization_code",
+          "code" => query["code"],
+          "redirect_uri" => redirect_uri,
+          "code_verifier" => verifier
+        },
+        jwk
+      )
+
+    %{"access_token" => access, "scope" => granted} = json_response(tok, 200)
+
+    # the response carries the whole scope; the token only its reference
+    assert byte_size(granted) > 1024
+    [_, payload, _] = String.split(access, ".")
+    claims = payload |> Base.url_decode64!(padding: false) |> Jason.decode!()
+    assert "ref:" <> _ = ref = claims["scope"]
+
+    assert conn
+           |> get("/xrpc/com.atproto.temp.dereferenceScope?" <> URI.encode_query(scope: ref))
+           |> json_response(200) == %{"scope" => granted}
+
+    assert %{"error" => "InvalidScopeReference"} =
+             conn
+             |> get("/xrpc/com.atproto.temp.dereferenceScope?scope=ref:bafkreinope")
+             |> json_response(400)
+
+    # and the PDS enforces the dereferenced permissions
+    call = fn path, nonce, body ->
+      conn
+      |> put_req_header("authorization", "DPoP " <> access)
+      |> put_req_header("dpop", proof(jwk, "POST", base() <> path, nonce, access))
+      |> put_req_header("content-type", "application/json")
+      |> post(path, body)
+    end
+
+    [n] = call.("/xrpc/com.atproto.repo.createRecord", nil, "{}") |> get_resp_header("dpop-nonce")
+
+    record = fn collection ->
+      Jason.encode!(%{
+        "repo" => did,
+        "collection" => collection,
+        "record" => %{
+          "$type" => collection,
+          "text" => "ref",
+          "createdAt" => "2026-09-15T00:00:00.000Z"
+        }
+      })
+    end
+
+    assert %{"uri" => _} =
+             call.("/xrpc/com.atproto.repo.createRecord", n, record.("app.bsky.feed.post"))
+             |> json_response(200)
+
+    assert call.("/xrpc/com.atproto.repo.createRecord", n, record.("app.bsky.feed.like"))
+           |> json_response(403)
+  end
 end

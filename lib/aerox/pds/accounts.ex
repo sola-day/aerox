@@ -317,6 +317,58 @@ defmodule Aerox.PDS.Accounts do
     :ok
   end
 
+  @doc "Accounts whose email contains `fragment` (case-insensitive), ordered by DID; `{accounts, next_cursor}`."
+  @spec search_by_email(String.t() | nil, pos_integer, String.t() | nil) ::
+          {[account], String.t() | nil}
+  def search_by_email(fragment, limit, cursor) do
+    q = base_query(include_deactivated: true, include_taken_down: true)
+
+    q =
+      case fragment do
+        f when is_binary(f) and f != "" ->
+          like = "%" <> String.replace(String.downcase(f), ["\\", "%", "_"], &("\\" <> &1)) <> "%"
+          where(q, [_, acc], like(acc.email, ^like))
+
+        _ ->
+          q
+      end
+
+    q = if cursor, do: where(q, [a], a.did > ^cursor), else: q
+
+    rows =
+      q |> order_by([a], asc: a.did) |> limit(^limit) |> Repo.all() |> Enum.map(&to_account/1)
+
+    next = if length(rows) == limit, do: List.last(rows).did
+    {rows, next}
+  end
+
+  @doc "Replaces the account's repo signing key (the private key is stored as for a new account)."
+  def update_signing_key(did, %Aerox.ATProto.Crypto.Keypair{private: private}) do
+    Repo.update_all(from(a in Actor, where: a.did == ^did), set: [signing_key: private])
+    :ok
+  end
+
+  @doc """
+  Upstream `revokeAccountCredentials`: refresh tokens, OAuth tokens and app
+  passwords are deleted and the password is replaced by an unusable random
+  one, so only a password reset lets the owner back in.
+  """
+  def revoke_credentials(did) do
+    Repo.transaction(fn ->
+      Sessions.revoke_all(did)
+      Aerox.PDS.OAuth.Tokens.revoke_all(did)
+      Repo.delete_all(from(p in AppPassword, where: p.did == ^did))
+
+      Repo.update_all(from(a in Account, where: a.did == ^did),
+        set: [
+          password_scrypt: Scrypt.gen_salt_and_hash(Base.encode64(:crypto.strong_rand_bytes(32)))
+        ]
+      )
+    end)
+
+    :ok
+  end
+
   @doc "Upstream `createAppPassword`: a random `xxxx-xxxx-xxxx-xxxx` password, stored hashed."
   @spec create_app_password(String.t(), String.t(), boolean) ::
           {:ok,

@@ -46,6 +46,11 @@ every time.
 | `com.atproto.server.reserveSigningKey` | POST | pds | flow | public; keyed by DID when given |
 | `com.atproto.server.createInviteCodes` | POST | pds | flow | admin |
 | `com.atproto.temp.checkSignupQueue` | GET | pds | flow | no queue: always `activated` |
+| `com.atproto.temp.checkHandleAvailability` | GET | pds | flow | suggestions from email, birth year, digits |
+| `com.atproto.temp.dereferenceScope` | GET | pds | flow | `ref:<cid>` claims for token scopes over 1 KiB |
+| `com.atproto.temp.requestPhoneVerification` | POST | pds | flow | off unless an SMS adapter is configured (`Log`, `Twilio`) |
+| `com.atproto.temp.addReservedHandle` | POST | pds | flow | admin |
+| `com.atproto.temp.revokeAccountCredentials` | POST | pds | flow | admin; sessions, OAuth tokens, app passwords, password |
 | `com.atproto.server.createSession` | POST | pds | flow |  |
 | `com.atproto.server.refreshSession` | POST | pds | flow |  |
 | `com.atproto.server.deleteSession` | POST | pds | pending |  |
@@ -98,6 +103,8 @@ every time.
 | `app.bsky.actor.putPreferences` | POST | pds | flow | served by the PDS, not proxied (DESIGN §11.1) |
 | `com.atproto.admin.getAccountInfo` | GET | pds | pending |  |
 | `com.atproto.admin.getAccountInfos` | GET | pds | pending |  |
+| `com.atproto.admin.searchAccounts` | GET | pds | flow | email substring, case-insensitive; paged by DID |
+| `com.atproto.admin.updateAccountSigningKey` | POST | pds | flow | `did:plc` only; a key reserved here also becomes the repo signing key |
 | `com.atproto.admin.getSubjectStatus` | GET | pds | pending |  |
 | `com.atproto.admin.updateSubjectStatus` | POST | pds | pending |  |
 | `com.atproto.admin.updateAccountEmail` | POST | pds | pending |  |
@@ -205,6 +212,7 @@ every time.
 | `app.bsky.unspecced.getPopularFeedGenerators` | GET | appview | pending | empty by design (DESIGN §15.4) |
 | `app.bsky.unspecced.getConfig` | GET | appview | pending |  |
 | `com.atproto.label.queryLabels` | GET | labeler | flow |  |
+| `com.atproto.temp.fetchLabels` | GET | labeler | flow | deprecated upstream; ozone semantics (`since` in epoch ms) |
 | `com.atproto.label.subscribeLabels` | GET | labeler | flow | WebSocket, `#labels`/`#info` frames (DESIGN §17.1) |
 | `com.atproto.moderation.createReport` | POST | labeler | flow | reached through the PDS proxy with a service JWT (DESIGN §17.2) |
 | `aerox.moderation.emitEvent` | POST | labeler | flow | aerox's own admin API (DESIGN §17.3); `tools.ozone.*` is the later target |

@@ -48,6 +48,88 @@ defmodule AeroxWeb.PDS.AdminController do
     respond(conn, %{"infos" => infos})
   end
 
+  # Accounts whose email contains `email` (case-insensitive), by DID, paged.
+  def search_accounts(conn, _) do
+    admin!(conn)
+    params = params!(conn, "com.atproto.admin.searchAccounts")
+
+    {accounts, cursor} =
+      Accounts.search_by_email(params["email"], params["limit"] || 50, params["cursor"])
+
+    body = %{"accounts" => Enum.map(accounts, &account_view/1)}
+    respond(conn, if(cursor, do: Map.put(body, "cursor", cursor), else: body))
+  end
+
+  # Points the account's DID document at another atproto signing key. When the
+  # key was reserved here (`reserveSigningKey`) the account starts signing with
+  # it too; otherwise only the document changes, as upstream's admin action.
+  def update_account_signing_key(conn, _) do
+    admin!(conn)
+    input = input!(conn, "com.atproto.admin.updateAccountSigningKey")
+    did = input["did"]
+    key = input["signingKey"]
+
+    account =
+      Accounts.get_account(did, include_deactivated: true, include_taken_down: true) ||
+        raise(Error.invalid_request("Account not found", "AccountNotFound"))
+
+    unless match?({:ok, _, _}, Aerox.ATProto.Crypto.parse_did_key(key)),
+      do: raise(Error.invalid_request("signingKey must be a did:key"))
+
+    unless String.starts_with?(did, "did:plc:"),
+      do: raise(Error.invalid_request("Only did:plc documents can be updated by this server"))
+
+    case Aerox.PDS.PlcOps.update(
+           did,
+           &put_in(&1, ["verificationMethods", "atproto"], key),
+           "update_signing_key",
+           "admin"
+         ) do
+      {:ok, _} ->
+        if reserved = Aerox.PDS.ReservedKeys.get(key) do
+          :ok = Accounts.update_signing_key(did, reserved)
+          Aerox.PDS.ReservedKeys.clear(key)
+        end
+
+        Aerox.Identity.invalidate(Aerox.PDS.Identity, did)
+        Sequencer.sequence_identity(did, account.handle)
+        send_resp(conn, 200, "")
+
+      {:error, reason} ->
+        {:error, Error.upstream_failure("Could not update the DID document: #{inspect(reason)}")}
+    end
+  end
+
+  # com.atproto.temp.addReservedHandle
+  def add_reserved_handle(conn, _) do
+    admin!(conn)
+    input = input!(conn, "com.atproto.temp.addReservedHandle")
+
+    case Aerox.PDS.Handle.normalize(input["handle"]) do
+      {:ok, handle} ->
+        :ok = Aerox.PDS.ReservedHandles.add(handle)
+        respond(conn, %{})
+
+      {:error, {_, msg}} ->
+        {:error, Error.invalid_request(msg, "InvalidHandle")}
+    end
+  end
+
+  # com.atproto.temp.revokeAccountCredentials: every legacy session, OAuth
+  # session and app password goes, and the password stops working until a
+  # password reset sets a new one.
+  def revoke_account_credentials(conn, _) do
+    admin!(conn)
+    input = input!(conn, "com.atproto.temp.revokeAccountCredentials")
+
+    account =
+      Accounts.get_account(input["account"], include_deactivated: true, include_taken_down: true) ||
+        raise(Error.invalid_request("Account not found", "AccountNotFound"))
+
+    :ok = Accounts.revoke_credentials(account.did)
+    send_resp(conn, 200, "")
+  end
+
   defp account_view(a) do
     %{
       "did" => a.did,
