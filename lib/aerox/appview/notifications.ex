@@ -82,7 +82,10 @@ defmodule Aerox.AppView.Notifications do
   end
 
   @doc "updateSeen: upsert the seen mark."
-  def update_seen(viewer, %DateTime{} = seen_at) do
+  def update_seen(viewer, %DateTime{microsecond: {us, _}} = seen_at) do
+    # clients send millisecond timestamps; the column is utc_datetime_usec
+    seen_at = %{seen_at | microsecond: {us, 6}}
+
     Repo.insert!(
       %S.ActorState{did: viewer, last_seen_notifs: seen_at},
       on_conflict: [set: [last_seen_notifs: seen_at]],

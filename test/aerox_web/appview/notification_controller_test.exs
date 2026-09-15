@@ -119,6 +119,17 @@ defmodule AeroxWeb.AppView.NotificationControllerTest do
 
     assert Enum.all?(body["notifications"], &(&1["isRead"] == true))
 
+    # the @atproto/api client sends millisecond precision (Date#toISOString)
+    assert conn
+           |> post_json(alice.did, "app.bsky.notification.updateSeen", %{
+             "seenAt" => "2026-09-15T17:50:09.123Z"
+           })
+           |> response(200)
+
+    assert conn
+           |> post_json(alice.did, "app.bsky.notification.updateSeen", %{"seenAt" => seen_at})
+           |> response(200)
+
     assert body["seenAt"] ==
              seen_at
              |> Aerox.ATProto.Syntax.parse_datetime()
