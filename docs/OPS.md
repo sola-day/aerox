@@ -28,9 +28,15 @@ to the address the proxy dials: the default binds every interface, and on a host
 with no packet filter that publishes the plaintext port beside the proxy, which
 also makes `TRUSTED_PROXIES` moot because clients reach Phoenix directly. One release
 serves every hostname: `AeroxWeb.Dispatch` routes by `Host` to the PDS+PLC
-router, the Relay, the AppView or the Labeler. Hostnames default to
+router, the Relay, the AppView, the Labeler or Jetstream. Hostnames default to
 `<service>.<PHX_HOST>` and can be overridden with `PLC_HOST`, `RELAY_HOST`,
-`APPVIEW_HOST`, `LABELER_HOST`.
+`APPVIEW_HOST`, `LABELER_HOST`, `JETSTREAM_HOST`.
+
+Jetstream keeps its archive as segment files under `JETSTREAM_DATA_DIR`
+(`/var/lib/aerox/jetstream`, inside the unit's writable path). On first start it
+backfills every repo the Relay lists before it serves (`/_health` reports the
+`phase`); subscribers get 503 until then. `JETSTREAM_IMPORT_TOKEN` enables the
+operator timestamp import, staged under `<data dir>/imports`.
 
 ## 2. Secrets and the rotation key
 
@@ -45,7 +51,8 @@ a public `did:key` on the server.
 
 ## 3. Backup and restore
 
-`ops/backup.sh <dest> <age-recipient>` dumps `aerox_pds` and `aerox_core` and
+`ops/backup.sh <dest> <age-recipient>` dumps `aerox_pds` and `aerox_core`,
+tars the Jetstream segment directory when `JETSTREAM_DATA_DIR` is set, and
 tars the blob store with numeric ownership and xattrs, then encrypts each file
 with `age` to the operator's public key and writes `SHA256SUMS`. Run it from a
 timer at the cadence in DESIGN §14.5; copy the directory off-host.
@@ -72,7 +79,7 @@ DESIGN §13.0); it is the only format users can take elsewhere.
 ## 4. Health and telemetry
 
 `GET /xrpc/_health` answers on the PDS, the relay, the AppView and the
-labeler (the PDS returns the release version; upstream's PDS answers at the same
+labeler (Jetstream answers `GET /_health` with its phase) (the PDS returns the release version; upstream's PDS answers at the same
 path). The PLC directory is route-for-route did-method-plc, which puts its
 liveness check at `GET /_health`, and the relay, AppView and labeler answer
 there as well. Telemetry events are
@@ -90,7 +97,7 @@ box; `bench/RESULTS.md` has the measurements behind these.
 |---|---|---|
 | `IMAGE_CONCURRENCY` | 4 | The libvips bound (DESIGN §21.8). Cold-image throughput scales almost linearly up to the core count and flat after, so 4 on an 8-core image host leaves a third of the machine idle. Set it to the core count. |
 | `INGEST_CONCURRENCY` | 4 | AppView ingest partitions. Events of one repo stay in one partition, so this only helps when many repos are active; on the drill host it doubled throughput at 8 and gained nothing after. |
-| `POOL_SIZE` | 10 | Per repo, and there are five. `POOL_SIZE` × 5 + one per sequencer + Oban must stay under the database's `max_connections`; past it, throughput *falls* and boot takes minutes as connections are retried. |
+| `POOL_SIZE` | 10 | Per repo, and there are six. `POOL_SIZE` × 6 + one per sequencer + Oban must stay under the database's `max_connections`; past it, throughput *falls* and boot takes minutes as connections are retried. |
 
 ## 6. Drills
 

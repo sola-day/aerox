@@ -8,7 +8,9 @@
 # role (the DESIGN §4.6 privilege matrix), so a restore that dropped owners
 # would lock every service out (found by the first drill).
 # Env: PDS_DATABASE_URL, CORE_DATABASE_URL (a role that can read the whole
-# database — the owner/superuser, not a per-service role), BLOB_ROOT.
+# database — the owner/superuser, not a per-service role), BLOB_ROOT, and
+# JETSTREAM_DATA_DIR when the jetstream service runs (its sealed segments are the
+# archive; the `jetstream` schema in aerox_core holds only what is not yet in a block).
 # Restore with ops/restore.sh. Exercised by VERIFICATION §10.4's restore drill.
 set -euo pipefail
 dest="${1:?dest dir}"; recipient="${2:?age recipient}"
@@ -23,8 +25,13 @@ pg_dump --format=custom --file="$work/aerox_core.dump" "$(pg_url "$CORE_DATABASE
 # --numeric-owner + xattrs: the rice-storage lesson (DESIGN §4.4) — ownership bits travel with the blobs.
 tar --numeric-owner --xattrs -C "$BLOB_ROOT" -cf "$work/blobs.tar" .
 git -C "$(dirname "$0")/.." rev-parse HEAD > "$work/COMMIT" 2>/dev/null || echo unknown > "$work/COMMIT"
+files="aerox_pds.dump aerox_core.dump blobs.tar COMMIT"
+if [ -n "${JETSTREAM_DATA_DIR:-}" ] && [ -d "$JETSTREAM_DATA_DIR" ]; then
+  tar --numeric-owner -C "$JETSTREAM_DATA_DIR" -cf "$work/jetstream.tar" .
+  files="$files jetstream.tar"
+fi
 
-for f in aerox_pds.dump aerox_core.dump blobs.tar COMMIT; do
+for f in $files; do
   age --recipient "$recipient" --output "$out/$f.age" "$work/$f"
 done
 ( cd "$out" && sha256sum ./*.age > SHA256SUMS )

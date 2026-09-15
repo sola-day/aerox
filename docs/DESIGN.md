@@ -2112,6 +2112,43 @@ corpus cannot.
 
 ---
 
+## 22. Jetstream
+
+Decided 2026-09-15. A sixth service (`:jetstream`, `jetstream.<host>`, schema
+`jetstream`, role `aerox_jetstream`) that is jetstream's wire- and file-format
+equivalent over our own Relay: the frozen v1 `/subscribe` JSON stream, the v2
+`network.bsky.jetstream.subscribeEvents` stream (proposal 0015 framing), and the
+full-network archive (`planSnapshot`, `listSegments`, `getSegment`, `getBlock`,
+timestamp import). The Relay stays non-archival (§19); archiving is this
+service's job, as upstream splits it.
+
+- **It is a Relay client like any other** (§4.6): one `subscribeRepos`
+  connection, no shared tables. Events become rows through upstream's validation
+  gate (a bad rev drops the event; a bad collection, rkey or missing block the op).
+- **The log** is `Aerox.Jetstream.Writer`: seqs from a Postgres sequence, rows
+  durable in `event` the moment they are appended (with the relay cursor and the
+  tombstones they imply), then compressed into 4096-row blocks appended to the
+  active segment and removed from `event` only after the frame is synced and
+  published — so a reader always finds a row in exactly one place. Segments are
+  sealed in place at ~256 MB. Upstream keeps the unflushed tail in memory and
+  re-reads the relay after a crash; a table makes the same guarantee without the
+  replay.
+- **Files are byte-compatible with upstream's**: the `.jss` header, block index,
+  gloom DID blooms (serialized bit for bit) and collection index, with the XXH3-64
+  metadata checksum. Checked against jetstream's fixtures and, end to end, with
+  jetstream's own Go client and jetstream-legacy's client against the dev stack.
+  Zstd frames come from libzstd rather than klauspost/compress: valid for any
+  reader, not byte-identical.
+- **Bootstrap** crawls the Relay's `listRepos`, backfills every repo, merges the
+  live tail captured meanwhile (dropping what the snapshot already covers), seals,
+  compacts, and only then serves. **Resync** follows a `#sync` with the repo's
+  records as `create_resync` rows; failed repos retry with back-off.
+- **Compaction** drops superseded create/update/resync rows from sealed segments
+  (record and DID tombstones), preserving block topology; readers verify the
+  segment checksum and re-look-up if a rewrite replaced a file under them.
+
+---
+
 ## Decision log
 
 | Date | Decision | Rationale |
@@ -2171,3 +2208,5 @@ corpus cannot.
 | 2026-09-09 | Corrected: separate databases **on one server** provide no resource isolation | The claim that a runaway AppView query cannot starve PDS writes is false on a co-located cluster, which §4.6 itself allows for dev and small deployments (§4.6) |
 | 2026-09-09 | Two Oban instances, one per database | "Enqueued in the same transaction as the business write" is a per-database property; one instance cannot serve both repos (§4.6, §21.6) |
 | 2026-09-09 | Sign-up is a **saga** — account + signing key (deactivated) → PLC genesis op → activate — not one transaction | PLC lives in `aerox_core` and the PDS in `aerox_pds`, so no such transaction exists; in a real deployment PLC is a different operator and signup is a network call regardless. Owner decision on the ordering (§18.3, §4.6) |
+| 2026-09-15 | Jetstream is built in, wire- and segment-format compatible with jetstream@58c4d7f; the unflushed tail is a Postgres table, not memory | Gives indexers a JSON firehose and a downloadable archive over our Relay without a Go service; the table removes upstream's crash re-read window at the cost of one insert per append (§22) |
+| 2026-09-15 | The Relay redirects repo-content methods to the PDS (302) instead of answering 404 | The Sync spec's suggested behaviour and indigo's for getRepo; a taken-down repo is still refused at the relay (§19) |

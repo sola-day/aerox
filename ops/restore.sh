@@ -16,11 +16,11 @@ work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
 pg_url() { echo "${1#ecto://}" | sed 's#^#postgresql://#'; }
 
 ( cd "$src" && sha256sum --check --quiet SHA256SUMS )
-for f in aerox_pds.dump aerox_core.dump blobs.tar COMMIT; do
+for f in aerox_pds.dump aerox_core.dump blobs.tar COMMIT $( [ -e "$src/jetstream.tar.age" ] && echo jetstream.tar ); do
   age --decrypt --identity "$identity" --output "$work/$f" "$src/$f.age"
 done
 
-for role in aerox_pds aerox_plc aerox_relay aerox_appview aerox_labeler; do
+for role in aerox_pds aerox_plc aerox_relay aerox_appview aerox_labeler aerox_jetstream; do
   psql -tA "$(pg_url "$PDS_DATABASE_URL")" -c "select 1 from pg_roles where rolname='$role'" | grep -q 1 || { echo "refusing: role $role missing on the target (run docker/postgres/init/01-databases.sh)"; exit 2; }
 done
 for url in "$PDS_DATABASE_URL" "$CORE_DATABASE_URL"; do
@@ -32,5 +32,9 @@ if [ -e "$BLOB_ROOT/blobs" ] && [ -n "$(ls -A "$BLOB_ROOT/blobs")" ]; then echo 
 pg_restore --dbname="$(pg_url "$PDS_DATABASE_URL")" "$work/aerox_pds.dump"
 pg_restore --dbname="$(pg_url "$CORE_DATABASE_URL")" "$work/aerox_core.dump"
 mkdir -p "$BLOB_ROOT"; tar --numeric-owner --xattrs -C "$BLOB_ROOT" -xf "$work/blobs.tar"
+if [ -e "$work/jetstream.tar" ]; then
+  : "${JETSTREAM_DATA_DIR:?the backup has a jetstream archive; set JETSTREAM_DATA_DIR}"
+  mkdir -p "$JETSTREAM_DATA_DIR"; tar --numeric-owner -C "$JETSTREAM_DATA_DIR" -xf "$work/jetstream.tar"
+fi
 echo "restored backup taken at commit $(cat "$work/COMMIT")"
 echo "next: run the release's migrations (bin/aerox eval Aerox.Release.migrate) and VERIFICATION §6 scenario 1"

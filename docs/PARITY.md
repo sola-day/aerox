@@ -11,7 +11,8 @@ Two questions, answered against pinned sources so the answers can be re-checked:
    The specs are `bsky/atproto-website` at `da79e7a4` (2026-09-09),
    `src/app/[locale]/specs/*/en.mdx` — nineteen documents.
 
-Written 2026-09-15. Endpoint lists were produced by diffing upstream's
+Written 2026-09-15 and updated the same day, after the gaps in Part 2 and
+Jetstream were implemented. Endpoint lists were produced by diffing upstream's
 `src/api/**` file trees and every `query`/`procedure`/`subscription` in
 `lexicons/com/atproto` against `ENDPOINTS.md`; behavioural claims marked
 *verified* were checked against the running dev stack and the release host.
@@ -41,12 +42,15 @@ Written 2026-09-15. Endpoint lists were produced by diffing upstream's
 - **Bulk migration from a reference PDS.** Accounts, repos, blobs and secrets move
   as an encrypted bundle (DESIGN §13, `docs/BUNDLE.md`). Upstream offers
   per-account migration (`goat`) only.
+- **Jetstream in the same release.** Upstream's Jetstream is a separate Go
+  service; aerox's (§22 of DESIGN) speaks its v1 and v2 streams and its archive
+  API over our Relay, with byte-compatible segment files.
 - **Relay operations in the same stack.** `listHosts`, `getHostStatus` and the
   `admin.*` host controls exist in indigo but not in the TypeScript stack.
 
 ### 1.3 What upstream has that aerox does not
 
-**AppView — 48 methods.**
+**AppView — 47 methods.**
 
 | Area | Methods | Why absent |
 |---|---|---|
@@ -56,7 +60,7 @@ Written 2026-09-15. Endpoint lists were produced by diffing upstream's
 | `app.bsky.draft.*` | 4 | Product feature |
 | `app.bsky.bookmark.*` | 3 | Product feature |
 | `app.bsky.ageassurance.*` | 3 | Product / jurisdictional feature |
-| Other | `feed.searchPostsV2`, `feed.getSuggestedFeeds`, `graph.getSuggestedFollowsByActor`, `graph.searchStarterPacks`, `graph.getListsWithMembership`, `graph.getStarterPacksWithMembership`, `embed.getEmbedExternalView`, `com.atproto.temp.fetchLabels` | Not yet needed by `ouranos` |
+| Other | `feed.searchPostsV2`, `feed.getSuggestedFeeds`, `graph.getSuggestedFollowsByActor`, `graph.searchStarterPacks`, `graph.getListsWithMembership`, `graph.getStarterPacksWithMembership`, `embed.getEmbedExternalView` | Not yet needed by `ouranos` (`com.atproto.temp.fetchLabels` is served, by the labeler) |
 
 **Moderation — the largest gap.** Ozone serves about seventy `tools.ozone.*`
 methods: queues (`queue.*`), the report workflow (`report.*`), safelink rules,
@@ -68,21 +72,13 @@ labeler plus the standard `com.atproto.admin.*` on the PDS. This is deliberate
 `tools.ozone.*` mapping is mechanical, but until it is built **Ozone's web UI
 cannot be pointed at aerox**.
 
-**PDS — 5 methods.** `app.bsky.notification.registerPush` / `unregisterPush`,
-`com.atproto.server.createInviteCodes` (bulk; aerox has per-account invites
-only), `com.atproto.server.reserveSigningKey`, `com.atproto.temp.checkSignupQueue`.
+**PDS — 2 methods.** `app.bsky.notification.registerPush` / `unregisterPush`
+(push delivery is not built, above). `createInviteCodes`, `reserveSigningKey` and
+`temp.checkSignupQueue`, listed here before, are now served.
 
-**Jetstream — not implemented.** `bsky/jetstream` (at `58c4d7f`, 2026-09-04) is a
-separate Go service in front of a relay: a JSON firehose filterable by DID and
-collection (the frozen v1 `/subscribe` wire, and the v2
-`network.bsky.jetstream.subscribeEvents` on proposal 0015's `xrpc.v1.json`
-framing with dictionary zstd), plus a full-network columnar archive with
-`planSnapshot` backfill and cut-over to the live tail. aerox has none of it:
-no JSON subscription on any host, no collection filtering on a stream, no
-archive (the relay is non-archival). A consumer that wants JSON has to decode
-DRISL-CBOR `subscribeRepos` itself — or run upstream's jetstream against aerox's
-relay, which speaks the standard `subscribeRepos` it consumes (not yet tried).
-The design has not yet ruled on whether to build it.
+**Jetstream — implemented** (was listed missing). See §1.2 and DESIGN §22; the
+one part of upstream not reproduced is its bootstrap's host-by-host crawl of PDSes
+(aerox crawls its own Relay's `listRepos`, which lists the same accounts).
 
 **Neither side.** Video (`app.bsky.video.*`) and chat (`chat.bsky.*`) have
 lexicons upstream but no open-source server; aerox lists both as non-goals.
@@ -94,14 +90,25 @@ endpoints against upstream's own stack: 21 identical** after normalisation.
 Details, and the one endpoint where the *reference* side is nondeterministic
 (`listNotifications`), are in `test/parity/ENDPOINTS.md`.
 
+Jetstream was checked with upstream's own clients against the dev stack
+(2026-09-15): jetstream@58c4d7f's Go client replayed the whole archive (segments
+fetched with `getSegment` and read by its segment reader), took a DID-filtered
+plan mixing a whole segment with `getBlock` ranges (314 events, equal to the files
+row for row), and cut over from replay to the live v2 stream without a gap;
+jetstream-legacy's client read `/subscribe` with legacy-dictionary zstd, a
+timestamp cursor and a wildcard collection filter.
+
 ### 1.5 Deliberate behavioural deviations
 
 - The relay is **non-archival**: `getRepo`, `getRecord`, `getBlocks`, `getBlob`,
-  `listBlobs` answer 404 naming the hosting PDS (DESIGN §19).
-- `createAccount` takes no `plcOp` input; the DID is minted on the PDS (DESIGN §18.3).
+  `listBlobs` redirect (302) to the hosting PDS; a repo the relay has taken down is
+  refused instead (DESIGN §19).
+- `createAccount` takes no `plcOp` input; a new DID is minted on the PDS, and a
+  brought DID (migration) needs a service JWT from that DID (DESIGN §18.3).
 - The PDS proxy is pure pass-through, with no read-after-write patching (DESIGN §11.3).
-- `com.atproto.admin.getInviteCodes` returns an empty list; invite codes exist per
-  account only.
+- Jetstream's zstd frames are libzstd's, not klauspost/compress's: every reader
+  decodes them, but a byte-for-byte comparison with an upstream-written segment
+  differs inside the frames (the metadata, blooms and collection index do not).
 
 ---
 
@@ -113,73 +120,42 @@ Details, and the one endpoint where the *reference* side is nondeterministic
 |---|---|
 | Data Model, CID, TID, NSID, Record Key, AT URI | Kernel (`lib/aerox/atproto`), checked against the golden corpus (VERIFICATION §2–3) |
 | Cryptography | P-256 and K-256, low-S signatures enforced, multibase `did:key` encoding |
-| Repository | MST, signed commits, diffs, record-operation inversion (`Repo.verify_commit_message`) |
+| Repository | MST, signed commits, diffs, record-operation inversion (`Repo.verify_commit_message`), record proofs, the streamable CAR block order |
 | DID | `did:plc` minted on signup; `did:web` accounts brought by the user and validated (DESIGN §14.3); services identify as `did:web` |
 | Handle | Syntax, reserved/slur checks, DNS TXT and HTTPS well-known resolution |
-| XRPC | Error shapes, pagination, legacy sessions, app passwords, admin Basic auth, inter-service JWTs with `lxm`, `atproto-proxy` service proxying |
-| Event Stream | DRISL-CBOR framing, cursor semantics including `FutureCursor`, `OutdatedCursor` and `ConsumerTooSlow` — *except the HTTP status codes in 2.2* |
-| Sync | `#commit` / `#sync` / `#identity` / `#account`; relay verifies signatures, rejects future revs (5-minute window), enforces the 2 MB / 200-op limits, checks the account's host — *except the items in 2.2* |
+| XRPC | Error shapes, pagination, legacy sessions, app passwords, admin Basic auth, inter-service JWTs with `lxm`, `atproto-proxy` service proxying; every `com.atproto` query and procedure in the lexicons is served by some service |
+| Event Stream | DRISL-CBOR framing, cursor semantics including `FutureCursor`, `OutdatedCursor` and `ConsumerTooSlow`, and the connection-time HTTP errors (405, 426) |
+| Sync | `#commit` / `#sync` / `#identity` / `#account`; relay verifies signatures, rejects future revs (5-minute window), enforces the 2 MB / 200-op limits, checks the account's host; `Atproto-Repo-Rev`; the AppView's record-level sync state (chain checks, resync, queued replay); `listReposByCollection`; repo-content redirects; `tooBig` ignored |
 | Blob | Temp upload → tethered by a record → orphan collection; takedowns 404 |
-| Account | All five hosting statuses, propagation over `#account`, the full migration endpoint set (`getRecommendedDidCredentials`, PLC signing, `importRepo`, `listMissingBlobs`, `activateAccount`) |
+| Account | All five hosting statuses, propagation over `#account`, and migration in both directions: inbound `createAccount` for a brought DID with a reserved key, `getRecommendedDidCredentials`, PLC signing, `importRepo`, `listMissingBlobs`, `activateAccount` |
 | OAuth | Client metadata documents, loopback clients, PAR, PKCE, DPoP with nonces, `private_key_jwt`, server metadata, a consent interface |
-| Permission | `repo`, `rpc`, `blob`, `account`, `identity` resources, `transition:*` scopes, `include:` expansion — *expansion only from the vendored registry, see 2.2* |
+| Permission | `repo`, `rpc`, `blob`, `account`, `identity` resources, `transition:*` scopes, `include:` permission sets resolved from the network, scope references (`ref:<cid>`) |
 | Label | Signed labels with `ver`, negation, expiry, self-labels, `queryLabels`, `subscribeLabels`, the `atproto-accept-labelers` / `atproto-content-labelers` headers |
+| Lexicon | Validation against the vendored registry; publication and resolution (`_lexicon` DNS → DID → verified record proof), `resolveLexicon` |
 
-### 2.2 Not implemented, or not to spec
+### 2.2 What this document listed as missing, and where it went
 
-Ordered by consequence.
+Every item below was open when Part 2 was first written; each is now implemented
+and tested, in the commit named.
 
-1. **Lexicon publication and resolution** (Lexicon spec). Nothing resolves
-   `_lexicon.<authority>` DNS TXT records to a `com.atproto.lexicon.schema`
-   record, and `com.atproto.lexicon.resolveLexicon` is not served. The visible
-   consequence is in the **Permission** spec: authorization servers are to
-   "resolve, authenticate, and process permission-sets dynamically", but
-   `Aerox.Auth.Scopes.grant/2` looks `include:` NSIDs up only in the vendored
-   registry. A third-party app that requests `include:<its own permission set>`
-   has that scope expand to **no permissions** — its consent screen shows nothing
-   and its token grants nothing.
+| # | Gap | Commit |
+|---|---|---|
+| 1 | Lexicon publication and resolution; `include:` permission sets resolved dynamically (an unresolvable set fails PAR; the consent page shows the set's title); `resolveLexicon` | `8930da2` |
+| 2 | `Atproto-Repo-Rev` from the AppView | `c433be9` |
+| 3 | Stream endpoints: 405 for non-GET, 426 without an upgrade | `3ed321d` |
+| 4 | AppView record-level sync state: `since`/`prevData` chain checks, `desynchronized` / `in_progress` / `synchronized`, queued replay, reconciling backfill | `5782cb9` |
+| 5 | `com.atproto.sync.listReposByCollection` on the relay | `c01eff2` |
+| 6 | `com.atproto.identity.resolveDid`, `resolveIdentity`, `refreshIdentity` (PDS and AppView) | `34ca1f8` |
+| 7 | `admin.searchAccounts`, `admin.updateAccountSigningKey`, `server.createInviteCodes`, `server.reserveSigningKey`, and the seven `temp.*` methods (`checkSignupQueue`, `checkHandleAvailability`, `addReservedHandle`, `revokeAccountCredentials`, `requestPhoneVerification`, `dereferenceScope`, `fetchLabels`) | `346cda1`, `cba52ac` |
+| 8 | Streamable CAR block ordering; `getRepo` streamed | `15ca571` |
+| 9 | `tooBig` ignored by consumers; relay repo-content redirects | `f33d1bb` |
+| — | Found while closing 7: aerox could not *receive* a standard account migration (a brought `did:plc` was refused) | `346cda1` |
+| — | Jetstream | `ab2e36b` … `5e21f1c` |
 
-2. **`Atproto-Repo-Rev` response header** (Sync spec). The AppView never sets it,
-   although `actor_sync.repo_rev` holds the value. Clients cannot tell
-   whether their own latest write has been indexed. *Verified:* `getProfile`
-   through the PDS proxy returns no such header. (The PDS proxy and CORS
-   configuration already pass it through.)
+### 2.3 What is still not done
 
-3. **Stream endpoint HTTP errors** (Event Stream spec). A `GET` without
-   `Upgrade` should be `426` and a non-`GET` `405`, both with an XRPC JSON error
-   body. aerox answers **500** (a `WebSockAdapter.UpgradeError`) and **501**.
-   *Verified* on `subscribeRepos` (PDS, relay) and `subscribeLabels`, on both the
-   dev host and the release host.
-
-4. **Record-level sync state in the AppView** (Sync spec, "Reliable Repository
-   Synchronization" and "Record-Level Synchronization"). The indexer verifies each
-   commit in isolation but does not check `since` against the last `rev` or
-   `prevData` against the last `data`, does not drop events with a `rev` at or
-   below the last processed one, does not ignore commits for inactive accounts,
-   and has no `desynchronized` / `in-progress` / `synchronized` state with events
-   queued during a resync. A broken chain therefore goes unnoticed until the next
-   `#sync` or a manual backfill. The relay compares `prevData` but only logs a
-   mismatch (as indigo does).
-
-5. **`com.atproto.sync.listReposByCollection`** — routed on the relay, answers
-   `MethodNotImplemented`; it needs a collection index (DESIGN §19). The Sync spec
-   names it as the way to backfill previously-active accounts.
-
-6. **Identity resolution endpoints** — `com.atproto.identity.resolveDid`,
-   `resolveIdentity`, `refreshIdentity` are not served by any aerox service.
-
-7. **Remaining `com.atproto` methods** — `admin.searchAccounts`,
-   `admin.updateAccountSigningKey`, `server.createInviteCodes`,
-   `server.reserveSigningKey`, and seven `com.atproto.temp.*` methods (mostly
-   Bluesky-operational: signup queue, phone verification, reserved handles,
-   `checkHandleAvailability`, `dereferenceScope`, `revokeAccountCredentials`,
-   `fetchLabels`).
-
-8. **Streamable CAR block ordering** (Repository spec; marked work in progress,
-   "not included in popular implementations"). `Repo.export_car/2` writes the
-   commit, then every MST node, then every record, and builds the file in memory.
-   The streamable order interleaves records after the node that lists them.
-
-9. **Minor.** The Sync spec says consumers should *ignore* the deprecated
-   `tooBig` flag; the relay rejects commits carrying `tooBig: true`. The spec also
-   suggests a relay may redirect `getRepo` to the PDS; aerox answers 404 naming it.
+- **Twilio SMS delivery** (`Aerox.PDS.SMS.Twilio`) is written against Twilio's
+  Messages API but has not been run against Twilio; phone verification is off
+  unless an adapter is configured, and the `Log` adapter is what is tested.
+- **Push notifications, Bluesky product features and Ozone** — Part 1.3 — are
+  product surface rather than protocol and remain as listed there.
