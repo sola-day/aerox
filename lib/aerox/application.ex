@@ -86,8 +86,9 @@ defmodule Aerox.Application do
              [
                Aerox.Relay.Repo,
                Aerox.Relay.Sequencer,
-               identity_cache(Aerox.Relay.Identity, Aerox.Relay.Repo)
-             ] ++ Aerox.Relay.Consumers.child_specs(),
+               identity_cache(Aerox.Relay.Identity, Aerox.Relay.Repo),
+               {Task.Supervisor, name: Aerox.Relay.TaskSupervisor}
+             ] ++ collection_crawler() ++ Aerox.Relay.Consumers.child_specs(),
              [strategy: :rest_for_one, name: Aerox.Relay.Supervisor]
            ]}
       }
@@ -147,5 +148,12 @@ defmodule Aerox.Application do
   def config_change(changed, _new, removed) do
     AeroxWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  # The collection directory's describeRepo sweep (listReposByCollection).
+  defp collection_crawler do
+    if Aerox.Relay.Config.get(:collection_crawler, true),
+      do: [Aerox.Relay.CollectionCrawler],
+      else: []
   end
 end

@@ -132,6 +132,21 @@ defmodule AeroxWeb.Relay.SyncController do
 
   # ------------------------------------------------------------------ repos
 
+  # Sync spec: the DIDs with records in a collection, for backfilling
+  # previously-active accounts (`Aerox.Relay.Collections`).
+  def list_repos_by_collection(conn, _) do
+    params = params!(conn, "com.atproto.sync.listReposByCollection")
+
+    case Aerox.Relay.Collections.list(params["collection"], params["limit"], params["cursor"]) do
+      {:ok, %{repos: dids, cursor: cursor}} ->
+        body = %{"repos" => Enum.map(dids, &%{"did" => &1})}
+        respond(conn, if(cursor, do: Map.put(body, "cursor", cursor), else: body))
+
+      {:error, :invalid_cursor} ->
+        {:error, Error.invalid_request("invalid cursor")}
+    end
+  end
+
   def list_repos(conn, _) do
     params = params!(conn, "com.atproto.sync.listRepos")
     limit = params["limit"] || 500

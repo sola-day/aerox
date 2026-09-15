@@ -26,6 +26,7 @@ defmodule Aerox.Relay.Schema.Account do
     field :host_id, :integer
     field :status, :string, default: "active"
     field :upstream_status, :string, default: "active"
+    field :collections_crawled_at, :utc_datetime_usec
   end
 
   @doc "Active when both the local and the upstream status are active."
@@ -71,5 +72,16 @@ defmodule Aerox.Relay.Schema.DomainBan do
   @primary_key {:domain, :string, autogenerate: false}
   schema "domain_ban" do
     timestamps(type: :utc_datetime_usec)
+  end
+end
+
+defmodule Aerox.Relay.Schema.RepoCollection do
+  @moduledoc "A DID with records in a collection (indigo `collectiondir`)."
+  use Ecto.Schema
+
+  schema "repo_collection" do
+    field :collection, :string
+    field :did, :string
+    field :inserted_at, :utc_datetime_usec
   end
 end

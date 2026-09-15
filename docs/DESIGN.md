@@ -1887,8 +1887,10 @@ Decided 2026-09-09. The Relay is **non-archival** (as upstream's relays have bee
   `getBlob` / `listBlobs` are **not served** (non-archival): they answer `302` to the
   same method on the hosting PDS, query intact (the Sync spec's "the upstream may
   instead simply use an HTTP redirect", and indigo's `getRepo`); an account the relay
-  has taken down is refused with `RepoTakendown` instead. `listReposByCollection` needs a collection index and is
-  deferred. `getCheckout`/`getHead`/`notifyOfUpdate` are deprecated and return
+  has taken down is refused with `RepoTakendown` instead. `listReposByCollection` is served from a collection
+  directory (`relay.repo_collection`, as indigo's `collectiondir`): commits add the
+  collections of their creates, a `describeRepo` crawl completes each account once
+  and again after `#sync`, deleted accounts leave it. `getCheckout`/`getHead`/`notifyOfUpdate` are deprecated and return
   `MethodNotImplemented`.
 - Limits: per-host account limit (new hosts start low), per-host event rate, host
   ban list — the relay account-limit Slack alert our indigo fork added is the model.

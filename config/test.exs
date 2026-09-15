@@ -40,6 +40,7 @@ config :aerox, Aerox.Relay,
   allow_insecure_hosts: true,
   skip_account_host_check: false,
   resubscribe_on_start: false,
+  collection_crawler: false,
   admin_password: "REDACTED-relay-admin-password"
 
 config :aerox, Aerox.AppView,

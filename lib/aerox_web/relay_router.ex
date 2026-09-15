@@ -47,7 +47,7 @@ defmodule AeroxWeb.RelayRouter do
     get "/com.atproto.sync.getBlocks", SyncController, :redirect_to_pds
     get "/com.atproto.sync.getBlob", SyncController, :redirect_to_pds
     get "/com.atproto.sync.listBlobs", SyncController, :redirect_to_pds
-    get "/com.atproto.sync.listReposByCollection", SyncController, :not_implemented
+    get "/com.atproto.sync.listReposByCollection", SyncController, :list_repos_by_collection
 
     # deprecated
     get "/com.atproto.sync.getCheckout", SyncController, :not_implemented

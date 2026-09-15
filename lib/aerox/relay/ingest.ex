@@ -12,7 +12,17 @@ defmodule Aerox.Relay.Ingest do
   require Logger
   alias Aerox.ATProto.{Bytes, CAR, CID, Repo, Syntax}
   alias Aerox.ATProto.Blockstore.Memory
-  alias Aerox.Relay.{Accounts, Config, Hosts, HostChecker, Sequencer}
+
+  alias Aerox.Relay.{
+    Accounts,
+    CollectionCrawler,
+    Collections,
+    Config,
+    Hosts,
+    HostChecker,
+    Sequencer
+  }
+
   alias Aerox.Relay.Schema.{Account, Host}
 
   @max_blocks_bytes 2_000_000
@@ -42,8 +52,14 @@ defmodule Aerox.Relay.Ingest do
 
   defp get_or_create(did, host) do
     case Accounts.get(did) do
-      nil -> Accounts.create_on_host(did, host)
-      acc -> {:ok, acc}
+      nil ->
+        with {:ok, acc} <- Accounts.create_on_host(did, host) do
+          CollectionCrawler.enqueue(did)
+          {:ok, acc}
+        end
+
+      acc ->
+        {:ok, acc}
     end
   end
 
@@ -78,6 +94,7 @@ defmodule Aerox.Relay.Ingest do
          :ok <- not_stale(prev, rev),
          {:ok, new_repo} <- verify_commit(body, acc, prev) do
       Accounts.upsert_repo(acc.uid, new_repo.rev, new_repo.commit_cid, new_repo.commit_data_cid)
+      Collections.note_ops(did, body["ops"])
       emit(did, "#commit", body)
     end
   end
@@ -217,6 +234,8 @@ defmodule Aerox.Relay.Ingest do
          :ok <- verify_commit_object(repo.commit, did),
          :ok <- if(repo.commit["rev"] == rev, do: :ok, else: {:error, :rev_mismatch}) do
       Accounts.upsert_repo(acc.uid, rev, CID.to_string(root), CID.to_string(repo.commit["data"]))
+      # a reset repo may have lost or gained collections
+      CollectionCrawler.enqueue(did)
       emit(did, "#sync", body)
     end
   end
@@ -264,6 +283,8 @@ defmodule Aerox.Relay.Ingest do
 
       if new_status != acc.upstream_status,
         do: Accounts.update_upstream_status(acc.uid, new_status)
+
+      if new_status == "deleted", do: Collections.remove_account(did)
 
       acc = %{acc | upstream_status: new_status}
 

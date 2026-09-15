@@ -141,7 +141,7 @@ every time.
 | `com.atproto.sync.getBlocks` | GET | relay | flow | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
 | `com.atproto.sync.getBlob` | GET | relay | flow | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
 | `com.atproto.sync.listBlobs` | GET | relay | flow | relay: non-archival, 302 to the hosting PDS (DESIGN §19) |
-| `com.atproto.sync.listReposByCollection` | GET | relay | pending | deferred: needs a collection index (DESIGN §19) |
+| `com.atproto.sync.listReposByCollection` | GET | relay | flow | collection directory from commit ops plus a `describeRepo` crawl, as indigo `collectiondir` (DESIGN §19) |
 | `com.atproto.sync.getCheckout` | GET | relay | pending | deprecated upstream; 501 |
 | `com.atproto.sync.getHead` | GET | relay | pending | deprecated upstream; 501 |
 | `com.atproto.sync.notifyOfUpdate` | POST | relay | pending | deprecated upstream; 501 |
