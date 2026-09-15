@@ -25,3 +25,4 @@ a value we believe is right (VERIFICATION §0, §2). Rules:
 | `firehose/` | indigo `atproto/repo/testdata/firehose_commit_*.json` |
 | `lexicon/` | indigo `atproto/lexicon/testdata` |
 | `plc/` | `did-method-plc/interop_tests/audit_log` |
+| `jetstream/` | `jetstream/segment/testdata` (block, seal, legacy blooms); `zeebo/xxh3` compat vectors |

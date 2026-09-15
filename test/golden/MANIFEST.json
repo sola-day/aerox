@@ -872,6 +872,47 @@
       "note": "A verbatim copy of a stock reference PDS container's data directory (ghcr.io/bluesky-social/pds:0.4, which bundles @atproto/pds 0.5.27), the dev stack's ref-pds with one account refalice.ref-pds.aerox.sola.town = did:plc:j34mp52kqeqheoencw7lqpyy, password refREDACTED-peer-account-password-rotated-2026-09-16, four posts, no blobs. Each SQLite file was snapshotted with `VACUUM INTO` so the WAL is folded in. CONTAINS A DEV-ONLY THROWAWAY SECP256K1 SIGNING KEY AND A DEV-ONLY SCRYPT PASSWORD HASH: test fixtures for DESIGN 13.2, never used anywhere real. Kind is 'generated' rather than 'copied' only because `mix aerox.golden.verify` resolves 'copied' entries against a git checkout; the provenance is the image digest.",
       "sha256": "b5ddea805f831a9544b4ffd2295b00d767983adb0df4b67a861d434c9039e930"
     },
+    "jetstream/golden_block.bin": {
+      "date": "2026-09-15",
+      "kind": "copied",
+      "sha256": "c22f682568a8089ec79c8f6ea52480375238c13fd2828e8eaa33a6f5d8d9cbec",
+      "source": {
+        "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+        "path": "segment/testdata/golden_block.bin",
+        "repo": "jetstream"
+      }
+    },
+    "jetstream/golden_seal.bin": {
+      "date": "2026-09-15",
+      "kind": "copied",
+      "sha256": "d05345a3217bf5bb5a146af5bb41bcbf61a1812e511c5cf6b995c4a98ddb8ab8",
+      "source": {
+        "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+        "path": "segment/testdata/golden_seal.bin",
+        "repo": "jetstream"
+      }
+    },
+    "jetstream/legacy_fixed4096_blooms.jss": {
+      "date": "2026-09-15",
+      "kind": "copied",
+      "sha256": "ff35a43261e5f3c1f87b2da9ca9808b860b7ff664cd588859608aa664bfc130b",
+      "source": {
+        "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+        "path": "segment/testdata/legacy_fixed4096_blooms.jss",
+        "repo": "jetstream"
+      }
+    },
+    "jetstream/xxh3-vectors.json": {
+      "date": "2026-09-15",
+      "kind": "transcribed",
+      "note": "XXH3 C-compat vectors (lengths 0..4095, input byte i = (i+1) % 251), the oracle for Aerox.Jetstream.XXH3; the module is the dependency jetstream's segment checksum and gloom use",
+      "sha256": "c45c74ba4f5142fa5e4554d685fe14e05a2c474ed4fc738363aa29b00e0d219c",
+      "source": {
+        "path": "compat_test.go (testVecs64, testVecs128)",
+        "repo": "github.com/zeebo/xxh3",
+        "version": "v1.1.0 (proxy.golang.org module zip)"
+      }
+    },
     "lexicon/catalog/com_atproto_label_defs.json": {
       "date": "2026-09-09",
       "kind": "copied",

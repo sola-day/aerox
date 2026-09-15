@@ -1,0 +1,10 @@
+{
+  "note": "zstd dictionaries served by Aerox.Jetstream (getZstdDictionary) and used to compress subscribe frames; byte-identical to jetstream's embedded dictionaries",
+  "repo": "jetstream",
+  "commit": "58c4d7f7a9130e53b40348ad3d1f7aafed0e4843",
+  "files": {
+    "legacy_subscribe.zdict": "internal/subscribe/dictionaries/legacy_subscribe.zdict",
+    "subscribe_events_20260811.zdict": "internal/subscribe/dictionaries/subscribe_events_20260811.zdict"
+  },
+  "license": "MIT OR Apache-2.0 (jetstream LICENSE-DUAL)"
+}
