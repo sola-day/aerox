@@ -132,6 +132,17 @@ http:
       service: aerox-bulletin
       tls: {}
 
+    # aero (the aero-app repo): the React social client, served as static files
+    # by aero-app/server/serve.mjs on the bridge gateway at :3003. aero.sola.town
+    # is one label below sola.town, so the shared *.sola.town certificate and the
+    # *.sola.town DNS wildcard already cover it.
+    aero-app:
+      rule: "Host(`aero.sola.town`)"
+      entryPoints:
+        - websecure
+      service: aero-app
+      tls: {}
+
   middlewares:
     aerox-signer-allow:
       ipAllowList:
@@ -140,6 +151,10 @@ http:
           - "2001:bc8:1201:601:2247:47ff:fe7f:8f92/128"
 
   services:
+    aero-app:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.1:3003"
     aerox-signer:
       loadBalancer:
         servers:
