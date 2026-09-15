@@ -79,13 +79,17 @@ defmodule Aerox.Jetstream.Manifest do
     end
   end
 
-  @doc "`{path, info}` of the first non-empty block whose max seq is at or above `seq`, across sealed then active blocks."
+  @doc """
+  `{path, info, checksum}` of the first non-empty block whose max seq is at or
+  above `seq`, across sealed then active blocks. `checksum` is the segment's
+  (0 for the active one), so a reader can tell a file rewritten under it.
+  """
   def block_at_or_after(seq) do
     from_sealed =
       Enum.find_value(sealed(), fn seg ->
         if seg.header.max_seq >= seq do
           Enum.find_value(seg.blocks, fn b ->
-            if b.event_count > 0 and b.max_seq >= seq, do: {seg.path, b}
+            if b.event_count > 0 and b.max_seq >= seq, do: {seg.path, b, seg.header.checksum}
           end)
         end
       end)
@@ -94,7 +98,7 @@ defmodule Aerox.Jetstream.Manifest do
       case active() do
         %{path: path, blocks: blocks} ->
           Enum.find_value(blocks, fn b ->
-            if b.event_count > 0 and b.max_seq >= seq, do: {path, b}
+            if b.event_count > 0 and b.max_seq >= seq, do: {path, b, 0}
           end)
 
         _ ->

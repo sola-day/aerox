@@ -11,19 +11,30 @@ defmodule Aerox.Jetstream.Tail do
 
   @spec read_from(non_neg_integer, pos_integer) ::
           {:ok, [Aerox.Jetstream.Event.t()], non_neg_integer} | {:error, term}
-  def read_from(cursor, limit) do
+  def read_from(cursor, limit, attempts \\ 5) do
     if cursor <= Manifest.archive_tip() do
       case Manifest.block_at_or_after(cursor) do
-        {path, info} -> read_block(path, info, cursor, limit)
-        nil -> read_pending(cursor, limit)
+        {path, info, checksum} ->
+          case read_block(path, info, checksum, cursor, limit) do
+            # compaction replaced the file between the lookup and the read
+            {:error, :rewritten} when attempts > 0 ->
+              Process.sleep(10)
+              read_from(cursor, limit, attempts - 1)
+
+            other ->
+              other
+          end
+
+        nil ->
+          read_pending(cursor, limit)
       end
     else
       read_pending(cursor, limit)
     end
   end
 
-  defp read_block(path, info, cursor, limit) do
-    with {:ok, frame} <- read_frame(path, info),
+  defp read_block(path, info, checksum, cursor, limit) do
+    with {:ok, frame} <- read_frame(path, info, checksum),
          {:ok, events, _} <- Block.decompress(frame) do
       events = events |> Enum.filter(&(&1.seq >= cursor)) |> Enum.take(limit)
 
@@ -37,11 +48,17 @@ defmodule Aerox.Jetstream.Tail do
     end
   end
 
-  @doc "A block's zstd frame from its segment file."
-  def read_frame(path, info) do
+  @doc """
+  A block's zstd frame from its segment file; `{:error, :rewritten}` when the
+  file's checksum is no longer `checksum` (pass nil to skip the check).
+  """
+  def read_frame(path, info, checksum \\ nil) do
     with {:ok, fd} <- :file.open(path, [:read, :binary, :raw]) do
       try do
-        :file.pread(fd, info.offset + 8, info.compressed_size)
+        with {:ok, <<_::binary-size(4), on_disk::little-64>>} <- :file.pread(fd, 0, 12),
+             true <- checksum in [nil, on_disk] || {:error, :rewritten} do
+          :file.pread(fd, info.offset + 8, info.compressed_size)
+        end
       after
         :file.close(fd)
       end
@@ -60,6 +77,6 @@ defmodule Aerox.Jetstream.Tail do
     end
   end
 
-  @doc "The seq a live subscriber starts after (the last assigned seq + 1)."
+  @doc "The seq a live subscriber starts at (the last assigned seq + 1)."
   def tip, do: Writer.next_seq()
 end

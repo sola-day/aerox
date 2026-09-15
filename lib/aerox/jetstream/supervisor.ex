@@ -9,7 +9,11 @@ defmodule Aerox.Jetstream.Supervisor do
       base ++
         [
           {Task.Supervisor, name: Aerox.Jetstream.TaskSupervisor},
-          Aerox.Jetstream.Writer
+          Aerox.Jetstream.Writer,
+          Aerox.Jetstream.Compactor,
+          Aerox.Jetstream.Resyncer,
+          Aerox.Jetstream.Ingest,
+          Aerox.Jetstream.Bootstrap
         ]
     else
       base ++ [{Task.Supervisor, name: Aerox.Jetstream.TaskSupervisor}]

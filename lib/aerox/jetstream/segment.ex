@@ -474,40 +474,43 @@ defmodule Aerox.Jetstream.Segment do
   end
 
   @doc """
-  Rewrites a sealed segment keeping only rows `keep?` accepts: every block stays
-  (an emptied one as an empty frame), with its original seq and witnessed-at
-  bounds, and the header keeps the segment's. `{:unchanged, parsed}` when no row
-  is dropped.
+  Rewrites a sealed segment keeping only rows `keep?` accepts, and passing
+  kept rows through `transform` (the timestamp import patches `indexed_at`):
+  every block stays (an emptied one as an empty frame), with its original seq
+  and witnessed-at bounds, and the header keeps the segment's. Returns
+  `{:ok, bin, header, changed_rows}`, or `{:unchanged, parsed}` when no row is
+  dropped or altered.
   """
-  def rewrite(file, parsed, keep?) do
-    {blocks, dropped} =
+  def rewrite(file, parsed, keep?, transform \\ & &1) do
+    {blocks, changed} =
       parsed.blocks
       |> Enum.with_index()
-      |> Enum.map_reduce(0, fn {info, i}, dropped ->
+      |> Enum.map_reduce(0, fn {info, i}, changed ->
         {:ok, frame} = frame(file, parsed, i)
         {:ok, events, usize} = Block.decompress(frame)
-        kept = Enum.filter(events, keep?)
+        out = events |> Enum.filter(keep?) |> Enum.map(transform)
         bounds = Map.take(info, [:min_seq, :max_seq, :min_witnessed_at, :max_witnessed_at])
 
-        cond do
-          length(kept) == length(events) ->
-            {%{frame: frame, events: events, uncompressed_size: usize, bounds: bounds}, dropped}
+        altered =
+          length(events) - length(out) +
+            Enum.count(Enum.zip(Enum.filter(events, keep?), out), fn {a, b} -> a != b end)
 
-          true ->
-            {frame, usize} = Block.compress(kept)
+        if altered == 0 do
+          {%{frame: frame, events: events, uncompressed_size: usize, bounds: bounds}, changed}
+        else
+          {frame, usize} = Block.compress(out)
 
-            {%{frame: frame, events: kept, uncompressed_size: usize, bounds: bounds},
-             dropped + length(events) - length(kept)}
+          {%{frame: frame, events: out, uncompressed_size: usize, bounds: bounds},
+           changed + altered}
         end
       end)
 
-    if dropped == 0 do
+    if changed == 0 do
       {:unchanged, parsed}
     else
-      h = parsed.header
-      bounds = Map.take(h, [:min_seq, :max_seq, :min_witnessed_at, :max_witnessed_at])
+      bounds = Map.take(parsed.header, [:min_seq, :max_seq, :min_witnessed_at, :max_witnessed_at])
       {bin, header} = seal(blocks, bounds: bounds)
-      {:ok, bin, header, dropped}
+      {:ok, bin, header, changed}
     end
   end
 end
