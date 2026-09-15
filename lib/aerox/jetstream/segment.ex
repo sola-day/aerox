@@ -45,8 +45,8 @@ defmodule Aerox.Jetstream.Segment do
 
   # ------------------------------------------------------------ building
 
-  @doc "The zeroed header an active segment starts with."
-  def active_header, do: :binary.copy(<<0>>, @header_bytes)
+  @doc "An active segment's header: the magic, then zeroes until sealing (a zero checksum marks it active)."
+  def active_header, do: @magic <> :binary.copy(<<0>>, @header_bytes - 4)
 
   @doc "A length-prefixed frame as appended to a segment."
   def framed(frame), do: <<byte_size(frame)::little-64, frame::binary>>

@@ -7,6 +7,8 @@ name: aerox
 services:
   db:
     image: postgres:18
+    # six service pools for the dev server plus a test run's six
+    command: ["postgres", "-c", "max_connections=300"]
     environment:
       POSTGRES_USER: aerox
       POSTGRES_PASSWORD: aerox

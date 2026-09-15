@@ -65,6 +65,11 @@ defmodule Aerox.Jetstream.WriterTest do
     [%{offset: off, compressed_size: size}] = Manifest.active().blocks
     assert File.stat!(active).size == off + 8 + size
 
+    # an active file is recognised as active, not as a corrupt segment
+    assert {:error, :active} = Segment.decode_header(binary_part(File.read!(active), 0, 256))
+    :ok = Manifest.reload()
+    assert Manifest.sealed() == []
+
     :ok = Writer.rotate()
     assert [%{header: %{event_count: 5}}] = Manifest.sealed()
   end

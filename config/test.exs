@@ -22,7 +22,7 @@ for {repo, role, database} <- [
     port: db_port,
     database: "#{database}#{partition}",
     pool: Ecto.Adapters.SQL.Sandbox,
-    pool_size: System.schedulers_online() * 2
+    pool_size: System.schedulers_online()
 end
 
 config :aerox, Aerox.PDS.Sequencer, unboxed: true

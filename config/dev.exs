@@ -214,6 +214,8 @@ config :aerox, Aerox.Jetstream,
   public_url: "https://jetstream.aerox.sola.town",
   relay_url: System.get_env("AEROX_RELAY_WS_URL", "wss://relay.aerox.sola.town"),
   data_dir: System.get_env("AEROX_JETSTREAM_DIR", "tmp/jetstream"),
-  # small segments so a dev archive seals and compacts within minutes
-  segment_bytes: 4 * 1024 * 1024,
+  # tiny blocks and segments: a dev instance's trickle of events still seals,
+  # plans in block mode and compacts within minutes
+  max_events_per_block: 32,
+  segment_bytes: 16 * 1024,
   import_token: System.get_env("AEROX_JETSTREAM_IMPORT_TOKEN")
