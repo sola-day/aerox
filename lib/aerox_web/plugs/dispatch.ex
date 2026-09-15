@@ -21,6 +21,9 @@ defmodule AeroxWeb.Dispatch do
         conn.host == Aerox.AppView.Config.hostname() ->
           AeroxWeb.AppViewRouter
 
+        conn.host == Aerox.Jetstream.Config.hostname() ->
+          AeroxWeb.JetstreamRouter
+
         conn.host == Aerox.Labeler.Config.hostname() and
             Code.ensure_loaded?(AeroxWeb.LabelerRouter) ->
           AeroxWeb.LabelerRouter

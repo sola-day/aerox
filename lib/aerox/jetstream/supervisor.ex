@@ -13,6 +13,7 @@ defmodule Aerox.Jetstream.Supervisor do
           Aerox.Jetstream.Compactor,
           Aerox.Jetstream.Resyncer,
           Aerox.Jetstream.Ingest,
+          Aerox.Jetstream.Importer,
           Aerox.Jetstream.Bootstrap
         ]
     else

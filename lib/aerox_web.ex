@@ -11,6 +11,7 @@ defmodule AeroxWeb do
       Aerox.Relay,
       Aerox.AppView,
       Aerox.Labeler,
+      Aerox.Jetstream,
       Aerox.ImageServer
     ],
     exports: [Endpoint]

@@ -8,7 +8,8 @@ defmodule AeroxWeb.RouterParityTest do
     {AeroxWeb.Router, "pds"},
     {AeroxWeb.RelayRouter, "relay"},
     {AeroxWeb.AppViewRouter, "appview"},
-    {AeroxWeb.LabelerRouter, "labeler"}
+    {AeroxWeb.LabelerRouter, "labeler"},
+    {AeroxWeb.JetstreamRouter, "jetstream"}
   ]
 
   test "every routed XRPC method is in the parity table for its service, and vice versa" do

@@ -3,8 +3,8 @@
 
 VERIFICATION §7.1 item 3: every XRPC endpoint aerox routes is listed here with its
 service, parity status and any documented deviation. The router test
-(`test/aerox_web/router_parity_test.exs`) fails if any of the four routers (PDS,
-Relay, AppView, Labeler — dispatched by hostname, `AeroxWeb.Dispatch`) serves a method this
+(`test/aerox_web/router_parity_test.exs`) fails if any of the five routers (PDS,
+Relay, AppView, Labeler, Jetstream — dispatched by hostname, `AeroxWeb.Dispatch`) serves a method this
 table does not list for that service, or lists one it does not serve.
 
 Every other `/xrpc/<nsid>` on the PDS host is the proxy catch-all (DESIGN §11.1):
@@ -219,3 +219,11 @@ every time.
 | `aerox.moderation.emitEvent` | POST | labeler | flow | aerox's own admin API (DESIGN §17.3); `tools.ozone.*` is the later target |
 | `aerox.moderation.queryEvents` | GET | labeler | flow | aerox's own admin API (DESIGN §17.3) |
 | `aerox.moderation.queryReports` | GET | labeler | flow | aerox's own admin API (DESIGN §17.3) |
+| `network.bsky.jetstream.subscribeEvents` | GET | jetstream | flow | proposal 0015 `xrpc.v1.json`; `/subscribe` (v1, not XRPC) beside it |
+| `network.bsky.jetstream.getZstdDictionary` | GET | jetstream | flow | the vendored `subscribe_events_20260811` dictionary |
+| `network.bsky.jetstream.listSegments` | GET | jetstream | flow |  |
+| `network.bsky.jetstream.getSegment` | GET | jetstream | flow | `ETag`, single `Range`, `If-None-Match`, HEAD |
+| `network.bsky.jetstream.getBlock` | GET | jetstream | flow | the raw zstd frame |
+| `network.bsky.jetstream.planSnapshot` | POST | jetstream | flow | whole-segment above 75% block density |
+| `network.bsky.jetstream.importTimestamps` | POST | jetstream | flow | bearer token; confined to the import directory |
+| `network.bsky.jetstream.getImportStatus` | GET | jetstream | flow | bearer token |
