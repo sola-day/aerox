@@ -27,6 +27,17 @@ defmodule AeroxWeb.PLC.PLCControllerTest do
     assert %{"version" => _} = conn |> get("/_health") |> json_response(200)
   end
 
+  test "browser clients may read the directory (did-method-plc's cors())", %{
+    conn: conn,
+    did: did,
+    genesis: genesis
+  } do
+    assert conn |> post("/#{did}", genesis) |> response(200) == "OK"
+    audit = get(conn, "/#{did}/log/audit")
+    assert json_response(audit, 200)
+    assert get_resp_header(audit, "access-control-allow-origin") == ["*"]
+  end
+
   test "submit, resolve, log, audit, last, data, export", %{
     conn: conn,
     did: did,

@@ -14,9 +14,12 @@ defmodule AeroxWeb.Router do
     plug :put_secure_browser_headers
   end
 
+  # did-method-plc's server runs `app.use(cors())`, so browser clients read DID
+  # documents and audit logs straight from the directory.
   pipeline :plc do
     plug :accepts, ["json"]
     plug AeroxWeb.Plugs.ServiceEnabled, :plc
+    plug AeroxWeb.Plugs.CORS
   end
 
   pipeline :xrpc do
