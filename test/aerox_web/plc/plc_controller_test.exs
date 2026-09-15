@@ -36,6 +36,16 @@ defmodule AeroxWeb.PLC.PLCControllerTest do
     audit = get(conn, "/#{did}/log/audit")
     assert json_response(audit, 200)
     assert get_resp_header(audit, "access-control-allow-origin") == ["*"]
+
+    # a browser POSTing a self-signed operation preflights first
+    preflight =
+      conn
+      |> put_req_header("origin", "https://aero.sola.town")
+      |> put_req_header("access-control-request-method", "POST")
+      |> options("/#{did}")
+
+    assert preflight.status == 204
+    assert get_resp_header(preflight, "access-control-allow-methods") == ["GET, POST, OPTIONS"]
   end
 
   test "submit, resolve, log, audit, last, data, export", %{

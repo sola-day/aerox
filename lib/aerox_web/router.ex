@@ -272,6 +272,9 @@ defmodule AeroxWeb.Router do
     get "/:did/log/audit", PLCController, :audit, did: ~r/^did:plc:[a-z2-7]{24}$/
     get "/:did/log/last", PLCController, :last, did: ~r/^did:plc:[a-z2-7]{24}$/
     post "/:did", PLCController, :submit, did: ~r/^did:plc:[a-z2-7]{24}$/
+    # browser clients POST operations signed with their own rotation key
+    # (docs/SELF_CUSTODY.md); the CORS plug answers the preflight
+    options "/*path", PLCController, :preflight
   end
 
   if Application.compile_env(:aerox, :dev_routes) do

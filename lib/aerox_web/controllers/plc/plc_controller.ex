@@ -9,6 +9,9 @@ defmodule AeroxWeb.PLC.PLCController do
   use AeroxWeb, :controller
   alias Aerox.PLC.Directory
 
+  # never reached: the CORS plug in the :plc pipeline answers OPTIONS
+  def preflight(conn, _params), do: send_resp(conn, 204, "")
+
   def health(conn, _params) do
     case Aerox.PLC.Repo.query("SELECT 1") do
       {:ok, _} ->
