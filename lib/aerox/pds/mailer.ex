@@ -18,9 +18,16 @@ defmodule Aerox.PDS.Mailer do
   @spec send_token(String.t(), String.t(), String.t(), keyword) ::
           {:ok, Oban.Job.t()} | {:error, term}
   def send_token(purpose, to, token, opts \\ []) when is_map_key(@subjects, purpose) do
-    %{purpose: purpose, to: to, token: token, handle: Keyword.get(opts, :handle)}
-    |> __MODULE__.Deliver.new()
-    |> Oban.insert(Aerox.PDS.Oban)
+    job =
+      __MODULE__.Deliver.new(%{
+        purpose: purpose,
+        to: to,
+        token: token,
+        handle: Keyword.get(opts, :handle)
+      })
+
+    # the instance name comes first: piping the changeset in made it Oban.insert(changeset, name)
+    Oban.insert(Aerox.PDS.Oban, job)
   end
 
   @doc "A plain-text message from the admin (`com.atproto.admin.sendEmail`), delivered synchronously."

@@ -9,6 +9,7 @@ defmodule AeroxWeb.PDS.FlowTest do
   alias Aerox.ATProto.{CID, Frame, Repo}
   alias Aerox.PDS.Sequencer
   alias AeroxWeb.Sockets.Firehose
+  require Ecto.Query
 
   @xrpc "/xrpc/"
 
@@ -279,6 +280,59 @@ defmodule AeroxWeb.PDS.FlowTest do
       conn |> xrpc_post("com.atproto.server.refreshSession", %{}, refresh) |> json_response(200)
 
     assert refreshed["accessJwt"] != nil
+  end
+
+  test "password reset and account deletion by emailed token", %{conn: conn} do
+    %{"did" => did} = signup(conn, "tokenmail.test")
+
+    assert conn
+           |> xrpc_post("com.atproto.server.requestPasswordReset", %{
+             "email" => "tokenmail.test@example.com"
+           })
+           |> response(200)
+
+    # the mail is queued on the PDS Oban instance and carries the token
+    [job] =
+      Oban.Job |> Ecto.Query.where(worker: "Aerox.PDS.Mailer.Deliver") |> Aerox.PDS.Repo.all()
+
+    assert %{
+             "purpose" => "reset_password",
+             "to" => "tokenmail.test@example.com",
+             "token" => token
+           } = job.args
+
+    assert :ok = Aerox.PDS.Mailer.Deliver.perform(job)
+
+    assert conn
+           |> xrpc_post("com.atproto.server.resetPassword", %{
+             "token" => token,
+             "password" => "a brand new password"
+           })
+           |> response(200)
+
+    assert %{"accessJwt" => jwt} =
+             conn
+             |> xrpc_post("com.atproto.server.createSession", %{
+               "identifier" => "tokenmail.test",
+               "password" => "a brand new password"
+             })
+             |> json_response(200)
+
+    assert conn |> xrpc_post("com.atproto.server.requestAccountDelete", %{}, jwt) |> response(200)
+
+    delete_token =
+      Oban.Job
+      |> Ecto.Query.where(worker: "Aerox.PDS.Mailer.Deliver")
+      |> Aerox.PDS.Repo.all()
+      |> Enum.find_value(&(&1.args["purpose"] == "delete_account" && &1.args["token"]))
+
+    assert conn
+           |> xrpc_post("com.atproto.server.deleteAccount", %{
+             "did" => did,
+             "password" => "a brand new password",
+             "token" => delete_token
+           })
+           |> response(200)
   end
 
   test "preferences round trip and unknown method", %{conn: conn} do
