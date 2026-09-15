@@ -1,6 +1,6 @@
 #!/bin/bash
 # A second aerox dev server that joins the multi-implementation lab network on
-# generic.dev (VERIFICATION §7.3): the lab's PDSes (atproto, crates, tranquil,
+# generic.dev (VERIFICATION §7.4): the lab's PDSes (atproto, crates, tranquil,
 # pegasus, zds, cocoon, rsky) register their DIDs on plc.xjdao.generic.dev,
 # so this instance resolves and registers identities there too. Everything
 # else is its own: databases aerox_*_lab, blobs/jetstream under tmp/lab,

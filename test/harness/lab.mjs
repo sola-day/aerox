@@ -542,6 +542,10 @@ async function migrateOne(from, to) {
           token, ...creds, rotationKeys: [...creds.rotationKeys, ...current.rotationKeys.filter(k => !creds.rotationKeys.includes(k))],
         })).data;
       }
+      if (!signed.operation && signed.type) {
+        note(from, 'signPlcOperation returns the bare operation instead of {operation}');
+        signed = {operation: signed};
+      }
       await neu.post('com.atproto.identity.submitPlcOperation', {operation: signed.operation});
       const doc = await (await fetch(`${LAB.plc}/${did}`)).json();
       const svc = doc.service?.find(s => s.id === '#atproto_pds')?.serviceEndpoint.replace(/\/$/, '');

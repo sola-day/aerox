@@ -145,7 +145,9 @@ defmodule Aerox.AppView.RepoSyncTest do
   defp strip_blocks({"#commit", body}) do
     {:ok, root, blocks} = Aerox.ATProto.CAR.decode_with_root(body["blocks"].data)
     kept = Enum.filter(blocks, fn {cid, _} -> cid == body["commit"] end)
-    {"#commit", %{body | "blocks" => Aerox.ATProto.Bytes.new(Aerox.ATProto.CAR.encode(root, kept))}}
+
+    {"#commit",
+     %{body | "blocks" => Aerox.ATProto.Bytes.new(Aerox.ATProto.CAR.encode(root, kept))}}
   end
 
   test "an unverifiable last commit desynchronises the repo, and the backfill recovers it" do
@@ -203,7 +205,10 @@ defmodule Aerox.AppView.RepoSyncTest do
     assert indexed?(p1.uri)
 
     assert Aerox.AppView.Repo.one(
-             from(a in Aerox.AppView.Schema.Actor, where: a.did == ^did, select: a.upstream_status)
+             from(a in Aerox.AppView.Schema.Actor,
+               where: a.did == ^did,
+               select: a.upstream_status
+             )
            ) == "active"
 
     # told "deactivated" again right away: no second request within the minute

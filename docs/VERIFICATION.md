@@ -346,6 +346,30 @@ These run on a small multi-container topology (separate network namespaces per
 service, a real DNS server for the test zone, real certificates from a test CA) so that
 "connectable" means connectable, not "works in one BEAM node".
 
+### 7.4 Other PDS implementations on one network
+
+The upstream containers of §7.2 prove agreement with Bluesky's own code. They
+cannot show how aerox behaves among implementations that read the specs
+differently. For that, aerox joins the multi-implementation lab network on
+generic.dev as an eighth member: seven PDSes (reference TypeScript, atproto-crates,
+tranquil, pegasus, zds, cocoon, rsky), one PLC directory, an indigo relay and a
+bsky AppView.
+
+The aerox side is a second dev server, `tools/interop/lab-devserver.sh`, on
+`lab.aerox.sola.town`. It registers and resolves DIDs on the lab's PLC. The
+driver is `test/harness/lab.mjs`, and it checks in both directions:
+
+| Area | What is proven |
+|---|---|
+| Crawl and index | each relay crawls every PDS, including the other's; each AppView indexes every implementation's posts |
+| Proxy | `app.bsky.*` through every PDS to both AppViews, with viewer-authenticated service JWTs |
+| Social graph | follows, likes, replies and images across all eight; counts, threads, thumbnails and notifications agree |
+| Lifecycle | `#identity`, deletions, `#account` deactivation and reactivation from each implementation |
+| Migration | the standard account-migration flow to and from aerox for each implementation, with control pairs between lab PDSes to tell a counterpart's fault from aerox's |
+
+Results, the aerox defects the run found and fixed, and the counterparts'
+deviations are in `INTEROP_LAB.md`.
+
 ## 8. Portability (L9)
 
 From DESIGN §13.3, as executable tests:

@@ -125,7 +125,7 @@ config :swoosh, :api_client, false
 
 # AEROX_DEV_DOMAIN moves every service hostname and the handle domain of this
 # dev server: a second instance on `lab.aerox.sola.town` joins the multi-
-# implementation lab network on generic.dev (VERIFICATION §7.3) while the
+# implementation lab network on generic.dev (VERIFICATION §7.4) while the
 # primary stays on `aerox.sola.town`.
 dev_domain = System.get_env("AEROX_DEV_DOMAIN", "aerox.sola.town")
 
@@ -166,7 +166,8 @@ config :aerox, Aerox.Relay,
   hostname: "relay.#{dev_domain}",
   public_url: "https://relay.#{dev_domain}",
   allow_insecure_hosts: true,
-  trusted_domains: String.split(System.get_env("AEROX_RELAY_TRUSTED_DOMAINS", dev_domain), ",", trim: true),
+  trusted_domains:
+    String.split(System.get_env("AEROX_RELAY_TRUSTED_DOMAINS", dev_domain), ",", trim: true),
   admin_password: System.get_env("AEROX_RELAY_ADMIN_PASSWORD", "REDACTED-relay-admin-password")
 
 # Image CDN (DESIGN §16): a small local cache, swept every minute.
@@ -207,7 +208,8 @@ config :aerox, Aerox.Labeler,
 
 # The AppView subscribes to our labeler's labels and applies them by default (DESIGN §15.6).
 config :aerox, Aerox.AppView,
-  labelers: if(labeler_did, do: [%{did: labeler_did, url: "wss://labeler.#{dev_domain}"}], else: [])
+  labelers:
+    if(labeler_did, do: [%{did: labeler_did, url: "wss://labeler.#{dev_domain}"}], else: [])
 
 # Spaces (DESIGN §12): permissioned data behind a feature flag; routes answer
 # 501 MethodNotImplemented when disabled.
