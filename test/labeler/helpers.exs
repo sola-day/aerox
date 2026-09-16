@@ -72,7 +72,7 @@ unless Code.ensure_loaded?(Aerox.LabelerTestHelpers) do
     end
 
     @doc "HTTP Basic credentials for the labeler admin API."
-    def admin_auth, do: "Basic " <> Base.encode64("admin:REDACTED-labeler-admin-password")
+    def admin_auth, do: "Basic " <> Base.encode64("admin:admin-for-tests-labeler")
 
     @doc "A service JWT a PDS would mint for `did` calling `nsid` on the labeler."
     def service_jwt(did, nsid, aud \\ nil) do

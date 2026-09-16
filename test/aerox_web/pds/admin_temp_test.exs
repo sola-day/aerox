@@ -12,13 +12,13 @@ defmodule AeroxWeb.PDS.AdminTempTest do
   setup %{conn: conn} do
     Aerox.RateLimit.reset()
     env = Application.get_env(:aerox, Aerox.PDS)
-    Application.put_env(:aerox, Aerox.PDS, Keyword.put(env, :admin_password, "REDACTED-pds-admin-password"))
+    Application.put_env(:aerox, Aerox.PDS, Keyword.put(env, :admin_password, "admin-for-tests-pds"))
     on_exit(fn -> Application.put_env(:aerox, Aerox.PDS, env) end)
     {:ok, conn: %{conn | host: "pds.aerox.sola.town"}, env: env}
   end
 
   defp admin(conn),
-    do: put_req_header(conn, "authorization", "Basic " <> Base.encode64("admin:REDACTED-pds-admin-password"))
+    do: put_req_header(conn, "authorization", "Basic " <> Base.encode64("admin:admin-for-tests-pds"))
 
   defp post_json(conn, method, body) do
     conn
@@ -200,7 +200,7 @@ defmodule AeroxWeb.PDS.AdminTempTest do
       :aerox,
       Aerox.PDS,
       env
-      |> Keyword.put(:admin_password, "REDACTED-pds-admin-password")
+      |> Keyword.put(:admin_password, "admin-for-tests-pds")
       |> Keyword.put(:phone_verification, adapter: Aerox.PDS.SMS.Log, notify: self())
     )
 

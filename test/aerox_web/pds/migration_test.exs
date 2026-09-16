@@ -14,7 +14,7 @@ defmodule AeroxWeb.PDS.MigrationTest do
   setup %{conn: conn} do
     Aerox.RateLimit.reset()
     env = Application.get_env(:aerox, Aerox.PDS)
-    Application.put_env(:aerox, Aerox.PDS, Keyword.put(env, :admin_password, "REDACTED-pds-admin-password"))
+    Application.put_env(:aerox, Aerox.PDS, Keyword.put(env, :admin_password, "admin-for-tests-pds"))
     on_exit(fn -> Application.put_env(:aerox, Aerox.PDS, env) end)
     {:ok, conn: %{conn | host: "pds.aerox.sola.town"}}
   end
@@ -27,7 +27,7 @@ defmodule AeroxWeb.PDS.MigrationTest do
   end
 
   defp bearer(token), do: "Bearer " <> token
-  defp admin, do: "Basic " <> Base.encode64("admin:REDACTED-pds-admin-password")
+  defp admin, do: "Basic " <> Base.encode64("admin:admin-for-tests-pds")
 
   # an identity hosted elsewhere, in the same directory
   defp foreign_identity do

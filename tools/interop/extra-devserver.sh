@@ -34,6 +34,9 @@ if [ ! -e "tmp/$NAME/instance.env" ]; then
     echo "AEROX_PLC_ROTATION_KEY_HEX=$(openssl rand -hex 32)"
     echo "AEROX_OAUTH_KEY_HEX=$(openssl rand -hex 32)"
     echo "AEROX_APPVIEW_SIGNING_KEY_HEX=$(openssl rand -hex 32)"
+    echo "AEROX_PDS_ADMIN_PASSWORD=$(openssl rand -hex 16)"
+    echo "AEROX_RELAY_ADMIN_PASSWORD=$(openssl rand -hex 16)"
+    echo "AEROX_LABELER_ADMIN_PASSWORD=$(openssl rand -hex 16)"
   } > "tmp/$NAME/instance.env"
 fi
 set -a; . "tmp/$NAME/instance.env"; set +a

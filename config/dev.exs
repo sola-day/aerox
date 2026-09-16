@@ -130,20 +130,46 @@ config :swoosh, :api_client, false
 dev_domain = System.get_env("AEROX_DEV_DOMAIN", "aerox.sola.town")
 
 # PDS (DESIGN §18, §14.2): dev keys only. Handles live under the dev domain.
+# Dev secrets never live in the repo (DEV_PLAN §1.3): this box is on the public
+# internet, so its keys and admin passwords are real credentials, not fixtures.
+# They come from the environment, or from tmp/dev.env, which
+# tools/dev/devserver.sh generates on first run and .gitignore keeps out.
+dev_env_file = Path.expand("../tmp/dev.env", __DIR__)
+
+if File.exists?(dev_env_file) do
+  dev_env_file
+  |> File.read!()
+  |> String.split("\n", trim: true)
+  |> Enum.reject(&String.starts_with?(String.trim(&1), "#"))
+  |> Enum.each(fn line ->
+    case String.split(String.trim(line), "=", parts: 2) do
+      [name, value] -> System.put_env(name, value)
+      _ -> :ok
+    end
+  end)
+end
+
+dev_secret = fn name ->
+  System.get_env(name) ||
+    raise """
+    #{name} is not set.
+
+    Dev keys and admin passwords are not kept in the repo. Start the stack with
+    tools/dev/devserver.sh — it writes tmp/dev.env on first run — or export the
+    variable yourself before running mix.
+    """
+end
+
 config :aerox, Aerox.PDS,
   # DEV_PLAN §1.2: the PDS is pds.<dev-domain>; the apex also routes here.
   public_url: System.get_env("AEROX_PDS_PUBLIC_URL", "https://pds.#{dev_domain}"),
   handle_domains: ["." <> dev_domain],
-  # OAuth issuer key (P-256) and DPoP nonce secret: dev/test throwaways
-  oauth_key_hex:
-    System.get_env(
-      "AEROX_OAUTH_KEY_HEX",
-      "REDACTED-dev-oauth-key-rotated-2026-09-16"
-    ),
+  # OAuth issuer key (P-256): a throwaway, but a live one — see tmp/dev.env
+  oauth_key_hex: dev_secret.("AEROX_OAUTH_KEY_HEX"),
   plc_url: System.get_env("AEROX_PLC_URL", "https://plc.#{dev_domain}"),
   # HTTP Basic admin:<password> for com.atproto.admin.*, as the relay and the
-  # labeler already have; a dev throwaway
-  admin_password: System.get_env("AEROX_PDS_ADMIN_PASSWORD", "REDACTED-pds-admin-password"),
+  # labeler already have
+  admin_password: dev_secret.("AEROX_PDS_ADMIN_PASSWORD"),
   contact_email: "lisbon@appendonly.org"
 
 config :aerox, Aerox.PDS.PlcOps, http: [allow_private: true]
@@ -151,11 +177,8 @@ config :aerox, Aerox.Identity.HTTP, allow_private: true
 
 config :aerox, Aerox.Crypto.Signer,
   adapter: Aerox.Crypto.Signer.Local,
-  private_key_hex:
-    System.get_env(
-      "AEROX_PLC_ROTATION_KEY_HEX",
-      "9085d2bef69286a6cbb51623c8fa258629945cd55ca705cc4e66700396894e0c"
-    )
+  # the rotation key every dev DID names: rolling it orphans the dev directory
+  private_key_hex: dev_secret.("AEROX_PLC_ROTATION_KEY_HEX")
 
 config :aerox, Aerox.Blob.Store,
   adapter: Aerox.Blob.Disk,
@@ -171,7 +194,7 @@ config :aerox, Aerox.Relay,
   allow_insecure_hosts: true,
   trusted_domains:
     String.split(System.get_env("AEROX_RELAY_TRUSTED_DOMAINS", dev_domain), ",", trim: true),
-  admin_password: System.get_env("AEROX_RELAY_ADMIN_PASSWORD", "REDACTED-relay-admin-password")
+  admin_password: dev_secret.("AEROX_RELAY_ADMIN_PASSWORD")
 
 # Image CDN (DESIGN §16): a small local cache, swept every minute.
 config :aerox, Aerox.ImageServer,
@@ -181,11 +204,7 @@ config :aerox, Aerox.ImageServer,
 
 # AppView (DESIGN §15): ingests our own Relay; images served under /img.
 config :aerox, Aerox.AppView,
-  signing_key_hex:
-    System.get_env(
-      "AEROX_APPVIEW_SIGNING_KEY_HEX",
-      "REDACTED-dev-appview-key-rotated-2026-09-16"
-    ),
+  signing_key_hex: dev_secret.("AEROX_APPVIEW_SIGNING_KEY_HEX"),
   hostname: "appview.#{dev_domain}",
   public_url: "https://appview.#{dev_domain}",
   relay_url: System.get_env("AEROX_RELAY_WS_URL", "wss://relay.#{dev_domain}"),
@@ -207,7 +226,7 @@ config :aerox, Aerox.Labeler,
   public_url: "https://labeler.#{dev_domain}",
   did: labeler_did,
   signing_key_hex: System.get_env("AEROX_LABELER_SIGNING_KEY_HEX"),
-  admin_password: System.get_env("AEROX_LABELER_ADMIN_PASSWORD", "REDACTED-labeler-admin-password")
+  admin_password: dev_secret.("AEROX_LABELER_ADMIN_PASSWORD")
 
 # The AppView subscribes to our labeler's labels and applies them by default (DESIGN §15.6).
 config :aerox, Aerox.AppView,

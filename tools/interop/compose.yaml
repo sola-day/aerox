@@ -19,7 +19,7 @@ services:
       ENABLE_MIGRATIONS: "true"
       PLC_VERSION: "1e301e5e"
       PORT: "3000"
-      ADMIN_SECRET: REDACTED-ref-plc-admin-secret
+      ADMIN_SECRET: ${REF_PLC_ADMIN_SECRET:?see tools/interop/.env.example}
       LOG_ENABLED: "true"
       LOG_LEVEL: info
       DD_TRACE_ENABLED: "false"
@@ -37,7 +37,7 @@ services:
     image: aerox-ref-relay:dfe5578f
     environment:
       DATABASE_URL: postgres://aerox:aerox@db:5432/ref_relay
-      RELAY_ADMIN_PASSWORD: REDACTED-ref-REDACTED-relay-admin-password-password
+      RELAY_ADMIN_PASSWORD: ${REF_RELAY_ADMIN_PASSWORD:?see tools/interop/.env.example}
       RELAY_PLC_HOST: https://plc.aerox.sola.town
       RELAY_API_BIND: ":2470"
       RELAY_PERSIST_DIR: /data/relay
@@ -53,8 +53,10 @@ services:
       - aerox
     restart: unless-stopped
 
-  # Upstream PDS distribution, pinned image tag. Secrets below are dev-only
-  # throwaways generated with openssl (see bluesky-social/pds installer.sh).
+  # Upstream PDS distribution, pinned image tag. Its secrets are dev-only
+  # throwaways (see bluesky-social/pds installer.sh), but they guard a host on
+  # the public internet, so they live in tools/interop/.env — which compose
+  # reads automatically and .gitignore keeps out — not here.
   # Handles live under .ref-pds.aerox.sola.town; that is two labels below the
   # *.aerox.sola.town certificate, so they resolve via DNS TXT, not by hostname.
   ref-pds:
@@ -66,9 +68,9 @@ services:
       PDS_BLOBSTORE_DISK_LOCATION: /pds/blocks
       PDS_BLOB_UPLOAD_LIMIT: "52428800"
       PDS_DID_PLC_URL: https://plc.aerox.sola.town
-      PDS_JWT_SECRET: REDACTED-ref-pds-jwt-secret
-      PDS_ADMIN_PASSWORD: REDACTED-ref-REDACTED-pds-admin-password-password
-      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: REDACTED-ref-pds-rotation-key
+      PDS_JWT_SECRET: ${REF_PDS_JWT_SECRET:?see tools/interop/.env.example}
+      PDS_ADMIN_PASSWORD: ${REF_PDS_ADMIN_PASSWORD:?see tools/interop/.env.example}
+      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: ${REF_PDS_ROTATION_KEY_HEX:?see tools/interop/.env.example}
       PDS_SERVICE_HANDLE_DOMAINS: .ref-pds.aerox.sola.town
       PDS_CRAWLERS: https://relay.aerox.sola.town
       # The reference PDS proxies app.bsky.* to the reference AppView (§7.1
@@ -101,9 +103,9 @@ services:
       PDS_DATA_DIRECTORY: /pds
       PDS_BLOBSTORE_DISK_LOCATION: /pds/blocks
       PDS_DID_PLC_URL: https://ref-plc.aerox.sola.town
-      PDS_JWT_SECRET: REDACTED-ref-pds2-jwt-secret
-      PDS_ADMIN_PASSWORD: REDACTED-ref-pds2-admin-password
-      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: REDACTED-ref-pds2-rotation-key
+      PDS_JWT_SECRET: ${REF_PDS2_JWT_SECRET:?see tools/interop/.env.example}
+      PDS_ADMIN_PASSWORD: ${REF_PDS2_ADMIN_PASSWORD:?see tools/interop/.env.example}
+      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: ${REF_PDS2_ROTATION_KEY_HEX:?see tools/interop/.env.example}
       PDS_SERVICE_HANDLE_DOMAINS: .ref-pds2.aerox.sola.town
       PDS_INVITE_REQUIRED: "false"
       PDS_BSKY_APP_VIEW_URL: https://ref-appview.aerox.sola.town
@@ -147,7 +149,7 @@ services:
       # owned by root, and the image runs as `node`. /home/node exists and is
       # already the node user's, so the volume inherits that ownership.
       DATA_DIR: /home/node/data
-      BSKY_ADMIN_PASSWORDS: REDACTED-ref-appview-admin-password
+      BSKY_ADMIN_PASSWORDS: ${REF_APPVIEW_ADMIN_PASSWORD:?see tools/interop/.env.example}
       LOG_ENABLED: "true"
       LOG_LEVEL: info
       DD_TRACE_ENABLED: "false"

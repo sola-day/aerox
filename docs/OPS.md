@@ -49,6 +49,17 @@ upstream's `@atproto/aws` keypair). `Aerox.PDS.Config.signer/0` refuses
 promoted by accident. The offline recovery key (`RECOVERY_DID_KEY`) is only ever
 a public `did:key` on the server.
 
+**Dev secrets are not in the repo either.** `config/dev.exs` reads its keys and
+admin passwords from the environment, or from `tmp/dev.env`, which
+`tools/dev/devserver.sh` generates on first run (`.gitignore` keeps both out).
+The reference containers do the same through `tools/interop/.env` (see
+`.env.example` beside it). Only `config/test.exs` carries literals, and they are
+deliberately fake (`String.duplicate("42", 32)`): a key that runs anywhere must
+never double as a fixture — on 2026-09-16 this dev box's PLC rotation key turned
+out to be the first entry of the W3C `did:key` test vectors in
+`test/golden/crypto/`, i.e. a key anyone could look up, and it was rotated
+across every dev DID.
+
 **Admin passwords.** Three services take HTTP Basic `admin:<password>`, each
 instance-wide with no per-operator identity: the PDS (`PDS_ADMIN_PASSWORD`,
 optional — unset means only the moderation service's JWT reaches

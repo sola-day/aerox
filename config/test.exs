@@ -42,14 +42,12 @@ config :aerox, Aerox.Relay,
   skip_account_host_check: false,
   resubscribe_on_start: false,
   collection_crawler: false,
-  admin_password: "REDACTED-relay-admin-password"
+  admin_password: "admin-for-tests-relay"
 
 config :aerox, Aerox.AppView,
-  signing_key_hex:
-    System.get_env(
-      "AEROX_APPVIEW_SIGNING_KEY_HEX",
-      "REDACTED-dev-appview-key-rotated-2026-09-16"
-    ),
+  # test-only key material: obviously fake, and not shared with any running
+  # instance — a dev or production key must never double as a fixture
+  signing_key_hex: String.duplicate("55", 32),
   hostname: "appview.aerox.sola.town",
   public_url: "https://appview.aerox.sola.town",
   relay_url: "wss://relay.aerox.sola.town",
@@ -67,7 +65,7 @@ config :aerox, Aerox.PDS,
   public_url: "https://pds.aerox.sola.town",
   service_did: "did:web:pds.aerox.sola.town",
   handle_domains: [".aerox.sola.town", ".test"],
-  oauth_key_hex: "REDACTED-dev-oauth-key-rotated-2026-09-16",
+  oauth_key_hex: String.duplicate("33", 32),
   plc_url: "https://plc.aerox.sola.town",
   jwt_secret: "test-jwt-secret-test-jwt-secret-test-jwt-secret"
 
@@ -76,7 +74,7 @@ config :aerox, Aerox.Identity.HTTP, plug: AeroxWeb.Endpoint, allow_private: true
 
 config :aerox, Aerox.Crypto.Signer,
   adapter: Aerox.Crypto.Signer.Local,
-  private_key_hex: "9085d2bef69286a6cbb51623c8fa258629945cd55ca705cc4e66700396894e0c"
+  private_key_hex: String.duplicate("42", 32)
 
 config :aerox, Aerox.Blob.Store, adapter: Aerox.Blob.Disk, root: "tmp/test-blobs"
 config :aerox, Oban.PDS, testing: :manual
@@ -131,7 +129,7 @@ config :aerox, Aerox.Labeler,
   hostname: "labeler.aerox.sola.town",
   public_url: "https://labeler.aerox.sola.town",
   did: System.get_env("AEROX_LABELER_DID"),
-  admin_password: "REDACTED-labeler-admin-password"
+  admin_password: "admin-for-tests-labeler"
 
 config :aerox, Aerox.Labeler.Sequencer, unboxed: true
 

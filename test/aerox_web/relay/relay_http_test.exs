@@ -9,7 +9,7 @@ defmodule AeroxWeb.Relay.HttpTest do
   end
 
   defp admin(conn),
-    do: put_req_header(conn, "authorization", "Basic " <> Base.encode64("admin:REDACTED-relay-admin-password"))
+    do: put_req_header(conn, "authorization", "Basic " <> Base.encode64("admin:admin-for-tests-relay"))
 
   test "hostname dispatch: the relay host serves the relay router, others the PDS", %{conn: conn} do
     assert conn |> get("/_health") |> json_response(200) == %{"status" => "ok"}
