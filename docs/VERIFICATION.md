@@ -370,6 +370,27 @@ driver is `test/harness/lab.mjs`, and it checks in both directions:
 Results, the aerox defects the run found and fixed, and the counterparts'
 deviations are in `INTEROP_LAB.md`.
 
+### 7.5 Our own browser client as a counterpart
+
+`aero` (`../aero-app`, https://aero.sola.town) exercises the services the way a
+client actually does: real browser, real CORS, real WebSockets, real DPoP, no
+in-process shortcuts. Its Playwright suite is part of the gate for anything it
+covers — each run signs up throwaway accounts on the dev stack and cleans up
+after itself.
+
+| Suite | What it proves about aerox |
+|---|---|
+| `test/e2e.mjs` | sign-up, posting with facets and blobs, follows, likes, replies, notifications, threadgates/postgates, lists, starter packs, muted words, app passwords, account deletion |
+| `test/oauth.mjs` | the OAuth authorization server end to end from a discoverable browser client (DESIGN §11.2): client-metadata fetch, PAR, consent, code exchange, a DPoP-bound token writing to the repo, restore after reload, revoke |
+| `test/admin.mjs` | `com.atproto.admin.*` behind HTTP Basic (takedown/restore, handle, email and password changes, `temp.revokeAccountCredentials`, `deleteAccount`, invite codes) and the relay's `admin.*` host controls (`subscribeHost`, `setHostStatus`, `setHostAccountLimit`, `banDomain`) |
+| `test/labels.mjs` | `com.atproto.label.subscribeLabels` framing (header + body DAG-CBOR), replay from a sequence, and **label signatures verified in the browser** against the labeler's key from its DID document; `queryLabels` and `temp.fetchLabels` |
+| `test/batch.mjs` | the batch lexicons answer for a page of subjects: it counts the browser's XRPC calls and fails if `getPosts`/`getProfiles` are called more than once, or if anything is fetched per item |
+| `test/spaces.mjs` | Spaces (DESIGN §12) across two accounts: delegation token → space credential (DPoP, `cnf.jkt`), cross-repo reads, oplog and LtHash commit, mint policies |
+| `test/migrate.mjs` | the account-migration flow between two aerox instances on one PLC directory, driven from the UI |
+| `test/custody.mjs` | self-custody of `did:plc` identities (SELF_CUSTODY.md), also against the reference PDS + `did-method-plc` |
+| `test/archive.mjs` | Jetstream's sealed segments (DESIGN §22): `listSegments`, a block decoded in the browser (zstd → columnar layout → DAG-CBOR), and `planSnapshot` executed client-side |
+| `test/moderation.mjs` | the labeler's admin API (DESIGN §17.3) and the label's effect on what a reader sees |
+
 ## 8. Portability (L9)
 
 From DESIGN §13.3, as executable tests:
@@ -404,6 +425,8 @@ Each of these is a single, named test that must exist and stay green:
 | `sequencer_no_gap_on_restart` | (design, §5.3) | kill the sequencer mid-batch; after restart, seq continues with no gap or duplicate and no event lost |
 | `slow_subscriber_is_disconnected` | (design, §21.4) | a non-reading subscriber is dropped before its mailbox exceeds the threshold |
 | `plc_op_count_invariant` | production rotation-key safeguard | any code path that signs a PLC op records before/after counts and fails on mismatch |
+| `host_status_survives_cursor_persist` | a throttled host resurrected itself (2026-09-16) | terminating a consumer persists its cursor without overwriting a status an operator set; `test/relay/consumer_test.exs` |
+| `reconcile_resubscribes_orphaned_host` | same incident, the invisible half | an `active` host with no consumer is re-subscribed by `Consumers.reconcile/0` rather than waiting for a restart |
 
 ---
 

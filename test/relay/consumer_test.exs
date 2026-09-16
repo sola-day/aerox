@@ -151,7 +151,9 @@ defmodule Aerox.Relay.ConsumerTest do
     assert %{connected?: true, backoff: 0} = Consumer.status(host.hostname)
   end
 
-  test "a status an operator set survives the consumer's parting cursor persist", ctx do
+  # VERIFICATION §9: host_status_survives_cursor_persist
+  test "host_status_survives_cursor_persist: a throttled host is not resurrected by its own consumer",
+       ctx do
     {:ok, host} = Hosts.create("localhost:#{ctx.port}", true)
     consumer = start_supervised!({Consumer, host})
     Ecto.Adapters.SQL.Sandbox.allow(Aerox.Relay.Repo, self(), consumer)
@@ -183,7 +185,9 @@ defmodule Aerox.Relay.ConsumerTest do
     assert host.last_seq == 42
   end
 
-  test "reconcile re-subscribes an active host whose consumer is gone", ctx do
+  # VERIFICATION §9: reconcile_resubscribes_orphaned_host
+  test "reconcile_resubscribes_orphaned_host: an active host with no consumer is re-subscribed",
+       ctx do
     {:ok, host} = Hosts.create("localhost:#{ctx.port}", true)
     :ok = Consumers.subscribe(host)
     Ecto.Adapters.SQL.Sandbox.allow(Aerox.Relay.Repo, self(), Consumer.via(host.hostname))

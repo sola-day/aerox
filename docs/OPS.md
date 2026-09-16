@@ -49,6 +49,17 @@ upstream's `@atproto/aws` keypair). `Aerox.PDS.Config.signer/0` refuses
 promoted by accident. The offline recovery key (`RECOVERY_DID_KEY`) is only ever
 a public `did:key` on the server.
 
+**Admin passwords.** Three services take HTTP Basic `admin:<password>`, each
+instance-wide with no per-operator identity: the PDS (`PDS_ADMIN_PASSWORD`,
+optional — unset means only the moderation service's JWT reaches
+`com.atproto.admin.*`), the relay (`RELAY_ADMIN_PASSWORD`, required, for
+`admin.subscribeHost`, `setHostStatus`, `setHostAccountLimit`, `banDomain`) and
+the labeler (`LABELER_ADMIN_PASSWORD`, required, for `aerox.moderation.*`).
+They authorise every action of their service, so they belong in
+`/etc/aerox/<env>.env` (`0600`) like any other secret and are rotated the same
+way. The aero client's `/admin` and `/moderation` consoles ask for them per tab
+and keep them in `sessionStorage` only.
+
 ## 3. Backup and restore
 
 `ops/backup.sh <dest> <age-recipient>` dumps `aerox_pds` and `aerox_core`,

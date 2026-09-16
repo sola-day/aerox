@@ -43,8 +43,10 @@ The environment files are `.envrc.example` (dev) and `/etc/aerox/<env>.env`
 ## Clients run against it
 
 - **aero** (`../aero-app`, https://aero.sola.town): React 19 + Astryx social client
-  covering most of the protocol surface, including the self-custody flows of
-  SELF_CUSTODY.md.
+  covering most of the protocol surface — OAuth sign-in (DESIGN §11.2), Spaces
+  (§12), account migration, the Jetstream archive (§22), the labeler's live
+  label stream, the PDS and relay admin APIs, and the self-custody flows of
+  SELF_CUSTODY.md. Its Playwright suites are a release gate: VERIFICATION §7.5.
 - **ouranos** (https://ouranos.aerox.sola.town) is an unmodified upstream client.
 - **bulletin** (https://bulletin.aerox.sola.town) is the permissioned-spaces demo.
 

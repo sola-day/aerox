@@ -1046,6 +1046,15 @@ documents. Use `joken`/`jose` for JWT and JWK primitives and build the provider.
 `permission-set` lexicons in the registry, and answer "may this token do X on Y".
 It is pure and belongs in or next to the kernel; §12 depends on it.
 
+**A browser client drives the whole flow** (2026-09-16): `aero` signs in with
+`@atproto/oauth-client-browser` as a *discoverable* client — its `client_id` is
+`https://aero.sola.town/client-metadata.json`, which this PDS fetches before showing
+consent — with `atproto transition:generic transition:email`, PAR, PKCE, DPoP nonces
+and a non-extractable P-256 key in IndexedDB. What that proves beyond the unit tests:
+the metadata fetch, the consent pages served by `:browser`, the code exchange, a
+DPoP-bound token used for ordinary writes, session restore across reloads, and
+`revoke`. `aero-app/test/oauth.mjs` runs it in a real browser.
+
 **Legacy sessions stay.** `ouranos` logs in with `agent.login()` =
 `com.atproto.server.createSession` (identifier + password → access/refresh JWT), and
 has no OAuth client. So `createSession` / `refreshSession` / `deleteSession` and app
