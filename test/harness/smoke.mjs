@@ -14,7 +14,8 @@ console.log('describeServer', JSON.stringify(res.data))
 
 const domain = res.data.availableUserDomains[0]
 const handle = `smoke-${Date.now().toString(36)}${domain}`
-const password = 'REDACTED-smoke-harness-password'
+// a real account on a real PDS: a password per run, not one written down here
+const password = process.env.SMOKE_PASSWORD ?? `smoke-${crypto.randomUUID()}`
 const created = await agent.createAccount({
   handle,
   email: `${handle}@example.invalid`,

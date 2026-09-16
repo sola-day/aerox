@@ -42,7 +42,8 @@ async function seed(service, label, inviteCode) {
   for (const name of ['alice', 'bob', 'carol']) {
     const agent = new AtpAgent({ service })
     const handle = `p${STAMP}-${name}${domain}`
-    const password = 'REDACTED-parity-harness-password'
+    // a real account on a real PDS: a password per run, not one written down here
+    const password = process.env.PARITY_PASSWORD ?? `parity-${crypto.randomUUID()}`
     await agent.createAccount({
       handle,
       email: `${handle}@example.invalid`,
