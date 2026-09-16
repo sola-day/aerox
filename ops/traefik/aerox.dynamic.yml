@@ -124,6 +124,22 @@ http:
             sans:
               - "*.lab.aerox.sola.town"
 
+    # The migration target of aero-app's test/migrate.mjs
+    # (tools/interop/mig-devserver.sh): a third dev server on :4003 sharing the
+    # primary's PLC directory. Its own wildcard certificate, for its handles.
+    aerox-mig:
+      rule: "Host(`mig.aerox.sola.town`) || HostRegexp(`^[a-zA-Z0-9-]+\\.mig\\.aerox\\.sola\\.town$`)"
+      entryPoints:
+        - websecure
+      priority: 2
+      service: aerox-mig
+      tls:
+        certResolver: letsencrypt-dns
+        domains:
+          - main: "mig.aerox.sola.town"
+            sans:
+              - "*.mig.aerox.sola.town"
+
     # ouranos (DEV_PLAN §1.2), the Next.js dev/standalone server on the bridge
     # gateway at :3000, pointed at pds.aerox.sola.town.
     aerox-ouranos:
@@ -176,6 +192,10 @@ http:
           - "2001:bc8:1201:601:2247:47ff:fe7f:8f92/128"
 
   services:
+    aerox-mig:
+      loadBalancer:
+        servers:
+          - url: "http://172.18.0.1:4003"
     aerox-lab:
       loadBalancer:
         servers:
