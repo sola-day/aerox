@@ -99,10 +99,7 @@ defmodule Aerox.Relay.Consumer do
 
   def handle_info(:ping, state), do: {:noreply, state}
 
-  def handle_info({:stop_host, status}, state) do
-    Hosts.update_status(state.host.id, status)
-    {:stop, :normal, close(persist(state))}
-  end
+  def handle_info({:stop_host, status}, state), do: stop_host(status, state)
 
   def handle_info({:EXIT, _, _}, state), do: {:noreply, state}
 
@@ -327,14 +324,12 @@ defmodule Aerox.Relay.Consumer do
 
   defp persist(state), do: state
 
-  defp stop_host(:idle, state) do
-    Hosts.update_status(state.host.id, "idle")
-    {:stop, :normal, close(persist(state))}
-  end
-
-  defp stop_host(status, state) when is_binary(status) do
-    Hosts.update_status(state.host.id, status)
-    {:stop, :normal, close(persist(state))}
+  # the cursor first, then the status: persisting it can take an idle or
+  # offline host back to active, which would undo the status set here
+  defp stop_host(status, state) do
+    state = persist(state)
+    Hosts.update_status(state.host.id, to_string(status))
+    {:stop, :normal, close(state)}
   end
 
   @impl true

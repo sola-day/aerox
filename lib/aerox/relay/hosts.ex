@@ -109,12 +109,24 @@ defmodule Aerox.Relay.Hosts do
     :ok
   end
 
-  @doc "Persists a host cursor (upstream seq) and marks the host active once it has one."
+  @doc """
+  Persists a host cursor (upstream seq); a host that was `idle` or `offline`
+  becomes `active` again, because events are arriving from it.
+
+  A status an operator set (`throttled`, `banned`) is **not** overwritten: the
+  consumer persists its cursor on the way out, and resurrecting the row there
+  used to leave a host reading `active` with nothing consuming it — invisible,
+  and permanent until the next restart re-subscribed every active host.
+  """
   def persist_cursor(id, last_seq) when last_seq > 0 do
     now = DateTime.utc_now()
 
     Repo.update_all(from(h in Host, where: h.id == ^id),
-      set: [last_seq: last_seq, status: "active", last_event_at: now]
+      set: [last_seq: last_seq, last_event_at: now]
+    )
+
+    Repo.update_all(from(h in Host, where: h.id == ^id and h.status in ["idle", "offline"]),
+      set: [status: "active"]
     )
 
     :ok

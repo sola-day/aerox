@@ -9,7 +9,7 @@ defmodule Aerox.Relay.ConsumerTest do
   use Aerox.DataCase, async: false
   alias Aerox.ATProto.Frame
   alias Aerox.PDS.Sequencer, as: PdsSeq
-  alias Aerox.Relay.{Accounts, Consumer, Hosts, Sequencer}
+  alias Aerox.Relay.{Accounts, Consumer, Consumers, Hosts, Sequencer}
 
   defmodule FakeHost do
     @moduledoc false
@@ -149,5 +149,56 @@ defmodule Aerox.Relay.ConsumerTest do
     Process.sleep(300)
     assert length(Sequencer.range(ctx.relay_before, 100)) == 4
     assert %{connected?: true, backoff: 0} = Consumer.status(host.hostname)
+  end
+
+  test "a status an operator set survives the consumer's parting cursor persist", ctx do
+    {:ok, host} = Hosts.create("localhost:#{ctx.port}", true)
+    consumer = start_supervised!({Consumer, host})
+    Ecto.Adapters.SQL.Sandbox.allow(Aerox.Relay.Repo, self(), consumer)
+    Ecto.Adapters.SQL.Sandbox.allow(Aerox.PDS.Repo, self(), consumer)
+
+    assert_receive {:connected, _ws}, 2_000
+    wait_until(fn -> Consumer.status(host.hostname).cursor > 0 end)
+    # the consumer holds a cursor it has not written yet, as it does whenever
+    # events are arriving; this is the state an operator throttles it in
+    Hosts.update_status(host.id, "throttled")
+
+    # what admin.setHostStatus does next: terminate the consumer. On the way out
+    # it persists its cursor — which must not put the host back to "active",
+    # leaving a row nothing consumes (VERIFICATION §5 Relay).
+    stop_supervised!(Consumer)
+
+    assert Hosts.get(host.hostname).status == "throttled"
+    assert Hosts.get(host.hostname).last_seq >= ctx.first_seq
+  end
+
+  test "events take an idle or offline host back to active" do
+    {:ok, host} = Hosts.create("offline.example.com", true)
+    Hosts.update_status(host.id, "offline")
+
+    Hosts.persist_cursor(host.id, 42)
+
+    host = Hosts.get(host.hostname)
+    assert host.status == "active"
+    assert host.last_seq == 42
+  end
+
+  test "reconcile re-subscribes an active host whose consumer is gone", ctx do
+    {:ok, host} = Hosts.create("localhost:#{ctx.port}", true)
+    :ok = Consumers.subscribe(host)
+    Ecto.Adapters.SQL.Sandbox.allow(Aerox.Relay.Repo, self(), Consumer.via(host.hostname))
+    Ecto.Adapters.SQL.Sandbox.allow(Aerox.PDS.Repo, self(), Consumer.via(host.hostname))
+    assert_receive {:connected, _}, 2_000
+    assert Consumers.subscribed?(host.hostname)
+
+    # the consumer goes away without the row changing
+    Consumers.unsubscribe(host.hostname)
+    wait_until(fn -> not Consumers.subscribed?(host.hostname) end)
+    Hosts.update_status(host.id, "active")
+
+    assert :ok = Consumers.reconcile()
+    assert Consumers.subscribed?(host.hostname)
+    Consumers.unsubscribe(host.hostname)
+    _ = ctx
   end
 end

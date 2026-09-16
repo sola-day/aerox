@@ -2007,6 +2007,14 @@ accounts (ten `createRecord`s into one commit) — to be added only when measure
   hostname. A host emitting garbage crashes only its own consumer, which restarts from
   `host.cursor`; `max_restarts` with back-off, and persistent offenders are **paused**,
   not restarted every second.
+- **The row and the process must agree.** `host.status` says what should be running;
+  the Registry says what is. Two rules keep them from drifting: persisting a cursor
+  may take an `idle` or `offline` host back to `active`, but never overrides a status
+  an operator or the error counter set (a consumer writes its cursor as it stops, and
+  that write used to resurrect the row it was stopping for); and a reconciler
+  re-subscribes any `active` host with no consumer once a minute, because that
+  disagreement is otherwise invisible — every HTTP surface keeps answering while
+  nothing is being consumed.
 - Fan-out through `Phoenix.PubSub` / `Registry` dispatch; one WebSock process per
   subscriber.
 - **BEAM mailboxes are unbounded.** A slow subscriber does not block the sender; it
