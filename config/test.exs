@@ -84,7 +84,8 @@ config :aerox, Oban.Core, testing: :manual
 # you can enable the server option below.
 config :aerox, AeroxWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
-  secret_key_base: "GIyVyLJJlFt7keFg+vAnPlze8LBYqqmeOVqJaFV9S9ER+e7U9arYy1RoYAFkt7s2",
+  # test-only, and never used anywhere a token could be presented
+  secret_key_base: String.duplicate("test-secret-key-base-", 4),
   server: false
 
 # DESIGN §18.2: no trusted proxies in test, so x-forwarded-for is ignored
