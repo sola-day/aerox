@@ -53,8 +53,10 @@ a public `did:key` on the server.
 admin passwords from the environment, or from `tmp/dev.env`, which
 `tools/dev/devserver.sh` generates on first run (`.gitignore` keeps both out).
 The reference containers do the same through `tools/interop/.env` (see
-`.env.example` beside it). Only `config/test.exs` carries literals, and they are
-deliberately fake (`String.duplicate("42", 32)`): a key that runs anywhere must
+`.env.example` beside it). The dev endpoint's `secret_key_base` is in there too, because
+`Aerox.PDS.Config.jwt_secret/0` falls back to it: that one string mints every
+access and refresh token the PDS issues. Only `config/test.exs` carries
+literals, and they are deliberately fake (`String.duplicate("42", 32)`): a key that runs anywhere must
 never double as a fixture — on 2026-09-16 this dev box's PLC rotation key turned
 out to be the first entry of the W3C `did:key` test vectors in
 `test/golden/crypto/`, i.e. a key anyone could look up, and it was rotated

@@ -1,5 +1,35 @@
 import Config
 
+# Dev secrets never live in the repo (DEV_PLAN §1.3): this box is on the public
+# internet, so its keys and admin passwords are real credentials, not fixtures.
+# They come from the environment, or from tmp/dev.env, which
+# tools/dev/devserver.sh generates on first run and .gitignore keeps out.
+dev_env_file = Path.expand("../tmp/dev.env", __DIR__)
+
+if File.exists?(dev_env_file) do
+  dev_env_file
+  |> File.read!()
+  |> String.split("\n", trim: true)
+  |> Enum.reject(&String.starts_with?(String.trim(&1), "#"))
+  |> Enum.each(fn line ->
+    case String.split(String.trim(line), "=", parts: 2) do
+      [name, value] -> System.put_env(name, value)
+      _ -> :ok
+    end
+  end)
+end
+
+dev_secret = fn name ->
+  System.get_env(name) ||
+    raise """
+    #{name} is not set.
+
+    Dev keys and admin passwords are not kept in the repo. Start the stack with
+    tools/dev/devserver.sh — it writes tmp/dev.env on first run — or export the
+    variable yourself before running mix.
+    """
+end
+
 # Databases. Postgres 18 runs in Docker on loopback (compose.yaml, DEV_PLAN
 # §1.1). Each repo connects as its own role (DESIGN §4.6); the roles are created
 # by docker/postgres/init and each has exactly the privileges its service needs.
@@ -64,7 +94,9 @@ config :aerox, AeroxWeb.Endpoint,
   # lock and debug logging, for bench/baseline.sh (VERIFICATION §10.1).
   code_reloader: System.get_env("AEROX_BENCH") != "1",
   debug_errors: true,
-  secret_key_base: "REDACTED-dev-secret-key-base-rotated-2026-09-16",
+  # also the PDS's HS256 session key by default (Aerox.PDS.Config.jwt_secret/0),
+  # so it mints access and refresh tokens: never a literal
+  secret_key_base: dev_secret.("AEROX_SECRET_KEY_BASE"),
   watchers: []
 
 # ## SSL Support
@@ -130,36 +162,6 @@ config :swoosh, :api_client, false
 dev_domain = System.get_env("AEROX_DEV_DOMAIN", "aerox.sola.town")
 
 # PDS (DESIGN §18, §14.2): dev keys only. Handles live under the dev domain.
-# Dev secrets never live in the repo (DEV_PLAN §1.3): this box is on the public
-# internet, so its keys and admin passwords are real credentials, not fixtures.
-# They come from the environment, or from tmp/dev.env, which
-# tools/dev/devserver.sh generates on first run and .gitignore keeps out.
-dev_env_file = Path.expand("../tmp/dev.env", __DIR__)
-
-if File.exists?(dev_env_file) do
-  dev_env_file
-  |> File.read!()
-  |> String.split("\n", trim: true)
-  |> Enum.reject(&String.starts_with?(String.trim(&1), "#"))
-  |> Enum.each(fn line ->
-    case String.split(String.trim(line), "=", parts: 2) do
-      [name, value] -> System.put_env(name, value)
-      _ -> :ok
-    end
-  end)
-end
-
-dev_secret = fn name ->
-  System.get_env(name) ||
-    raise """
-    #{name} is not set.
-
-    Dev keys and admin passwords are not kept in the repo. Start the stack with
-    tools/dev/devserver.sh — it writes tmp/dev.env on first run — or export the
-    variable yourself before running mix.
-    """
-end
-
 config :aerox, Aerox.PDS,
   # DEV_PLAN §1.2: the PDS is pds.<dev-domain>; the apex also routes here.
   public_url: System.get_env("AEROX_PDS_PUBLIC_URL", "https://pds.#{dev_domain}"),

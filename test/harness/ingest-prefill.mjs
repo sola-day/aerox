@@ -9,6 +9,9 @@ const INVITE = process.env.AEROX_INVITE_CODE
 const ACCOUNTS = Number(process.env.PREFILL_ACCOUNTS ?? 20)
 const POSTS = Number(process.env.PREFILL_POSTS ?? 100)
 const CONCURRENCY = Number(process.env.PREFILL_CONCURRENCY ?? 20)
+// the accounts this creates are real accounts on a real PDS: give them a
+// password nobody else knows, generated per run rather than written down here
+const PASSWORD = process.env.PREFILL_PASSWORD ?? `prefill-${crypto.randomUUID()}`
 
 const describe = await new AtpAgent({ service: PDS }).com.atproto.server.describeServer()
 const domain = describe.data.availableUserDomains[0]
@@ -21,7 +24,7 @@ for (let i = 0; i < ACCOUNTS; i++) {
   await agent.createAccount({
     handle,
     email: `${handle}@example.invalid`,
-    password: 'REDACTED-prefill-password',
+    password: PASSWORD,
     ...(INVITE ? { inviteCode: INVITE } : {}),
   })
   agents.push(agent)
