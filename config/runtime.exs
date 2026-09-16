@@ -98,6 +98,9 @@ if config_env() == :prod do
     plc_url: System.get_env("PLC_URL") || "https://" <> service_host.("PLC"),
     oauth_key_hex: need.("OAUTH_KEY_HEX"),
     jwt_secret: need.("JWT_SECRET"),
+    # HTTP Basic admin for com.atproto.admin.* (pdsadmin and the admin console);
+    # without it only the moderation service's JWT reaches those routes
+    admin_password: System.get_env("PDS_ADMIN_PASSWORD"),
     recovery_did_key: System.get_env("RECOVERY_DID_KEY"),
     invites_required: System.get_env("INVITES_REQUIRED", "true") in ~w(true 1),
     contact_email: System.get_env("CONTACT_EMAIL"),

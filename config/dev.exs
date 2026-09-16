@@ -141,6 +141,9 @@ config :aerox, Aerox.PDS,
       "REDACTED-dev-oauth-key-rotated-2026-09-16"
     ),
   plc_url: System.get_env("AEROX_PLC_URL", "https://plc.#{dev_domain}"),
+  # HTTP Basic admin:<password> for com.atproto.admin.*, as the relay and the
+  # labeler already have; a dev throwaway
+  admin_password: System.get_env("AEROX_PDS_ADMIN_PASSWORD", "REDACTED-pds-admin-password"),
   contact_email: "lisbon@appendonly.org"
 
 config :aerox, Aerox.PDS.PlcOps, http: [allow_private: true]
