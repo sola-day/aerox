@@ -1,0 +1,35 @@
+lib/aerox/appview/feeds.ex
+  s_8c80ad8d2af680::t_361863bd3fdd78 446-450,452-460,463,465,468,470-479,500-501
+  s_8c80ad8d2af680::t_32e7011c38530c 502
+lib/aerox_web/controllers/appview/feed_controller.ex
+  s_8c80ad8d2af680::t_310cbae86ae4c0 396-397
+  s_8c80ad8d2af680::t_44d82db10d935e 393-395,398-401,404,429-439
+  s_8c80ad8d2af680::t_3f1c9c7a984c8b 440-441
+priv/appview_repo/migrations/20261009090000_add_post_search_filters.exs
+  s_8c80ad8d2af680::t_aabe9761338d06 1-48
+docs/PARITY.md
+  s_8c80ad8d2af680::t_ff48114eb2e404 108-111
+lib/aerox/appview/schema.ex
+  s_8c80ad8d2af680::t_72f66959b9906b 94-95
+lib/aerox/appview/plugins/post.ex
+  s_8c80ad8d2af680::t_72f66959b9906b 25,38-39,81-88,165
+  s_8c80ad8d2af680::t_310cbae86ae4c0 166-169
+test/aerox_web/appview/feed_controller_test.exs
+  s_8c80ad8d2af680::t_35657cbb202593 629-667
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f2c203fbb1f10d89426c36a7e3fb8dd67827e5ae",
+  "prompts": {},
+  "sessions": {
+    "s_8c80ad8d2af680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e1cacbb5-9264-4c9e-8d1e-0245a530ded4",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
