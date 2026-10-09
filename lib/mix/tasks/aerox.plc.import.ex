@@ -17,6 +17,8 @@ defmodule Mix.Tasks.Aerox.Plc.Import do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, strict: [from: :string])
     Mix.Task.run("app.config")
+    # app.config leaves dev's :debug in place, and Ecto would log every query
+    Logger.configure(level: :info)
     Aerox.Release.import_plc(opts[:from] || Mix.raise("--from is required"))
   end
 end
