@@ -1,0 +1,22 @@
+lib/aerox/release.ex
+  s_8c80ad8d2af680::t_3297314f447db9 9
+  s_8c80ad8d2af680::t_50f0d30a0ff780 78-90
+docs/OPS.md
+  s_8c80ad8d2af680::t_81b670ce297f13 74-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0f8b8a8fa1260274abb5959e3a1c2bd3116a0cf1",
+  "prompts": {},
+  "sessions": {
+    "s_8c80ad8d2af680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e1cacbb5-9264-4c9e-8d1e-0245a530ded4",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
