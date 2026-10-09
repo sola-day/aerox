@@ -1,0 +1,32 @@
+lib/aerox/release.ex
+  s_8c80ad8d2af680::t_599ab140fc664f 29-48
+lib/mix/tasks/aerox.plc.import.ex
+  s_8c80ad8d2af680::t_599ab140fc664f 1-22
+config/test.exs
+  s_8c80ad8d2af680::t_dfedf523812a97 150-151
+lib/aerox/plc/import.ex
+  s_8c80ad8d2af680::t_d7fb942007dbd0 1-18,20,28-31,36-38,40-42,44-47,50-83,92-101,103-104,108-127
+  s_8c80ad8d2af680::t_dfedf523812a97 84-91,105-107
+  s_8c80ad8d2af680::t_db10ca4c4a1cf4 19,21-27,32-35,39,43,48-49,102
+test/plc/import_test.exs
+  s_8c80ad8d2af680::t_dfedf523812a97 1-3,5-65,69-83,85-89
+  s_8c80ad8d2af680::t_092c541e96c463 4,66-68,84
+docs/OPS.md
+  s_8c80ad8d2af680::t_8bea01904bb99e 100-106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6e5da6bc7c4e082cda7a809f967c9db5a10f8cf7",
+  "prompts": {},
+  "sessions": {
+    "s_8c80ad8d2af680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e1cacbb5-9264-4c9e-8d1e-0245a530ded4",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
