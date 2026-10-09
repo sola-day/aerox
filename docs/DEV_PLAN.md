@@ -129,9 +129,9 @@ The server is exposed and will hold real-looking data during migration drills. R
 
 - Git hosting: GitHub (the existing organisation). Trunk-based: short-lived branches,
   PRs into `main`, squash merges, conventional commit messages.
-- **CI runs on the server itself** as a self-hosted GitHub Actions runner. The interop
-  and network stages need Postgres, Docker and real hostnames — exactly what this box
-  has and hosted runners do not. The runner user is separate from the service user.
+- **No hosted CI** (GitHub Actions removed 2026-10-09). The stages of VERIFICATION §11
+  are run by hand before merging: `mix test` locally, and the interop and network
+  stages on the box, which has the Postgres, Docker and real hostnames they need.
 - CI databases (`aerox_pds_test`, `aerox_core_test`) are created once; the test helper
   refuses to start if either is missing (VERIFICATION §11).
 - `npm` installs for `ouranos`/`bulletin`/harness: if the box sits behind a registry
@@ -157,12 +157,12 @@ The server is exposed and will hold real-looking data during migration drills. R
    layers: goldens and properties first, then code).
 2. `mix test` locally on the box against the sandboxed `_test` databases; `mix format`,
    `credo`, `dialyzer` (cached PLT) before pushing.
-3. PR → CI **fast** and **services** stages must pass; **integration** runs on PRs to
-   `main`; **interop** and **network** run nightly and on release branches.
+3. Before merging, the **fast** and **services** stages must pass (`mix test`);
+   **integration**, **interop** and **network** are run on the box before a release.
 4. Review focuses on the boundary rules: kernel does no I/O, services do not share a
    database, every account-scoped query is `did`-prefixed, no process where a function
    or ETS will do (DESIGN §21).
-5. Merge → the `demo` release is rebuilt and restarted by CI; `ouranos` and `bulletin`
+5. Merge → the `demo` release is rebuilt and restarted; `ouranos` and `bulletin`
    point at it, so the standing environment always reflects `main`.
 
 ### 2.3 Cadence and hygiene
