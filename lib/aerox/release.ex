@@ -8,6 +8,8 @@ defmodule Aerox.Release do
     top_level?: true,
     deps: [Aerox.PDS, Aerox.PLC, Aerox.Relay, Aerox.AppView, Aerox.Labeler]
 
+  alias Aerox.PLC.Import
+
   @app :aerox
   @repos [
     Aerox.PDS.Repo,
@@ -33,17 +35,18 @@ defmodule Aerox.Release do
 
     {:ok, _, _} =
       Ecto.Migrator.with_repo(Aerox.PLC.Repo, fn _ ->
-        case source |> Aerox.PLC.Import.read!() |> Aerox.PLC.Import.run() do
-          {:ok, %{dids: dids, added: added}} ->
-            IO.puts("PLC import: #{dids} DIDs, #{added} operations added")
-
-          {:error, failed} ->
-            for {did, reason} <- failed, do: IO.puts(:stderr, "FAIL #{did}: #{inspect(reason)}")
-            raise "PLC import: #{length(failed)} DIDs failed validation; nothing was written"
-        end
+        source |> Import.read!() |> Import.run() |> report_plc_import()
       end)
 
     :ok
+  end
+
+  defp report_plc_import({:ok, %{dids: dids, added: added}}),
+    do: IO.puts("PLC import: #{dids} DIDs, #{added} operations added")
+
+  defp report_plc_import({:error, failed}) do
+    for {did, reason} <- failed, do: IO.puts(:stderr, "FAIL #{did}: #{inspect(reason)}")
+    raise "PLC import: #{length(failed)} DIDs failed validation; nothing was written"
   end
 
   def rollback(repo, version) do
