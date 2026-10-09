@@ -28,7 +28,8 @@ to the address the proxy dials: the default binds every interface, and on a host
 with no packet filter that publishes the plaintext port beside the proxy, which
 also makes `TRUSTED_PROXIES` moot because clients reach Phoenix directly. One release
 serves every hostname: `AeroxWeb.Dispatch` routes by `Host` to the PDS+PLC
-router, the Relay, the AppView, the Labeler or Jetstream. Hostnames default to
+router, the Relay, the AppView, the Labeler or Jetstream; `AEROX_SERVICES` (e.g.
+`pds,plc,relay,appview`) limits which run. Hostnames default to
 `<service>.<PHX_HOST>` and can be overridden with `PLC_HOST`, `RELAY_HOST`,
 `APPVIEW_HOST`, `LABELER_HOST`, `JETSTREAM_HOST`.
 
@@ -46,7 +47,10 @@ that answers `GET /key` and `POST /sign` behind a bearer secret) or `kms`
 (`Aerox.Crypto.Signer.Kms`, an AWS KMS `ECC_SECG_P256K1` key, compatible with
 upstream's `@atproto/aws` keypair). `Aerox.PDS.Config.signer/0` refuses
 `Signer.Local` when `config :aerox, :env` is `:prod`, so a dev key cannot be
-promoted by accident. The offline recovery key (`RECOVERY_DID_KEY`) is only ever
+promoted by accident. A staging deployment may set `SIGNER=local` with
+`SIGNER_PRIVATE_KEY_HEX`, only together with `AEROX_DEPLOYMENT=staging`, which marks
+the node `:staging`; the key then lives in the node's environment, so it must never
+be one that rotates a production DID. The offline recovery key (`RECOVERY_DID_KEY`) is only ever
 a public `did:key` on the server.
 
 **Dev secrets are not in the repo either.** `config/dev.exs` reads its keys and
