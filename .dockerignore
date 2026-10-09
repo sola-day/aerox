@@ -1,0 +1,9 @@
+_build
+deps
+tmp
+cover
+priv/plts
+bench
+.git
+.envrc
+*.env
