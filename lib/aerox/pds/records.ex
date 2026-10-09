@@ -356,7 +356,8 @@ defmodule Aerox.PDS.Records do
   @spec list_records(String.t(), String.t(), keyword) :: [map]
   def list_records(did, collection, opts \\ []) do
     limit = Keyword.get(opts, :limit, 50)
-    reverse = Keyword.get(opts, :reverse, false)
+    # the controller passes absent params as nil, so a default here would never apply
+    reverse = opts[:reverse] == true
 
     q =
       from(r in Record,

@@ -162,6 +162,16 @@ defmodule AeroxWeb.PDS.FlowTest do
 
     assert length(listed["records"]) == 1
 
+    # paging with a cursor and no `reverse` (it arrives as nil) must not crash
+    assert %{"records" => []} =
+             conn
+             |> xrpc_get("com.atproto.repo.listRecords", %{
+               "repo" => did,
+               "collection" => "app.bsky.feed.post",
+               "cursor" => listed["cursor"]
+             })
+             |> json_response(200)
+
     described =
       conn |> xrpc_get("com.atproto.repo.describeRepo", %{"repo" => did}) |> json_response(200)
 
