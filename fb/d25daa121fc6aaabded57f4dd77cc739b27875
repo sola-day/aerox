@@ -1,0 +1,49 @@
+priv/lexicons/aerox/feed/listPosts.json
+  s_8c80ad8d2af680::t_09f0e97390fed1 1-75
+docs/PARITY.md
+  s_8c80ad8d2af680::t_6aeacdf87d3c49 69-70,112-114
+  s_8c80ad8d2af680::t_aed3e82439cfb1 68
+test/atproto/lexicon_golden_test.exs
+  s_8c80ad8d2af680::t_6aeacdf87d3c49 100
+lib/aerox_web/app_view_router.ex
+  s_8c80ad8d2af680::t_8337e2d8f82301 72
+test/aerox_web/appview/feed_controller_test.exs
+  s_8c80ad8d2af680::t_e53da1699653e7 651-652,670-718
+  s_8c80ad8d2af680::t_c4986400ec7d52 650,719-720
+test/parity/ENDPOINTS.md
+  s_8c80ad8d2af680::t_6aeacdf87d3c49 189,223
+priv/lexicons/aerox/moderation/defs.json
+  s_8c80ad8d2af680::t_508c44ff8e7a6b 44-51
+priv/lexicons/aerox/moderation/queryPosts.json
+  s_8c80ad8d2af680::t_09f0e97390fed1 1-79
+lib/aerox_web/controllers/appview/feed_controller.ex
+  s_8c80ad8d2af680::t_1720b09e9d7e23 390,393,397-416,444-448,450,452
+lib/aerox_web/controllers/labeler/moderation_controller.ex
+  s_8c80ad8d2af680::t_1a4aab4abad078 6,12,14,63-70,72-103
+  s_8c80ad8d2af680::t_1c44eee14e5dba 71
+  s_8c80ad8d2af680::t_304890807f25e9 104-106
+lib/aerox/appview/feeds.ex
+  s_8c80ad8d2af680::t_6c419cc47446db 448-451,461-463,474-475,559
+  s_8c80ad8d2af680::t_7785306f814987 493-506,560-561
+  s_8c80ad8d2af680::t_1a4aab4abad078 478-492,507-524
+  s_8c80ad8d2af680::t_8337e2d8f82301 546-558
+  s_8c80ad8d2af680::t_4dffa108a6c376 562
+lib/aerox_web/labeler_router.ex
+  s_8c80ad8d2af680::t_8337e2d8f82301 47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fbd25daa121fc6aaabded57f4dd77cc739b27875",
+  "prompts": {},
+  "sessions": {
+    "s_8c80ad8d2af680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e1cacbb5-9264-4c9e-8d1e-0245a530ded4",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
