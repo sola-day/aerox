@@ -57,7 +57,7 @@ defmodule Aerox.Release do
   node's `backfill` queue does the work; this only inserts the jobs.
   """
   def backfill_appview(url) do
-    Application.ensure_all_started(:req)
+    Enum.each([:req, :oban], &Application.ensure_all_started/1)
     Application.load(@app)
 
     {:ok, _, _} =
