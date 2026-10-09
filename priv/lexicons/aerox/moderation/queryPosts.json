@@ -1,0 +1,79 @@
+{
+  "lexicon": 1,
+  "id": "aerox.moderation.queryPosts",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Top-level posts with their takedown status, newest first. Admin only; needs the AppView in the same node.",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Substring of the post text; empty or absent matches every post."
+          },
+          "author": {
+            "type": "string",
+            "format": "at-identifier"
+          },
+          "tag": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 640,
+              "maxGraphemes": 64
+            },
+            "maxItems": 10,
+            "description": "Hashtags, without '#'; all must match."
+          },
+          "since": {
+            "type": "string",
+            "description": "sortAt lower bound (inclusive): a datetime or YYYY-MM-DD."
+          },
+          "until": {
+            "type": "string",
+            "description": "sortAt upper bound (exclusive): a datetime or YYYY-MM-DD."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 25
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Numeric offset, as searchPosts."
+          },
+          "takenDown": {
+            "type": "boolean",
+            "description": "Only taken-down posts (true) or only visible ones (false); both when absent."
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": [
+            "posts"
+          ],
+          "properties": {
+            "cursor": {
+              "type": "string"
+            },
+            "hitsTotal": {
+              "type": "integer"
+            },
+            "posts": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "aerox.moderation.defs#postStatusView"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

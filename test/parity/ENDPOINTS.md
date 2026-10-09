@@ -186,6 +186,7 @@ every time.
 | `app.bsky.feed.getActorFeeds` | GET | appview | pending |  |
 | `app.bsky.feed.getListFeed` | GET | appview | pending |  |
 | `app.bsky.feed.searchPosts` | GET | appview | pending |  |
+| `aerox.feed.listPosts` | GET | appview | flow | aerox addition: searchPosts' filters, top-level posts only |
 | `app.bsky.feed.describeFeedGenerator` | GET | appview | pending | feedgen-side method; 501 here |
 | `app.bsky.graph.getFollows` | GET | appview | parity |  |
 | `app.bsky.graph.getFollowers` | GET | appview | parity |  |
@@ -219,6 +220,7 @@ every time.
 | `aerox.moderation.emitEvent` | POST | labeler | flow | aerox's own admin API (DESIGN §17.3); `tools.ozone.*` is the later target |
 | `aerox.moderation.queryEvents` | GET | labeler | flow | aerox's own admin API (DESIGN §17.3) |
 | `aerox.moderation.queryReports` | GET | labeler | flow | aerox's own admin API (DESIGN §17.3) |
+| `aerox.moderation.queryPosts` | GET | labeler | flow | aerox's own admin API: top-level posts with takedown status; needs the AppView in-node |
 | `network.bsky.jetstream.subscribeEvents` | GET | jetstream | flow | proposal 0015 `xrpc.v1.json`; `/subscribe` (v1, not XRPC) beside it |
 | `network.bsky.jetstream.getZstdDictionary` | GET | jetstream | flow | the vendored `subscribe_events_20260811` dictionary |
 | `network.bsky.jetstream.listSegments` | GET | jetstream | flow |  |

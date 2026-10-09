@@ -69,6 +69,7 @@ defmodule AeroxWeb.AppViewRouter do
     get "/app.bsky.feed.getActorFeeds", FeedController, :get_actor_feeds
     get "/app.bsky.feed.getListFeed", FeedController, :get_list_feed
     get "/app.bsky.feed.searchPosts", FeedController, :search_posts
+    get "/aerox.feed.listPosts", FeedController, :list_posts
     get "/app.bsky.feed.describeFeedGenerator", FeedController, :describe_feed_generator
 
     # graph

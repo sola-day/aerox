@@ -44,6 +44,7 @@ defmodule AeroxWeb.LabelerRouter do
     post "/aerox.moderation.emitEvent", ModerationController, :emit_event
     get "/aerox.moderation.queryEvents", ModerationController, :query_events
     get "/aerox.moderation.queryReports", ModerationController, :query_reports
+    get "/aerox.moderation.queryPosts", ModerationController, :query_posts
 
     match :*, "/*method", MetaController, :not_implemented
   end

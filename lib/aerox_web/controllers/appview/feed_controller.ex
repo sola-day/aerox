@@ -384,21 +384,36 @@ defmodule AeroxWeb.AppView.FeedController do
   # ---------------------------------------------------------------- search
 
   def search_posts(conn, _) do
-    viewer = conn.assigns.viewer
     params = params!(with_repeated(conn, ["tag"]), "app.bsky.feed.searchPosts")
-    labelers = labelers(conn)
-
     %{q: q, author: author} = Feeds.parse_search_query(params["q"], params["author"])
 
-    filters = %{
+    search(conn, q, params, %{
       author: author && actor!(author),
       mentions: params["mentions"] && actor!(params["mentions"]),
-      tags:
-        for(t <- List.wrap(params["tag"]), do: t |> String.trim_leading("#") |> String.downcase()),
+      tags: search_tags(params),
       lang: params["lang"],
       since: search_bound(params["since"]),
       until: search_bound(params["until"])
-    }
+    })
+  end
+
+  # aerox.feed.listPosts: searchPosts' filters, top-level posts only
+  def list_posts(conn, _) do
+    params = params!(with_repeated(conn, ["tag"]), "aerox.feed.listPosts")
+    %{q: q, author: author} = Feeds.parse_search_query(params["q"] || "", params["author"])
+
+    search(conn, q, params, %{
+      author: author && actor!(author),
+      tags: search_tags(params),
+      since: search_bound(params["since"]),
+      until: search_bound(params["until"]),
+      replies: false
+    })
+  end
+
+  defp search(conn, q, params, filters) do
+    viewer = conn.assigns.viewer
+    labelers = labelers(conn)
 
     %{uris: uris, cursor: cursor, hits_total: total} =
       case Feeds.search_posts(q, filters, params["limit"], params["cursor"]) do
@@ -426,10 +441,15 @@ defmodule AeroxWeb.AppView.FeedController do
     )
   end
 
-  # the lexicon's "a datetime, or just an ISO date (YYYY-MM-DD)"
-  defp search_bound(nil), do: nil
+  @doc false
+  def search_tags(params),
+    do: for(t <- List.wrap(params["tag"]), do: t |> String.trim_leading("#") |> String.downcase())
 
-  defp search_bound(value) do
+  @doc false
+  # the lexicon's "a datetime, or just an ISO date (YYYY-MM-DD)"
+  def search_bound(nil), do: nil
+
+  def search_bound(value) do
     with {:error, _} <- Syntax.parse_datetime(value),
          {:ok, date} <- Date.from_iso8601(value) do
       DateTime.new!(date, ~T[00:00:00])

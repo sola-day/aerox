@@ -41,6 +41,14 @@
         "reportedBy": { "type": "string", "format": "did" },
         "createdAt": { "type": "string", "format": "datetime" }
       }
+    },
+    "postStatusView": {
+      "type": "object",
+      "required": ["post", "takenDown"],
+      "properties": {
+        "post": { "type": "ref", "ref": "app.bsky.feed.defs#postView" },
+        "takenDown": { "type": "boolean" }
+      }
     }
   }
 }
