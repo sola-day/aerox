@@ -105,6 +105,10 @@ timestamp cursor and a wildcard collection filter.
   refused instead (DESIGN §19).
 - `createAccount` takes no `plcOp` input; a new DID is minted on the PDS, and a
   brought DID (migration) needs a service JWT from that DID (DESIGN §18.3).
+- `searchPosts` is Postgres substring search (DESIGN §15.8), always newest first:
+  `sort=top` is accepted and ranked as `latest`, and an empty `q` lists every post.
+  The `tag`, `mentions`, `author`, `lang`, `since` and `until` filters are served;
+  `domain` and `url` are accepted and ignored.
 - The PDS proxy is pure pass-through, with no read-after-write patching (DESIGN §11.3).
 - Jetstream's zstd frames are libzstd's, not klauspost/compress's: every reader
   decodes them, but a byte-for-byte comparison with an upstream-written segment

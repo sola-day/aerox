@@ -390,14 +390,18 @@ defmodule AeroxWeb.AppView.FeedController do
 
     %{q: q, author: author} = Feeds.parse_search_query(params["q"], params["author"])
 
-    author_did =
-      case author do
-        nil -> nil
-        a -> Feeds.resolve_actor(a) || raise(Error.invalid_request("Profile not found"))
-      end
+    filters = %{
+      author: author && actor!(author),
+      mentions: params["mentions"] && actor!(params["mentions"]),
+      tags:
+        for(t <- List.wrap(params["tag"]), do: t |> String.trim_leading("#") |> String.downcase()),
+      lang: params["lang"],
+      since: search_bound(params["since"]),
+      until: search_bound(params["until"])
+    }
 
     %{uris: uris, cursor: cursor, hits_total: total} =
-      case Feeds.search_posts(q, author_did, params["limit"], params["cursor"]) do
+      case Feeds.search_posts(q, filters, params["limit"], params["cursor"]) do
         {:ok, result} -> result
         {:error, :malformed_cursor} -> raise Error.invalid_request("Malformed cursor")
       end
@@ -420,6 +424,19 @@ defmodule AeroxWeb.AppView.FeedController do
       labelers,
       compact(%{"posts" => posts, "cursor" => cursor, "hitsTotal" => total})
     )
+  end
+
+  # the lexicon's "a datetime, or just an ISO date (YYYY-MM-DD)"
+  defp search_bound(nil), do: nil
+
+  defp search_bound(value) do
+    with {:error, _} <- Syntax.parse_datetime(value),
+         {:ok, date} <- Date.from_iso8601(value) do
+      DateTime.new!(date, ~T[00:00:00])
+    else
+      {:ok, %DateTime{} = at} -> at
+      _ -> raise Error.invalid_request("Invalid datetime: #{value}")
+    end
   end
 
   # ------------------------------------------------------------ the rest

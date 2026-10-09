@@ -626,6 +626,45 @@ defmodule AeroxWeb.AppView.FeedControllerTest do
     assert xrpc!(conn, "app.bsky.feed.searchPosts", %{"q" => "%"})["posts"] == []
   end
 
+  test "searchPosts: empty q lists every post; tag, mentions, lang, since/until filters", ctx do
+    %{conn: conn, alice: alice, bob: bob} = ctx
+    tag = &%{"index" => %{"byteStart" => 0, "byteEnd" => 1}, "features" => [&1]}
+
+    a1 =
+      make_post(alice.did, "#活动 #Tea", 100, %{
+        "langs" => ["zh"],
+        "facets" => [
+          tag.(%{"$type" => "app.bsky.richtext.facet#tag", "tag" => "活动"}),
+          tag.(%{"$type" => "app.bsky.richtext.facet#tag", "tag" => "Tea"})
+        ]
+      })
+
+    a2 = make_post(alice.did, "tagged by field", 200, %{"tags" => ["活动"], "langs" => ["en"]})
+
+    a3 =
+      make_post(alice.did, "hi @bob", 300, %{
+        "facets" => [tag.(%{"$type" => "app.bsky.richtext.facet#mention", "did" => bob.did})]
+      })
+
+    write!(alice.did, [a1, a2, a3])
+    search = &Enum.map(xrpc!(conn, "app.bsky.feed.searchPosts", &1)["posts"], fn p -> p["uri"] end)
+
+    assert search.([{"q", ""}]) == [a3.uri, a2.uri, a1.uri]
+    # facet or tag field; case-insensitive; a leading # is tolerated; several tags AND
+    assert search.([{"q", ""}, {"tag", "活动"}]) == [a2.uri, a1.uri]
+    assert search.([{"q", ""}, {"tag", "#tea"}]) == [a1.uri]
+    assert search.([{"q", ""}, {"tag", "活动"}, {"tag", "tea"}]) == [a1.uri]
+    assert search.([{"q", "field"}, {"tag", "活动"}]) == [a2.uri]
+    assert search.([{"q", ""}, {"mentions", bob.handle}]) == [a3.uri]
+    assert search.([{"q", ""}, {"lang", "zh"}]) == [a1.uri]
+    # since inclusive, until exclusive, on sortAt; a bare date is accepted
+    assert search.([{"q", ""}, {"since", at(150)}, {"until", at(250)}]) == [a2.uri]
+    assert search.([{"q", ""}, {"until", "2000-01-01"}]) == []
+
+    assert {400, %{"message" => "Invalid datetime: soon"}} =
+             xrpc_error(conn, "app.bsky.feed.searchPosts", %{"q" => "", "since" => "soon"})
+  end
+
   # ------------------------------------------------------------ custom feeds
 
   test "getFeed calls the generator with a service JWT; getFeedGenerator(s), getActorFeeds, getListFeed",
