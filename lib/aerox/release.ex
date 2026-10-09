@@ -49,6 +49,39 @@ defmodule Aerox.Release do
     raise "PLC import: #{length(failed)} DIDs failed validation; nothing was written"
   end
 
+  @doc """
+  Queues an AppView backfill for every repo `url` lists
+  (`com.atproto.sync.listRepos`: a PDS or a relay). The AppView indexes a
+  repo it has never seen only when a new commit arrives (DESIGN §13.4 point
+  2), so after an import or a first start this is what fills it. The running
+  node's `backfill` queue does the work; this only inserts the jobs.
+  """
+  def backfill_appview(url) do
+    Application.ensure_all_started(:req)
+    Application.load(@app)
+
+    {:ok, _, _} =
+      Ecto.Migrator.with_repo(Aerox.AppView.Repo, fn _ ->
+        oban =
+          Keyword.merge(Application.fetch_env!(:aerox, Oban.Core), queues: false, plugins: false)
+
+        {:ok, _} = Oban.start_link(oban)
+        dids = list_repos(String.trim_trailing(url, "/"), nil, [])
+        jobs = Enum.map(dids, &Aerox.AppView.Backfill.new(%{"did" => &1}))
+        Oban.insert_all(Aerox.Core.Oban, jobs)
+        IO.puts("AppView backfill: #{length(jobs)} repos queued from #{url}")
+      end)
+
+    :ok
+  end
+
+  defp list_repos(url, cursor, acc) do
+    params = [limit: 1000] ++ if(cursor, do: [cursor: cursor], else: [])
+    body = Req.get!(url <> "/xrpc/com.atproto.sync.listRepos", params: params).body
+    acc = acc ++ Enum.map(body["repos"], & &1["did"])
+    if body["cursor"] && body["repos"] != [], do: list_repos(url, body["cursor"], acc), else: acc
+  end
+
   def rollback(repo, version) do
     Application.load(@app)
     {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :down, to: version))
