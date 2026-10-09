@@ -147,3 +147,5 @@ config :aerox, Aerox.Jetstream,
   data_dir: "tmp/jetstream-test",
   workers: false,
   import_token: "jetstream-import-token"
+
+config :aerox, Aerox.PLC.Import, plug: {Req.Test, Aerox.PLC.Import}

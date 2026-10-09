@@ -97,6 +97,13 @@ commit on top, CAR served (`RESTORE OK`). Two things the drill found: a
 two full stacks on one Postgres exceed the default 100 connections — budget
 `pool_size` × repos + one per sequencer + Oban per instance.
 
+A PLC directory moves with `Aerox.PLC.Import` (`mix aerox.plc.import --from
+<url|file>`, or `bin/aerox eval 'Aerox.Release.import_plc("<url>")'`): it
+pages through the source's `/export`, validates every DID's log, and writes
+the rows verbatim — `cid`, `createdAt`, `nullified` — in the source's order,
+all or nothing. It only reads the source and never signs or submits an
+operation; rerunning it adds what the source has gained since.
+
 The per-account logical backup is the bundle (`mix aerox.bundle.export`,
 DESIGN §13.0); it is the only format users can take elsewhere.
 

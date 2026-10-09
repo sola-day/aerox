@@ -26,6 +26,26 @@ defmodule Aerox.Release do
     end
   end
 
+  @doc "`Aerox.PLC.Import` from a directory URL or an export file; raises when any DID fails."
+  def import_plc(source) do
+    Application.ensure_all_started(:req)
+    Application.load(@app)
+
+    {:ok, _, _} =
+      Ecto.Migrator.with_repo(Aerox.PLC.Repo, fn _ ->
+        case source |> Aerox.PLC.Import.read!() |> Aerox.PLC.Import.run() do
+          {:ok, %{dids: dids, added: added}} ->
+            IO.puts("PLC import: #{dids} DIDs, #{added} operations added")
+
+          {:error, failed} ->
+            for {did, reason} <- failed, do: IO.puts(:stderr, "FAIL #{did}: #{inspect(reason)}")
+            raise "PLC import: #{length(failed)} DIDs failed validation; nothing was written"
+        end
+      end)
+
+    :ok
+  end
+
   def rollback(repo, version) do
     Application.load(@app)
     {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :down, to: version))
