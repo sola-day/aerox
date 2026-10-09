@@ -71,7 +71,9 @@ instance-wide with no per-operator identity: the PDS (`PDS_ADMIN_PASSWORD`,
 optional — unset means only the moderation service's JWT reaches
 `com.atproto.admin.*`), the relay (`RELAY_ADMIN_PASSWORD`, required, for
 `admin.subscribeHost`, `setHostStatus`, `setHostAccountLimit`, `banDomain`) and
-the labeler (`LABELER_ADMIN_PASSWORD`, required, for `aerox.moderation.*`).
+the labeler (`LABELER_ADMIN_PASSWORD`, required, for `aerox.moderation.*`). The labeler's own account is
+created once with `PORT=<free port> bin/aerox eval 'Aerox.Release.setup_labeler("<handle>", "<password>")'`
+(the release form of `mix aerox.labeler.setup`); export the DID it prints as `LABELER_DID`.
 They authorise every action of their service, so they belong in
 `/etc/aerox/<env>.env` (`0600`) like any other secret and are rotated the same
 way. The aero client's `/admin` and `/moderation` consoles ask for them per tab

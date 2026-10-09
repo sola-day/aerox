@@ -6,7 +6,7 @@ defmodule Aerox.Release do
   """
   use Boundary,
     top_level?: true,
-    deps: [Aerox.PDS, Aerox.PLC, Aerox.Relay, Aerox.AppView, Aerox.Labeler]
+    deps: [Aerox.PDS, Aerox.PLC, Aerox.Relay, Aerox.AppView, Aerox.Labeler, Aerox.Labeler.Setup]
 
   alias Aerox.PLC.Import
 
@@ -73,6 +73,19 @@ defmodule Aerox.Release do
       end)
 
     :ok
+  end
+
+  @doc """
+  `mix aerox.labeler.setup` for a release: creates (or completes) the
+  labeler's account on this PDS and prints its DID — export it as
+  `LABELER_DID`. Signup and the DID-document update need the whole stack, so
+  this boots the application; run it with `PORT` set to a free port beside a
+  live node.
+  """
+  def setup_labeler(handle, password) do
+    {:ok, _} = Application.ensure_all_started(@app)
+    result = Aerox.Labeler.Setup.ensure_account!(handle: handle, password: password)
+    IO.puts("labeler #{if result.created?, do: "created", else: "ready"}: #{result.did}")
   end
 
   defp list_repos(url, cursor, acc) do
