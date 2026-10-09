@@ -20,16 +20,19 @@ RUN mix local.hex --force && mix local.rebar --force
 # --------------------------------------------------------------------- tool
 FROM base AS tool
 ENV MIX_ENV=tool
+# config/dev.exs (which tool.exs imports) refuses to load without its keys;
+# placeholders for compiling only — the container gets the real ones at run time
+ARG CONFIG_PLACEHOLDERS="AEROX_SECRET_KEY_BASE=x AEROX_OAUTH_KEY_HEX=x AEROX_PDS_ADMIN_PASSWORD=x AEROX_PLC_ROTATION_KEY_HEX=x AEROX_RELAY_ADMIN_PASSWORD=x AEROX_APPVIEW_SIGNING_KEY_HEX=x AEROX_LABELER_ADMIN_PASSWORD=x"
 COPY mix.exs mix.lock ./
 RUN --mount=type=cache,target=/root/.hex,sharing=locked \
     --mount=type=cache,target=/root/.cache/rebar3,sharing=locked \
     mix deps.get
 COPY config config
-RUN mix deps.compile
+RUN env $CONFIG_PLACEHOLDERS mix deps.compile
 COPY priv priv
 COPY lib lib
 COPY lib_tool lib_tool
-RUN mix compile
+RUN env $CONFIG_PLACEHOLDERS mix compile
 ENTRYPOINT ["mix"]
 
 # ------------------------------------------------------------------ release
