@@ -22,6 +22,7 @@ defmodule Aerox.AppView.Plugins.Post do
   def insert(uri, cid, record, indexed_at) do
     creator = uri_did(uri)
     created = created_at(record["createdAt"])
+    facets = facets(record)
 
     attrs = %{
       uri: uri,
@@ -34,6 +35,8 @@ defmodule Aerox.AppView.Plugins.Post do
       reply_parent_cid: cid_string(get_in(record, ["reply", "parent", "cid"])),
       langs: non_empty(record["langs"]),
       tags: non_empty(record["tags"]),
+      hashtags: hashtags(record, facets),
+      mentions: non_empty(Enum.uniq(for {:mention, did} <- facets, do: did)),
       created_at: created,
       indexed_at: indexed_at
     }
@@ -53,7 +56,6 @@ defmodule Aerox.AppView.Plugins.Post do
         })
 
         post = if record["reply"], do: validate_reply(post, record["reply"]), else: post
-        facets = facets(record)
         {post, embeds} = index_embeds(post, record, created, indexed_at)
         threadgate = ThreadGates.gate_record(post.reply_root || post.uri)
 
@@ -75,6 +77,14 @@ defmodule Aerox.AppView.Plugins.Post do
 
   defp non_empty(list) when is_list(list) and list != [], do: Enum.filter(list, &is_binary/1)
   defp non_empty(_), do: nil
+
+  # searchPosts' `tag` filter: "based on rich-text facet or tag field"
+  defp hashtags(record, facets) do
+    (List.wrap(non_empty(record["tags"])) ++ for({:tag, tag} <- facets, do: tag))
+    |> Enum.map(&String.downcase/1)
+    |> Enum.uniq()
+    |> non_empty()
+  end
 
   defp validate_reply(post, reply) do
     root_uri = get_in(reply, ["root", "uri"])
@@ -152,6 +162,11 @@ defmodule Aerox.AppView.Plugins.Post do
     do: {:mention, did}
 
   defp facet_feature(%{"$type" => "app.bsky.richtext.facet#link", "uri" => uri}), do: {:link, uri}
+
+  defp facet_feature(%{"$type" => "app.bsky.richtext.facet#tag", "tag" => tag})
+       when is_binary(tag),
+       do: {:tag, tag}
+
   defp facet_feature(_), do: nil
 
   # ------------------------------------------------------------------ embeds

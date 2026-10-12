@@ -28,7 +28,8 @@ to the address the proxy dials: the default binds every interface, and on a host
 with no packet filter that publishes the plaintext port beside the proxy, which
 also makes `TRUSTED_PROXIES` moot because clients reach Phoenix directly. One release
 serves every hostname: `AeroxWeb.Dispatch` routes by `Host` to the PDS+PLC
-router, the Relay, the AppView, the Labeler or Jetstream. Hostnames default to
+router, the Relay, the AppView, the Labeler or Jetstream; `AEROX_SERVICES` (e.g.
+`pds,plc,relay,appview`) limits which run. Hostnames default to
 `<service>.<PHX_HOST>` and can be overridden with `PLC_HOST`, `RELAY_HOST`,
 `APPVIEW_HOST`, `LABELER_HOST`, `JETSTREAM_HOST`.
 
@@ -46,7 +47,10 @@ that answers `GET /key` and `POST /sign` behind a bearer secret) or `kms`
 (`Aerox.Crypto.Signer.Kms`, an AWS KMS `ECC_SECG_P256K1` key, compatible with
 upstream's `@atproto/aws` keypair). `Aerox.PDS.Config.signer/0` refuses
 `Signer.Local` when `config :aerox, :env` is `:prod`, so a dev key cannot be
-promoted by accident. The offline recovery key (`RECOVERY_DID_KEY`) is only ever
+promoted by accident. A staging deployment may set `SIGNER=local` with
+`SIGNER_PRIVATE_KEY_HEX`, only together with `AEROX_DEPLOYMENT=staging`, which marks
+the node `:staging`; the key then lives in the node's environment, so it must never
+be one that rotates a production DID. The offline recovery key (`RECOVERY_DID_KEY`) is only ever
 a public `did:key` on the server.
 
 **Dev secrets are not in the repo either.** `config/dev.exs` reads its keys and
@@ -67,7 +71,9 @@ instance-wide with no per-operator identity: the PDS (`PDS_ADMIN_PASSWORD`,
 optional — unset means only the moderation service's JWT reaches
 `com.atproto.admin.*`), the relay (`RELAY_ADMIN_PASSWORD`, required, for
 `admin.subscribeHost`, `setHostStatus`, `setHostAccountLimit`, `banDomain`) and
-the labeler (`LABELER_ADMIN_PASSWORD`, required, for `aerox.moderation.*`).
+the labeler (`LABELER_ADMIN_PASSWORD`, required, for `aerox.moderation.*`). The labeler's own account is
+created once with `PORT=<free port> bin/aerox eval 'Aerox.Release.setup_labeler("<handle>", "<password>")'`
+(the release form of `mix aerox.labeler.setup`); export the DID it prints as `LABELER_DID`.
 They authorise every action of their service, so they belong in
 `/etc/aerox/<env>.env` (`0600`) like any other secret and are rotated the same
 way. The aero client's `/admin` and `/moderation` consoles ask for them per tab
@@ -96,6 +102,13 @@ commit on top, CAR served (`RESTORE OK`). Two things the drill found: a
 (the schemas are role-owned), so ownership is now dumped and restored; and
 two full stacks on one Postgres exceed the default 100 connections — budget
 `pool_size` × repos + one per sequencer + Oban per instance.
+
+A PLC directory moves with `Aerox.PLC.Import` (`mix aerox.plc.import --from
+<url|file>`, or `bin/aerox eval 'Aerox.Release.import_plc("<url>")'`): it
+pages through the source's `/export`, validates every DID's log, and writes
+the rows verbatim — `cid`, `createdAt`, `nullified` — in the source's order,
+all or nothing. It only reads the source and never signs or submits an
+operation; rerunning it adds what the source has gained since.
 
 The per-account logical backup is the bundle (`mix aerox.bundle.export`,
 DESIGN §13.0); it is the only format users can take elsewhere.

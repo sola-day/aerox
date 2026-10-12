@@ -443,23 +443,86 @@ defmodule Aerox.AppView.Feeds do
 
   @doc """
   Postgres substring search on `post.text` (DESIGN §15.8: `pg_trgm` ILIKE, so
-  CJK runs match as substrings). The cursor is a numeric offset, as upstream's
-  `searchPosts` cursor. Returns `%{uris, cursor, hits_total}`.
+  CJK runs match as substrings), narrowed by the lexicon's filters: `author`
+  and `mentions` (DIDs), `tags` (all must match, lower-cased), `lang`, and the
+  `since` (inclusive) / `until` (exclusive) bounds on `sortAt`; aerox's own
+  `replies: false` (top-level posts only) and `takedowns` (`:exclude`, the
+  default, `:include` or `:only`). Takedowns are filtered here rather than at
+  view time so `hits_total` and page sizes stay right. An empty `q`
+  matches every post, newest first. The cursor is a numeric offset, as
+  upstream's `searchPosts` cursor. Returns `%{uris, cursor, hits_total}`.
   """
-  @spec search_posts(String.t(), String.t() | nil, pos_integer, String.t() | nil) ::
+  @type post_filters :: %{
+          optional(:author) => String.t() | nil,
+          optional(:mentions) => String.t() | nil,
+          optional(:tags) => [String.t()],
+          optional(:lang) => String.t() | nil,
+          optional(:since) => DateTime.t() | nil,
+          optional(:until) => DateTime.t() | nil,
+          optional(:replies) => boolean,
+          optional(:takedowns) => :exclude | :include | :only
+        }
+  @spec search_posts(String.t(), post_filters, pos_integer, String.t() | nil) ::
           {:ok, %{uris: [String.t()], cursor: String.t() | nil, hits_total: non_neg_integer}}
           | {:error, :malformed_cursor}
-  def search_posts(q, author_did, limit, cursor) do
+  def search_posts(q, filters, limit, cursor) do
     with {:ok, offset} <- parse_offset(cursor),
-         do: {:ok, do_search_posts(q, author_did, limit, offset)}
+         do: {:ok, do_search_posts(q, filters, limit, offset)}
   end
 
-  defp do_search_posts(q, author_did, limit, offset) do
-    pattern = "%" <> escape_like(String.trim(q)) <> "%"
+  defp do_search_posts(q, filters, limit, offset) do
+    filters = Map.put_new(filters, :takedowns, :exclude)
 
     base =
-      from(p in S.Post, where: ilike(p.text, ^pattern))
-      |> then(&if(author_did, do: where(&1, [p], p.creator == ^author_did), else: &1))
+      Enum.reduce(filters, text_query(String.trim(q)), fn
+        {_, nil}, query ->
+          query
+
+        {:tags, []}, query ->
+          query
+
+        {:replies, true}, query ->
+          query
+
+        {:replies, false}, query ->
+          where(query, [p], is_nil(p.reply_parent))
+
+        {:takedowns, :include}, query ->
+          query
+
+        {:takedowns, :exclude}, query ->
+          where(
+            query,
+            [p],
+            p.uri not in subquery(taken_down_uris()) and
+              p.creator not in subquery(taken_down_dids())
+          )
+
+        {:takedowns, :only}, query ->
+          where(
+            query,
+            [p],
+            p.uri in subquery(taken_down_uris()) or p.creator in subquery(taken_down_dids())
+          )
+
+        {:author, did}, query ->
+          where(query, [p], p.creator == ^did)
+
+        {:mentions, did}, query ->
+          where(query, [p], ^did in p.mentions)
+
+        {:tags, tags}, query ->
+          where(query, [p], fragment("? @> ?", p.hashtags, ^tags))
+
+        {:lang, lang}, query ->
+          where(query, [p], ^lang in p.langs)
+
+        {:since, at}, query ->
+          where(query, [p], p.sort_at >= ^at)
+
+        {:until, at}, query ->
+          where(query, [p], p.sort_at < ^at)
+      end)
 
     total = Repo.aggregate(base, :count)
 
@@ -479,6 +542,26 @@ defmodule Aerox.AppView.Feeds do
       hits_total: total
     }
   end
+
+  @doc "The given post URIs that are taken down, by record or by their author's account."
+  @spec taken_down([String.t()]) :: MapSet.t(String.t())
+  def taken_down(uris) do
+    from(p in S.Post,
+      where:
+        p.uri in ^uris and
+          (p.uri in subquery(taken_down_uris()) or p.creator in subquery(taken_down_dids())),
+      select: p.uri
+    )
+    |> Repo.all()
+    |> MapSet.new()
+  end
+
+  # the record itself, or its author's whole account
+  defp taken_down_uris, do: from(r in S.Record, where: not is_nil(r.takedown_ref), select: r.uri)
+  defp taken_down_dids, do: from(a in S.Actor, where: not is_nil(a.takedown_ref), select: a.did)
+
+  defp text_query(""), do: S.Post
+  defp text_query(q), do: where(S.Post, [p], ilike(p.text, ^("%" <> escape_like(q) <> "%")))
 
   defp parse_offset(nil), do: {:ok, 0}
 

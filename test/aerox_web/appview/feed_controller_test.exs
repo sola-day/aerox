@@ -626,6 +626,98 @@ defmodule AeroxWeb.AppView.FeedControllerTest do
     assert xrpc!(conn, "app.bsky.feed.searchPosts", %{"q" => "%"})["posts"] == []
   end
 
+  test "searchPosts: empty q lists every post; tag, mentions, lang, since/until filters", ctx do
+    %{conn: conn, alice: alice, bob: bob} = ctx
+    tag = &%{"index" => %{"byteStart" => 0, "byteEnd" => 1}, "features" => [&1]}
+
+    a1 =
+      make_post(alice.did, "#活动 #Tea", 100, %{
+        "langs" => ["zh"],
+        "facets" => [
+          tag.(%{"$type" => "app.bsky.richtext.facet#tag", "tag" => "活动"}),
+          tag.(%{"$type" => "app.bsky.richtext.facet#tag", "tag" => "Tea"})
+        ]
+      })
+
+    a2 = make_post(alice.did, "tagged by field", 200, %{"tags" => ["活动"], "langs" => ["en"]})
+
+    a3 =
+      make_post(alice.did, "hi @bob", 300, %{
+        "facets" => [tag.(%{"$type" => "app.bsky.richtext.facet#mention", "did" => bob.did})]
+      })
+
+    write!(alice.did, [a1, a2, a3])
+
+    search =
+      &Enum.map(xrpc!(conn, "app.bsky.feed.searchPosts", &1)["posts"], fn p -> p["uri"] end)
+
+    assert search.([{"q", ""}]) == [a3.uri, a2.uri, a1.uri]
+    # facet or tag field; case-insensitive; a leading # is tolerated; several tags AND
+    assert search.([{"q", ""}, {"tag", "活动"}]) == [a2.uri, a1.uri]
+    assert search.([{"q", ""}, {"tag", "#tea"}]) == [a1.uri]
+    assert search.([{"q", ""}, {"tag", "活动"}, {"tag", "tea"}]) == [a1.uri]
+    assert search.([{"q", "field"}, {"tag", "活动"}]) == [a2.uri]
+    assert search.([{"q", ""}, {"mentions", bob.handle}]) == [a3.uri]
+    assert search.([{"q", ""}, {"lang", "zh"}]) == [a1.uri]
+    # since inclusive, until exclusive, on sortAt; a bare date is accepted
+    assert search.([{"q", ""}, {"since", at(150)}, {"until", at(250)}]) == [a2.uri]
+    assert search.([{"q", ""}, {"until", "2000-01-01"}]) == []
+
+    assert {400, %{"message" => "Invalid datetime: soon"}} =
+             xrpc_error(conn, "app.bsky.feed.searchPosts", %{"q" => "", "since" => "soon"})
+  end
+
+  test "aerox.feed.listPosts: top-level posts only; takedowns are out of pages and hitsTotal",
+       ctx do
+    %{conn: conn, alice: alice, bob: bob} = ctx
+    a1 = make_post(alice.did, "first", 100, %{"tags" => ["活动"]})
+    a2 = make_post(alice.did, "second", 200)
+    write!(alice.did, [a1, a2])
+    write!(bob.did, [reply(bob.did, "a reply", 300, a1, a1)])
+
+    list = &xrpc!(conn, "aerox.feed.listPosts", &1)
+    uris = &Enum.map(&1["posts"], fn p -> p["uri"] end)
+
+    assert %{"hitsTotal" => 2} = body = list.([])
+    assert uris.(body) == [a2.uri, a1.uri]
+    assert uris.(list.([{"tag", "活动"}])) == [a1.uri]
+    assert uris.(list.([{"q", "sec"}, {"author", alice.handle}])) == [a2.uri]
+    assert xrpc!(conn, "app.bsky.feed.searchPosts", %{"q" => ""})["hitsTotal"] == 3
+
+    Aerox.AppView.Moderation.set_record_takedown(a2.uri, "mod_event:1")
+
+    assert %{"hitsTotal" => 1} = page = list.([{"limit", 1}])
+    assert uris.(page) == [a1.uri]
+    refute page["cursor"]
+    assert xrpc!(conn, "app.bsky.feed.searchPosts", %{"q" => ""})["hitsTotal"] == 2
+
+    # the admin's view on the labeler host keeps them, flagged
+    labeler = %{conn | host: Aerox.Labeler.Config.hostname()}
+    assert labeler |> get("/xrpc/aerox.moderation.queryPosts") |> json_response(401)
+
+    query = fn params ->
+      labeler
+      |> put_req_header(
+        "authorization",
+        "Basic " <> Base.encode64("admin:admin-for-tests-labeler")
+      )
+      |> get("/xrpc/aerox.moderation.queryPosts?" <> URI.encode_query(params))
+      |> json_response(200)
+      |> tap(
+        &assert(
+          {:ok, _} =
+            Lexicon.validate_output(Lexicon.default_registry(), "aerox.moderation.queryPosts", &1)
+        )
+      )
+    end
+
+    flags = &Enum.map(&1["posts"], fn p -> {p["post"]["uri"], p["takenDown"]} end)
+    assert %{"hitsTotal" => 2} = body = query.([])
+    assert flags.(body) == [{a2.uri, true}, {a1.uri, false}]
+    assert flags.(query.([{"takenDown", "true"}])) == [{a2.uri, true}]
+    assert flags.(query.([{"takenDown", "false"}])) == [{a1.uri, false}]
+  end
+
   # ------------------------------------------------------------ custom feeds
 
   test "getFeed calls the generator with a service JWT; getFeedGenerator(s), getActorFeeds, getListFeed",

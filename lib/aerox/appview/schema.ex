@@ -91,6 +91,8 @@ defmodule Aerox.AppView.Schema.Post do
     field :reply_parent_cid, :string
     field :langs, {:array, :string}
     field :tags, {:array, :string}
+    field :hashtags, {:array, :string}
+    field :mentions, {:array, :string}
     field :invalid_reply_root, :boolean
     field :violates_thread_gate, :boolean
     field :violates_embedding_rules, :boolean

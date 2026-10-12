@@ -56,6 +56,8 @@ defmodule Aerox.Blob.Store do
   @callback has_stored?(did, cid, opts) :: boolean
   @callback get(did, cid, opts) :: {:ok, binary} | {:error, :not_found | term}
   @callback stream(did, cid, opts) :: {:ok, Enumerable.t()} | {:error, :not_found | term}
+  # A temp object the row still points at: readable before a record commits it.
+  @callback stream_temp(did, key, opts) :: {:ok, Enumerable.t()} | {:error, :not_found | term}
   # Takedown without deletion, and its reverse.
   @callback quarantine(did, cid, opts) :: :ok | {:error, term}
   @callback unquarantine(did, cid, opts) :: :ok | {:error, term}
@@ -130,6 +132,12 @@ defmodule Aerox.Blob.Store do
 
   @spec stream(adapter, did, cid) :: {:ok, Enumerable.t()} | {:error, :not_found | term}
   def stream({mod, opts}, did, cid), do: mod.stream(did, cid, opts)
+
+  @spec stream_temp(did, key) :: {:ok, Enumerable.t()} | {:error, :not_found | term}
+  def stream_temp(did, key), do: stream_temp(adapter(), did, key)
+
+  @spec stream_temp(adapter, did, key) :: {:ok, Enumerable.t()} | {:error, :not_found | term}
+  def stream_temp({mod, opts}, did, key), do: mod.stream_temp(did, key, opts)
 
   @spec quarantine(did, cid) :: :ok | {:error, term}
   def quarantine(did, cid), do: quarantine(adapter(), did, cid)

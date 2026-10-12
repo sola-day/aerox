@@ -40,6 +40,18 @@ if config_env() == :dev do
 end
 
 if config_env() == :prod do
+  # DESIGN §2: which services this node runs, e.g. AEROX_SERVICES=pds,plc,relay,appview
+  if services = System.get_env("AEROX_SERVICES") do
+    known = Map.new(~w(pds plc relay appview labeler jetstream)a, &{Atom.to_string(&1), &1})
+
+    config :aerox,
+           :services,
+           for(
+             s <- String.split(services, ","),
+             do: known[String.trim(s)] || raise("unknown service #{s}")
+           )
+  end
+
   # One URL per repo (DESIGN §4.6): the PDS database and the core database may
   # live on different servers, and nothing may assume otherwise.
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
@@ -132,8 +144,17 @@ if config_env() == :prod do
           secret: need.("SIGNER_SECRET")
         ]
 
+      # A staging deployment only: the key is held in this process, which
+      # Signer.check_config!/2 refuses under :prod (DESIGN §14.2).
+      "local" ->
+        if System.get_env("AEROX_DEPLOYMENT") != "staging",
+          do: raise("SIGNER=local needs AEROX_DEPLOYMENT=staging")
+
+        config :aerox, env: :staging
+        [adapter: Aerox.Crypto.Signer.Local, private_key_hex: need.("SIGNER_PRIVATE_KEY_HEX")]
+
       other ->
-        raise "SIGNER must be kms or remote, got #{inspect(other)}"
+        raise "SIGNER must be kms, remote or (staging) local, got #{inspect(other)}"
     end
 
   config :aerox, Aerox.Crypto.Signer, signer_config

@@ -138,6 +138,21 @@ defmodule Aerox.Blob.StoreCase do
           assert {:error, :not_found} = Store.stream(store, did, CID.for_raw("absent"))
         end
 
+        test "stream_temp serves the object until a record commits it", context do
+          %{store: store, did: did} = store_and_did(context)
+          bytes = blob_bytes(128)
+          cid = CID.for_raw(bytes)
+
+          assert {:ok, key} = Store.put_temp(store, did, bytes)
+          assert {:ok, stream} = Store.stream_temp(store, did, key)
+          assert IO.iodata_to_binary(Enum.to_list(stream)) == bytes
+          assert {:error, :not_found} = Store.stream_temp(store, did, "no-such-key")
+
+          assert :ok = Store.make_permanent(store, did, key, cid)
+          assert {:error, :not_found} = Store.stream_temp(store, did, key)
+          assert {:ok, ^bytes} = Store.get(store, did, cid)
+        end
+
         test "quarantine hides an object; unquarantine restores it", context do
           %{store: store, did: did} = store_and_did(context)
           bytes = blob_bytes(128)

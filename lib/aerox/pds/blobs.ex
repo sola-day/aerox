@@ -157,12 +157,27 @@ defmodule Aerox.PDS.Blobs do
 
     with %{takedown_ref: nil} = row <-
            Repo.one(from(b in Blob, where: b.did == ^did and b.cid == ^cid_str)),
-         {:ok, stream} <- Store.stream(did, cid) do
+         {:ok, stream} <- stream_blob(did, row, cid) do
       {:ok, %{size: row.size, mime_type: row.mime_type, stream: stream}}
     else
       _ -> {:error, :not_found}
     end
   end
+
+  # A blob no record references yet is still in the temp half of the
+  # two-phase write — the record is what promotes it. Reading has to reach it
+  # there, or `com.atproto.sync.getBlob` answers BlobNotFound for an image the
+  # author uploaded seconds ago. The pre-publish content check reads through
+  # exactly that window, so without this every image post comes back
+  # "moderation unavailable".
+  defp stream_blob(did, %{temp_key: key}, cid) when is_binary(key) do
+    case Store.stream(did, cid) do
+      {:error, :not_found} -> Store.stream_temp(did, key)
+      other -> other
+    end
+  end
+
+  defp stream_blob(did, _row, cid), do: Store.stream(did, cid)
 
   @doc "`listBlobs`: referenced blob CIDs, ordered, with `since:` (repo rev) and `cursor:`."
   @spec list(String.t(), keyword) :: [String.t()]
