@@ -111,6 +111,17 @@ defmodule Aerox.Blob.Disk do
   end
 
   @impl true
+  def stream_temp(did, key, opts) do
+    path = temp_path(opts, did, key)
+
+    if File.regular?(path) do
+      {:ok, File.stream!(path, @chunk)}
+    else
+      {:error, :not_found}
+    end
+  end
+
+  @impl true
   def quarantine(did, cid, opts),
     do: move(blob_path(opts, did, cid), quarantine_path(opts, did, cid))
 
