@@ -1,0 +1,21 @@
+LICENSE
+  s_aef130248f1bc9::t_dc2fc5080f7f69 1-202
+README.md
+  s_aef130248f1bc9::t_ea637556aeeefc 1,3,5-9,11-14,16-133,136-164,166-173,176-199,201-307,309,311-316,318,320-323,325,327
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "96702cf3538521d094a5ae4d176f35fc0cdb4b1b",
+  "prompts": {},
+  "sessions": {
+    "s_aef130248f1bc9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12fdb-5eb5-7d01-b5cf-03faf7bc12a1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
