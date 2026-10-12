@@ -1,0 +1,28 @@
+lib/aerox/blob/store.ex
+  s_8c80ad8d2af680::t_0c4d89565fd4b0 59-60,136-140
+  s_8c80ad8d2af680::t_0924c9aa2972d9 141
+lib/aerox/pds/blobs.ex
+  s_8c80ad8d2af680::t_0c4d89565fd4b0 160,167-180
+  s_8c80ad8d2af680::t_5e7a0ff6520d52 181
+test/support/blob_store_case.ex
+  s_8c80ad8d2af680::t_0c4d89565fd4b0 141-155
+lib/aerox/blob/disk.ex
+  s_8c80ad8d2af680::t_0c4d89565fd4b0 114-123
+  s_8c80ad8d2af680::t_fad0f76df30aa8 113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c18dfa056b2ad2500dfeb0fd05e1015399ab857b",
+  "prompts": {},
+  "sessions": {
+    "s_8c80ad8d2af680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e1cacbb5-9264-4c9e-8d1e-0245a530ded4",
+        "model": "mimo-v2.6-flash"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
