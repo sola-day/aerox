@@ -1,0 +1,27 @@
+config/runtime.exs
+  s_8c80ad8d2af680::t_ad1b0fd0b453e0 147-151,153-154,156-166
+test/crypto/signer_test.exs
+  s_8c80ad8d2af680::t_ba59d6c6911c05 12-17
+ops/aerox.env.example
+  s_8c80ad8d2af680::t_af2739bb185271 29-30,37-42
+docs/OPS.md
+  s_8c80ad8d2af680::t_7ea264d86f992b 56-63
+lib/aerox/crypto/signer.ex
+  s_8c80ad8d2af680::t_c4d8c18a64e7ee 30-37,40-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "03825ba7e9e0e78d31750cd6b3d669bb38e6c811",
+  "prompts": {},
+  "sessions": {
+    "s_8c80ad8d2af680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e1cacbb5-9264-4c9e-8d1e-0245a530ded4",
+        "model": "deepseek/deepseek-v4.1-flash"
+      },
+      "human_author": "jiangplus <jiang.plus.times@gmail.com>"
+    }
+  }
+}
