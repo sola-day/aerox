@@ -53,6 +53,14 @@ the node `:staging`; the key then lives in the node's environment, so it must ne
 be one that rotates a production DID. The offline recovery key (`RECOVERY_DID_KEY`) is only ever
 a public `did:key` on the server.
 
+An operator who decides to hold the rotation key in the serving process **in
+production anyway** — no separate signer host, no KMS — sets
+`AEROX_ALLOW_LOCAL_SIGNER=1` alongside `SIGNER=local` and `SIGNER_PRIVATE_KEY_HEX`.
+That is an explicit, searchable override of §14.2: it is carried in the signer
+config as `allow_in_prod`, and `env` deliberately stays `:prod`, so nothing else
+that reads `:env` starts behaving like staging. What it costs is real: a compromise
+of the PDS process then hands over the key that controls every DID on the node.
+
 **Dev secrets are not in the repo either.** `config/dev.exs` reads its keys and
 admin passwords from the environment, or from `tmp/dev.env`, which
 `tools/dev/devserver.sh` generates on first run (`.gitignore` keeps both out).

@@ -27,11 +27,21 @@ defmodule Aerox.Crypto.Signer do
     {mod, mod.init(config)}
   end
 
-  @doc "Raises when a production node is configured with the Local signer."
+  @doc """
+  Raises when a production node is configured with the Local signer.
+
+  `allow_in_prod: true` is the one way past this, and it exists so an operator
+  who decides to hold the rotation key in this process anyway
+  (`AEROX_ALLOW_LOCAL_SIGNER=1`) says so outright — rather than the node
+  claiming to be staging, which would make every other `:env` reader lie.
+  """
   @spec check_config!(keyword, atom) :: :ok
   def check_config!(config, env) do
-    if env == :prod and Keyword.get(config, :adapter) == __MODULE__.Local do
-      raise ArgumentError, "Aerox.Crypto.Signer.Local is not allowed in production (DESIGN §14.2)"
+    if env == :prod and Keyword.get(config, :adapter) == __MODULE__.Local and
+         not Keyword.get(config, :allow_in_prod, false) do
+      raise ArgumentError,
+            "Aerox.Crypto.Signer.Local is not allowed in production " <>
+              "(DESIGN §14.2); set AEROX_ALLOW_LOCAL_SIGNER=1 to override that decision"
     end
 
     :ok

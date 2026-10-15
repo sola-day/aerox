@@ -9,6 +9,12 @@ defmodule Aerox.Crypto.SignerTest do
     assert :ok = Signer.check_config!([adapter: Signer.Remote], :prod)
   end
 
+  test "Local is allowed in production only when the operator says so outright" do
+    assert :ok = Signer.check_config!([adapter: Signer.Local, allow_in_prod: true], :prod)
+    assert :ok = Signer.check_config!([adapter: Signer.Local], :staging)
+    assert :ok = Signer.check_config!([adapter: Signer.Local, allow_in_prod: true], :staging)
+  end
+
   test "Remote: pins the did:key at init, signs through the service, refuses forged signatures" do
     kp = Crypto.generate(:k256)
     bypass = Bypass.open()

@@ -144,14 +144,26 @@ if config_env() == :prod do
           secret: need.("SIGNER_SECRET")
         ]
 
-      # A staging deployment only: the key is held in this process, which
-      # Signer.check_config!/2 refuses under :prod (DESIGN §14.2).
+      # The key is held in this process, which `Signer.check_config!/2` refuses
+      # under :prod (DESIGN §14.2). Two ways past that: this really is a
+      # staging deployment, or a production operator overrides the decision
+      # outright with `AEROX_ALLOW_LOCAL_SIGNER=1` — in which case `env` stays
+      # `:prod`, so nothing else that reads it gets told a lie.
       "local" ->
-        if System.get_env("AEROX_DEPLOYMENT") != "staging",
-          do: raise("SIGNER=local needs AEROX_DEPLOYMENT=staging")
+        staging? = System.get_env("AEROX_DEPLOYMENT") == "staging"
+        allow_in_prod? = System.get_env("AEROX_ALLOW_LOCAL_SIGNER") in ~w(true 1)
 
-        config :aerox, env: :staging
-        [adapter: Aerox.Crypto.Signer.Local, private_key_hex: need.("SIGNER_PRIVATE_KEY_HEX")]
+        if not (staging? or allow_in_prod?) do
+          raise "SIGNER=local needs AEROX_DEPLOYMENT=staging or AEROX_ALLOW_LOCAL_SIGNER=1"
+        end
+
+        if staging?, do: config(:aerox, env: :staging)
+
+        [
+          adapter: Aerox.Crypto.Signer.Local,
+          private_key_hex: need.("SIGNER_PRIVATE_KEY_HEX"),
+          allow_in_prod: allow_in_prod?
+        ]
 
       other ->
         raise "SIGNER must be kms, remote or (staging) local, got #{inspect(other)}"
